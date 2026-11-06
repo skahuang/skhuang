@@ -263,19 +263,19 @@ const left = new THREE.Group(); scene.add(left);
 const rightPanels = new THREE.Group(); right.add(rightPanels);
 const pw = RIGHT_W / 3;
 ["p4.jpg", "p5.jpg", "p6.jpg"].forEach((f, i) => {
-  const b = board("tex/" + f + "?v=3", pw - 0.002, PANEL_H);
+  const b = board("tex/" + f + "?v=4", pw - 0.002, PANEL_H);
   b.position.set(pw * i + pw / 2, CAB_H + PANEL_H / 2, BOARD_Z); rightPanels.add(b);
 });
 const leftPanels = new THREE.Group(); left.add(leftPanels);
 const lw = LEFT_W / 2;
 ["p3.jpg", "p2.jpg"].forEach((f, i) => {
-  const b = board("tex/" + f + "?v=3", lw - 0.002, PANEL_H);
+  const b = board("tex/" + f + "?v=4", lw - 0.002, PANEL_H);
   b.position.set(-(lw * i + lw / 2), CAB_H + PANEL_H / 2, BOARD_Z); leftPanels.add(b);
 });
 // panel 1: floor-standing slanted board past the end of the left cabinet, hinged at its right edge
 const p1Pivot = new THREE.Group(); left.add(p1Pivot);
 p1Pivot.position.set(-LEFT_W, 0, BOARD_Z);
-const p1 = board("tex/p1.png?v=3", P1_W, P1_H, true);
+const p1 = board("tex/p1.png?v=4", P1_W, P1_H, true);
 p1.position.set(-P1_W / 2, P1_H / 2, 0); p1Pivot.add(p1);
 
 let rightCab, leftCab;
