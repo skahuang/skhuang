@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>秧悅美地展區 3D</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700&family=Noto+Sans+TC:wght@400;500&display=swap">
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px}
+/* Layout: full-bleed 3D stage, floating spec card + control strip over it */
+:root{
+  --bg:#ecebe6; --panel:rgba(252,250,246,.92); --fg:#2f2a33; --muted:#6f6876;
+  --accent:#4a2f4f; --line:rgba(47,42,51,.14); --chip:#f3efe8;
+  --display:"Noto Serif TC","Songti TC",serif;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1d1b20; --panel:rgba(36,33,40,.92); --fg:#efeaf1; --muted:#a8a0ad;
+  --accent:#c9a6cf; --line:rgba(239,234,241,.14); --chip:#2c2931; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1d1b20; --panel:rgba(36,33,40,.92); --fg:#efeaf1; --muted:#a8a0ad;
+  --accent:#c9a6cf; --line:rgba(239,234,241,.14); --chip:#2c2931; color-scheme:dark}
+html,body{height:100%}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);overflow:hidden}
+#stage{position:fixed;inset:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+.card{position:fixed;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+#info{top:calc(12px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));
+  padding:12px 14px;max-width:min(300px,calc(100vw - 32px))}
+#info h1{font-family:var(--display);font-size:17px;margin:0 0 4px;text-wrap:balance;letter-spacing:.04em}
+#info p{margin:0;color:var(--muted);font-size:12px;line-height:1.6}
+#info dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:8px 0 0;font-size:12px;font-variant-numeric:tabular-nums}
+#info dt{color:var(--muted)} #info dd{margin:0}
+#ctl{left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));
+  padding:10px 12px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:center;
+  width:max-content;max-width:calc(100vw - 32px)}
+.grp{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.lbl{font-size:12px;color:var(--muted);letter-spacing:.06em}
+button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--chip);color:var(--fg);
+  padding:5px 10px;border-radius:6px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button[aria-pressed="true"]{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input[type=range]{width:110px;accent-color:var(--accent)}
+select{font:inherit;font-size:13px;background:var(--chip);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+output{font-size:12px;min-width:3.2em;font-variant-numeric:tabular-nums}
+#hint{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));
+  font-size:12px;color:var(--muted);padding:6px 10px}
+#loading{position:fixed;inset:0;display:grid;place-items:center;color:var(--muted);font-size:14px;pointer-events:none}
+@media (max-width:640px){#hint{display:none} #info dl{display:none} input[type=range]{width:90px}}
+</style>
+
+</head>
+<body>
+<div id="stage"></div>
+<div id="loading">載入展板圖片中…</div>
+
+<section id="info" class="card">
+  <h1>秧悅美地 × 慈濟 展區</h1>
+  <p>外轉角 L 型牆邊櫃：上方木紋檯面、下方白色櫃體。正面立展板 1–3，側面立展板 4–6，兩段櫃體在轉角處留缺口。</p>
+  <dl>
+    <dt>櫃高</dt><dd>90 cm（檯面厚 4 cm）</dd>
+    <dt>櫃深</dt><dd>50 cm</dd>
+    <dt>正面 展板 2–3</dt><dd>100 × 150 cm</dd>
+    <dt>側面 展板 4–6</dt><dd>301 × 150 cm</dd>
+    <dt>展板 1</dt><dd>約 144 × 240 cm（落地、左側斜切，與 2–3 同平面）</dd>
+  </dl>
+</section>
+
+<div id="hint" class="card">拖曳旋轉 · 滾輪縮放 · 右鍵平移</div>
+
+<section id="ctl" class="card" aria-label="檢視控制">
+  <div class="grp" role="group" aria-label="視角">
+    <span class="lbl">視角</span>
+    <button id="v-iso" data-view="iso" aria-pressed="true">等角</button>
+    <button id="v-front" data-view="front">正面</button>
+    <button id="v-side" data-view="side">側面</button>
+    <button id="v-top" data-view="top">俯視</button>
+  </div>
+  <div class="grp">
+    <label class="lbl" for="ang">轉角夾角</label>
+    <input id="ang" type="range" min="90" max="180" step="1" value="90">
+    <output id="ang-o">90°</output>
+  </div>
+  <div class="grp">
+    <label class="lbl" for="tilt">展板1 外展</label>
+    <input id="tilt" type="range" min="0" max="45" step="1" value="0">
+    <output id="tilt-o">0°</output>
+  </div>
+  <div class="grp">
+    <label class="lbl" for="wood">木紋</label>
+    <select id="wood">
+      <option value="oak">淺橡木</option>
+      <option value="walnut">胡桃木</option>
+      <option value="teak">柚木</option>
+    </select>
+    <button id="spin" aria-pressed="false">自動旋轉</button>
+  </div>
+</section>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+}}
+</script>
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+// ---- dimensions (meters) ----
+const CAB_H = 0.90, TOP_T = 0.04, DEPTH = 0.50, PLINTH = 0.08, KICK = 0.04;
+const PANEL_H = 1.50, BOARD_T = 0.012;
+const RIGHT_W = PANEL_H * 2000 / 997;          // panels 4–6 total width
+const LEFT_W  = PANEL_H * 1333 / 2000;         // panels 2–3 total width
+const RIGHT_CAB = RIGHT_W, LEFT_CAB = LEFT_W;
+const P1_H = CAB_H + PANEL_H, P1_W = P1_H * 1200 / 2000;
+const BOARD_Z = BOARD_T / 2;
+
+const stage = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.05;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 100);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.495;
+controls.minDistance = 1.2; controls.maxDistance = 14;
+
+function themeColors() {
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches && document.documentElement.dataset.theme !== "light"
+            || document.documentElement.dataset.theme === "dark";
+  return dark ? { bg: 0x1d1b20, floor: 0x2a272d, grid: 0x3a3640 } : { bg: 0xecebe6, floor: 0xe2e0da, grid: 0xcfccc4 };
+}
+let tc = themeColors();
+scene.background = new THREE.Color(tc.bg);
+
+// ---- lights ----
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb8b2a8, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 2.0);
+sun.position.set(-3.5, 6, 4.5);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 1, far: 22 });
+sun.shadow.bias = -0.0005; sun.shadow.normalBias = 0.02;
+scene.add(sun);
+const fill = new THREE.DirectionalLight(0xfff4e8, 0.6);
+fill.position.set(4, 3, 5); scene.add(fill);
+
+// ---- floor ----
+const floorMat = new THREE.MeshStandardMaterial({ color: tc.floor, roughness: 0.95 });
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), floorMat);
+floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; scene.add(floor);
+const grid = new THREE.GridHelper(30, 60, tc.grid, tc.grid);
+grid.position.y = 0.001; grid.material.transparent = true; grid.material.opacity = 0.5; scene.add(grid);
+
+// ---- procedural wood texture ----
+const WOODS = {
+  oak:    { base: "#c9a27a", dark: "#a47b54", light: "#dcbb94" },
+  walnut: { base: "#6e4b33", dark: "#4b301f", light: "#8a6346" },
+  teak:   { base: "#a8703f", dark: "#7c4f2a", light: "#c48a55" },
+};
+function woodTexture(kind) {
+  const w = WOODS[kind], c = document.createElement("canvas");
+  c.width = 1024; c.height = 256;
+  const g = c.getContext("2d");
+  g.fillStyle = w.base; g.fillRect(0, 0, c.width, c.height);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 140; i++) {
+    const y0 = rnd() * c.height, amp = 2 + rnd() * 6, freq = 0.004 + rnd() * 0.01, ph = rnd() * 6.28;
+    g.strokeStyle = rnd() > 0.5 ? w.dark : w.light;
+    g.globalAlpha = 0.12 + rnd() * 0.25; g.lineWidth = 0.6 + rnd() * 2.2;
+    g.beginPath();
+    for (let x = 0; x <= c.width; x += 8) {
+      const y = y0 + Math.sin(x * freq + ph) * amp + Math.sin(x * freq * 3.1 + ph) * amp * 0.3;
+      x ? g.lineTo(x, y) : g.moveTo(x, y);
+    }
+    g.stroke();
+  }
+  for (let i = 0; i < 5; i++) { // knots
+    const x = rnd() * c.width, y = rnd() * c.height, r = 6 + rnd() * 10;
+    g.globalAlpha = 0.25; g.fillStyle = w.dark;
+    g.beginPath(); g.ellipse(x, y, r * 2.2, r, 0, 0, 6.28); g.fill();
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(0.8, 2.4);
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+const woodMat = new THREE.MeshStandardMaterial({ map: woodTexture("oak"), roughness: 0.55 });
+const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf7f6f2, roughness: 0.6 });
+const kickMat = new THREE.MeshStandardMaterial({ color: 0xdedbd4, roughness: 0.8 });
+const seamMat = new THREE.MeshBasicMaterial({ color: 0xbdb8ae });
+const boardBackMat = new THREE.MeshStandardMaterial({ color: 0xf2f0ec, roughness: 0.9 });
+
+// Cabinet footprint in local frame: runs along +x (dir=+1) or -x (dir=-1) from the corner, depth toward +z.
+// Outside corner: each run ends square at the corner line, leaving the notch shown in the drawing.
+function prism(pts, y0, h, mat) {
+  const s = new THREE.Shape(pts.map(([x, z]) => new THREE.Vector2(x, -z)));
+  const geo = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false });
+  geo.rotateX(-Math.PI / 2); geo.translate(0, y0, 0);
+  const m = new THREE.Mesh(geo, mat); m.castShadow = m.receiveShadow = true; return m;
+}
+function cabinet(len, dir) {
+  const g = new THREE.Group();
+  const foot = (d, inset = 0) => [[dir * inset, 0], [dir * (len - inset), 0], [dir * (len - inset), d], [dir * inset, d]];
+  g.add(prism(foot(DEPTH - KICK, 0.03), 0, PLINTH, kickMat));
+  g.add(prism(foot(DEPTH), PLINTH, CAB_H - TOP_T - PLINTH, whiteMat));
+  g.add(prism(foot(DEPTH + 0.015), CAB_H - TOP_T, TOP_T, woodMat));
+  const doors = Math.max(1, Math.round(len / 0.6)), step = len / doors, hSeam = CAB_H - TOP_T - PLINTH - 0.01;
+  for (let i = 1; i < doors; i++) {
+    const s = new THREE.Mesh(new THREE.BoxGeometry(0.004, hSeam, 0.002), seamMat);
+    s.position.set(dir * i * step, PLINTH + hSeam / 2, DEPTH + 0.001); g.add(s);
+  }
+  return g;
+}
+
+// ---- panels ----
+const loader = new THREE.TextureLoader();
+let pending = 0;
+const loadTex = (url) => { pending++; return loader.load(url, (t) => { if (--pending === 0) done(); }, undefined, () => { if (--pending === 0) done(); }); };
+function done() { document.getElementById("loading").hidden = true; }
+function board(url, w, h, transparent = false) {
+  const tex = loadTex(url);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  const g = new THREE.Group();
+  const faceMat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75, transparent, alphaTest: transparent ? 0.5 : 0 });
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(w, h), faceMat);
+  face.position.z = BOARD_T / 2 + 0.0005; face.castShadow = face.receiveShadow = true;
+  g.add(face);
+  if (transparent) {
+    const back = new THREE.Mesh(new THREE.PlaneGeometry(w, h),
+      new THREE.MeshStandardMaterial({ map: tex, color: 0xf2f0ec, roughness: 0.9, alphaTest: 0.5, side: THREE.BackSide }));
+    back.position.z = -BOARD_T / 2; g.add(back);
+    face.customDepthMaterial = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: tex, alphaTest: 0.5 });
+  } else {
+    const core = new THREE.Mesh(new THREE.BoxGeometry(w, h, BOARD_T), boardBackMat);
+    core.castShadow = true; core.receiveShadow = true; g.add(core);
+  }
+  return g;
+}
+
+// right run (panels 4–6) along +x
+const right = new THREE.Group(); scene.add(right);
+// left run (panels 1–3) pivots at the corner
+const left = new THREE.Group(); scene.add(left);
+
+const rightPanels = new THREE.Group(); right.add(rightPanels);
+const pw = RIGHT_W / 3;
+["p4.jpg", "p5.jpg", "p6.jpg"].forEach((f, i) => {
+  const b = board("tex/" + f + "?v=2", pw - 0.002, PANEL_H);
+  b.position.set(pw * i + pw / 2, CAB_H + PANEL_H / 2, BOARD_Z); rightPanels.add(b);
+});
+const leftPanels = new THREE.Group(); left.add(leftPanels);
+const lw = LEFT_W / 2;
+["p3.jpg", "p2.jpg"].forEach((f, i) => {
+  const b = board("tex/" + f + "?v=2", lw - 0.002, PANEL_H);
+  b.position.set(-(lw * i + lw / 2), CAB_H + PANEL_H / 2, BOARD_Z); leftPanels.add(b);
+});
+// panel 1: floor-standing slanted board past the end of the left cabinet, hinged at its right edge
+const p1Pivot = new THREE.Group(); left.add(p1Pivot);
+p1Pivot.position.set(-LEFT_W, 0, BOARD_Z);
+const p1 = board("tex/p1.png?v=2", P1_W, P1_H, true);
+p1.position.set(-P1_W / 2, P1_H / 2, 0); p1Pivot.add(p1);
+
+let rightCab, leftCab;
+// corner filler closes the seam between the two board edges on the outside corner
+const filler = new THREE.Mesh(new THREE.BoxGeometry(1, PANEL_H, BOARD_T), boardBackMat);
+filler.castShadow = true; right.add(filler);
+function build(angleDeg) {
+  // angleDeg = angle between the two panel walls measured behind them (90° = square outside corner)
+  const a = THREE.MathUtils.degToRad(angleDeg);
+  if (rightCab) right.remove(rightCab);
+  if (leftCab) left.remove(leftCab);
+  rightCab = cabinet(RIGHT_CAB, +1); right.add(rightCab);
+  leftCab = cabinet(LEFT_CAB, -1); left.add(leftCab);
+  left.rotation.y = a - Math.PI;
+  const e = Math.abs(Math.cos(a / 2)) < 1e-3 ? 0 : BOARD_T / Math.tan(a / 2);
+  filler.visible = e > 1e-4;
+  filler.scale.x = Math.max(e, 1e-4);
+  filler.position.set(-e / 2, CAB_H + PANEL_H / 2, BOARD_Z);
+}
+build(90);
+
+// ---- camera views ----
+const VIEWS = {
+  iso:   { pos: [-4.6, 3.0, 4.8],  target: [0.4, 1.1, -0.8] },
+  front: { pos: [-6.6, 1.5, -1.0], target: [0, 1.25, -1.0] },
+  side:  { pos: [1.5, 1.5, 6.6],   target: [1.5, 1.25, 0] },
+  top:   { pos: [0.4, 9.0, 0.8],   target: [0.4, 0, -0.6] },
+};
+let tween = null;
+function setView(name, instant = false) {
+  const v = VIEWS[name];
+  document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.view === name));
+  const p1 = new THREE.Vector3(...v.pos), t1 = new THREE.Vector3(...v.target);
+  if (instant || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    camera.position.copy(p1); controls.target.copy(t1); controls.update(); return;
+  }
+  tween = { p0: camera.position.clone(), t0: controls.target.clone(), p1, t1, start: performance.now(), dur: 700 };
+}
+document.querySelectorAll("[data-view]").forEach((b) => b.addEventListener("click", () => setView(b.dataset.view)));
+controls.addEventListener("start", () => { tween = null; document.querySelectorAll("[data-view]").forEach((b) => b.setAttribute("aria-pressed", "false")); });
+
+// ---- controls ----
+const ang = document.getElementById("ang"), angO = document.getElementById("ang-o");
+ang.addEventListener("input", () => { angO.textContent = ang.value + "°"; build(+ang.value); });
+const tilt = document.getElementById("tilt"), tiltO = document.getElementById("tilt-o");
+const applyTilt = () => { tiltO.textContent = tilt.value + "°"; p1Pivot.rotation.y = -THREE.MathUtils.degToRad(+tilt.value); };
+tilt.addEventListener("input", applyTilt); applyTilt();
+document.getElementById("wood").addEventListener("change", (e) => {
+  woodMat.map.dispose(); woodMat.map = woodTexture(e.target.value); woodMat.needsUpdate = true;
+});
+const spin = document.getElementById("spin");
+spin.addEventListener("click", () => {
+  controls.autoRotate = !controls.autoRotate; controls.autoRotateSpeed = 1.2;
+  spin.setAttribute("aria-pressed", controls.autoRotate);
+});
+
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
+  tc = themeColors(); scene.background.set(tc.bg); floorMat.color.set(tc.floor);
+});
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h;
+  camera.fov = w < 640 ? 55 : 40; camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize); resize();
+setView("iso", true);
+
+renderer.setAnimationLoop((now) => {
+  if (tween) {
+    const k = Math.min(1, (now - tween.start) / tween.dur), e = k < .5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+    camera.position.lerpVectors(tween.p0, tween.p1, e);
+    controls.target.lerpVectors(tween.t0, tween.t1, e);
+    if (k >= 1) tween = null;
+  }
+  controls.update();
+  renderer.render(scene, camera);
+});
+</script>
+
+</body>
+</html>
