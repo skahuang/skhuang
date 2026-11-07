@@ -109,19 +109,19 @@ SHOTS = [
     ("S04_run_climb",     8.5, 12.0, 35, (-0.09, -0.11, 1.14),   (0.02, -0.03, 1.165),   (0.08, 0.10, 1.12),   (0.10, 0.12, 1.18)),
     ("S05_pile_topdown", 12.0, 15.0, 35, (0.15, 0.02, 1.58),     (0.12, 0.06, 1.52),     (0.10, 0.14, 1.10),   (0.10, 0.14, 1.12)),
     # ---- Act 2: false rescue (15-32 s)
-    ("S06_light_above",  15.0, 18.0, 14, (0.10, 0.03, 1.16),     (0.10, 0.035, 1.158),   (0.105, 0.13, 1.29),  (0.105, 0.13, 1.30)),
+    ("S06_light_above",  15.0, 18.0, 28, (0.112, 0.058, 1.168),  (0.110, 0.061, 1.170),  (0.10, 0.099, 1.192), (0.10, 0.099, 1.196)),
     ("S07_claw_descends",18.0, 22.0, 35, (0.32, -0.16, 1.42),    (0.30, -0.15, 1.38),    (0.10, 0.14, 1.30),   (0.10, 0.14, 1.24)),
     ("S08_grip_lift",    22.0, 26.0, 35, (0.28, -0.20, 1.34),    (0.30, -0.22, 1.47),    (0.10, 0.14, 1.20),   (0.10, 0.14, 1.42)),
-    ("S09_false_hope",   26.0, 30.0, 50, (0.04, -0.12, 1.30),    (0.05, -0.10, 1.33),    (0.10, 0.14, 1.52),   (0.10, 0.14, 1.56)),
+    ("S09_false_hope",   26.0, 30.0, 50, (0.016, -0.105, 0.080), (0.013, -0.098, 0.088), (0.0, -0.041, 0.087), (0.0, -0.041, 0.090)),  # local to TOWER_ROOT
     ("S10_slip",         30.0, 32.0, 35, (0.00, -0.08, 1.66),    (0.01, -0.07, 1.65),    (0.10, 0.14, 1.48),   (0.10, 0.14, 1.48)),
     # ---- Act 3: fall, pinned, pull-back (32-45 s) — the tower stays in the claw, only Rin falls
     ("S11_fall",         32.0, 35.0, 35, (0.28, -0.22, 1.42),    (0.20, -0.15, 1.20),    (0.10, 0.10, 1.40),   (0.03, 0.00, 1.11)),
     ("S12_impact",       35.0, 36.0, 50, (0.065, -0.05, 1.106),  (0.065, -0.05, 1.106),  (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
-    ("S13a_pinned",      36.0, 39.0, 50, (0.036, -0.036, 1.106), (0.033, -0.031, 1.106), (0.02, 0.0, 1.109),   (0.02, 0.0, 1.109)),
+    ("S13a_pinned",      36.0, 39.0, 50, (0.034, -0.034, 1.109), (0.031, -0.030, 1.108), (0.02, 0.0, 1.105),   (0.02, 0.0, 1.105)),
     ("S13b_pinned_face", 39.0, 41.0, 50, (0.02, -0.052, 1.108),  (0.02, -0.046, 1.108),  (0.02, -0.013, 1.108), (0.02, -0.013, 1.108)),
-    ("S14_pullback",     41.0, 45.0, 24, (0.045, -0.06, 1.108),  (0.13, -0.34, 1.22),    (0.02, 0.0, 1.115),   (0.06, 0.08, 1.27)),
+    ("S14_pullback",     41.0, 45.0, 24, (0.034, -0.034, 1.109), (0.14, -0.44, 1.34),    (0.02, 0.0, 1.105),   (0.06, 0.08, 1.38)),
     # ---- Act 4: reveal + loop (45-60 s)
-    ("S15_glass_reveal", 45.0, 51.0, 35, (0.13, -0.34, 1.22),    (-0.45, -2.30, 1.78),   (0.06, 0.08, 1.27),   (0.05, -0.30, 1.20)),
+    ("S15_glass_reveal", 45.0, 51.0, 35, (0.14, -0.44, 1.34),    (-0.45, -2.30, 1.78),   (0.06, 0.08, 1.38),   (0.05, -0.30, 1.20)),
     ("S16_nova_almost",  51.0, 55.0, 85, (0.62, -1.30, 1.56),    (0.60, -1.25, 1.55),    (0.25, -0.85, 1.50),  (0.25, -0.85, 1.50)),
     ("S17a_coin",        55.0, 57.0, 50, (0.58, -0.86, 0.98),    (0.55, -0.80, 0.95),    (0.36, -0.52, 0.86),  (0.36, -0.52, 0.86)),
     ("S17b_reset_loop",  57.0, 60.0, 35, (0.02, -0.04, 1.30),    (-0.085, -0.03, 1.114), (0.0, -0.01, 1.10),   (-0.11, 0.11, 1.124)),
@@ -131,6 +131,10 @@ SHOTS = [
 # --------------------------------------------------------------------------
 # Generic helpers
 # --------------------------------------------------------------------------
+# Shots whose camera + aim ride with a moving object (coordinates above are then local to it)
+SHOT_PARENT = {"S09_false_hope": "TOWER_ROOT"}
+
+
 def coll(name, parent=None):
     c = bpy.data.collections.get(name) or bpy.data.collections.new(name)
     p = parent or bpy.context.scene.collection
@@ -211,7 +215,11 @@ def apply_surface_texture(m, filename, tile, bump):
         nt.links.new(tc.outputs["UV"], tex.inputs["Vector"])
     if m.name == "glass":   # greyscale smudges -> rougher, slightly more visible glass
         tex.image.colorspace_settings.name = "Non-Color"
-        nt.links.new(tex.outputs["Color"], bsdf.inputs["Roughness"])
+        mr = nt.nodes.new("ShaderNodeMapRange")
+        mr.inputs["To Min"].default_value = 0.02
+        mr.inputs["To Max"].default_value = 0.18      # subtle: the reveal must stay readable through the glass
+        nt.links.new(tex.outputs["Color"], mr.inputs["Value"])
+        nt.links.new(mr.outputs["Result"], bsdf.inputs["Roughness"])
         return True
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     if bsdf.inputs["Emission Strength"].default_value > 0:
@@ -815,7 +823,7 @@ def build_characters(C, M, face, tower_root):
     for name, fn, h, dy, col in [
         ("pin_layer_back",  "pin_layer_back.png",  0.034, +0.010, (0.40, 0.30, 0.20)),
         ("pin_layer_rin",   "pin_layer_rin.png",   0.012,  0.000, RIN),
-        ("pin_layer_front", "pin_layer_front.png", 0.024, -0.010, (0.30, 0.45, 0.40)),
+        ("pin_layer_front", "pin_layer_front.png", 0.012, -0.0004, (0.30, 0.45, 0.40)),  # same plane as pin_layer_rin
     ]:
         o = sprite(name, fn, h, (PIN_XY[0], PIN_XY[1] + dy, ROOF_Z), ch, face, col)
         key_visible(o, pin_rng)
@@ -958,6 +966,21 @@ def build_lights(C):
     L.keyframe_insert("energy", frame=f(45.0))
 
 
+def build_rin_fill(C, tower_root):
+    """Soft face light for Rin on the ladder so the 2.3 cm figure reads against the rusty tower."""
+    lt = coll("LIGHTS_DIORAMA", C["root"])
+    L = bpy.data.lights.new("L_rin_fill", "POINT")
+    L.color, L.shadow_soft_size = (1.0, 0.86, 0.75), 0.01
+    o = bpy.data.objects.new(L.name, L)
+    o.parent = tower_root
+    o.location = (-0.03, -0.07, 0.12)    # upper-left, off the lens axis so the acrylic sheen does not flare
+    lt.objects.link(o)
+    for fr, e in ((f(12.0) - 1, 0.0), (f(12.0), 0.12), (f(32.0), 0.12), (f(32.0) + 1, 0.0)):
+        L.energy = e
+        L.keyframe_insert("energy", frame=fr)
+    set_interp(L, "CONSTANT")
+
+
 def build_cameras(C):
     cams = coll("CAMERAS", C["root"])
     scn = bpy.context.scene
@@ -977,6 +1000,8 @@ def build_cameras(C):
         tr.target = aim
         tr.track_axis = "TRACK_NEGATIVE_Z"
         tr.up_axis = "UP_Y"
+        if sid in SHOT_PARENT:
+            cam.parent = aim.parent = bpy.data.objects[SHOT_PARENT[sid]]
         key_loc(cam, f(a), c0)
         key_loc(cam, f(b) - 1, c1)
         key_loc(aim, f(a), t0)
@@ -985,7 +1010,7 @@ def build_cameras(C):
         cd.dof.use_dof = True
         cd.dof.focus_object = aim
         # at 1:60 scale f/1.4 blurs everything; f/2.8-4 still reads as tilt-shift miniature
-        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S12_impact", "S13a_pinned", "S13b_pinned_face", "S17b_reset_loop") else 2.8
+        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S06_light_above", "S12_impact", "S13a_pinned", "S13b_pinned_face", "S17b_reset_loop") else 2.8
         if sid == "S15_glass_reveal":   # rack DOF wider as we exit the glass
             cd.dof.aperture_fstop = 2.0
             cd.keyframe_insert("dof.aperture_fstop", frame=f(a))
@@ -1075,6 +1100,7 @@ def main():
     crowd = build_crowd(C, M, face)
     build_arcade_room(C, M)
     build_lights(C)
+    build_rin_fill(C, tower)
     build_cameras(C)
     animate_story({"tower": tower, "claw": claw, "pivots": pivots, "hinge": hinge, "face": face})
     bpy.context.scene.frame_set(1)
