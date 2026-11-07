@@ -5,7 +5,7 @@
     {
       "id": "S01_door_bang",
       "type": "animation",
-      "description": "Hook: door bulges under three hits, fingers through the gap, rain. Timer 00:32 + text 最後一個倖存者.",
+      "description": "Hook: door bulges under three hits, frame-by-frame zombie fingers squirm through the gap, rain. Timer 00:32 + text 最後一個倖存者.",
       "start_seconds": 0.0,
       "end_seconds": 2.5,
       "shot_language": {
@@ -90,13 +90,13 @@
     {
       "id": "S06_light_above",
       "type": "animation",
-      "description": "POV low angle: white light and a mechanical shadow from above; the 'moon' flickers (clue).",
+      "description": "Over-shoulder from below: Rin flinches at a white light, shields her eyes, stares in awe; the 'moon' flickers (clue).",
       "start_seconds": 15.0,
       "end_seconds": 18.0,
       "shot_language": {
         "shot_size": "wide",
         "camera_movement": "tilt_up",
-        "lens_mm": 24,
+        "lens_mm": 14,
         "lighting_key": "volumetric",
         "depth_of_field": "shallow",
         "color_temperature": "cool"
@@ -207,10 +207,27 @@
       "overlay_notes": "Blender camera CAM_S12_impact"
     },
     {
-      "id": "S13_pinned",
+      "id": "S13a_pinned",
       "type": "animation",
-      "description": "Pinned (ref image 3): cop pulls her hoodie, mechanic grips her hair, tourist pins her arm, tentacles bind arm and ankle. Injuries but no blood; 3-layer frame-by-frame struggle loop. Her eyes strain up at the empty tower.",
+      "description": "Pinned (ref image 3): cop pulls her hoodie, mechanic grips her hair, tourist pins her arm, tentacles bind arm and ankle. Frame-by-frame struggle loop: push up gritting teeth, cry out as hair is yanked, twist and kick, eyes dart up to the empty tower. Injuries, no blood.",
       "start_seconds": 36.0,
+      "end_seconds": 39.0,
+      "shot_language": {
+        "shot_size": "extreme_close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S13a_pinned"
+    },
+    {
+      "id": "S13b_pinned_face",
+      "type": "animation",
+      "description": "Face ECU, expressions from the user's three pinned images: gritted teeth eyes shut -> eyes snap up to the tower -> desperate cry with tears -> defiant glare (holds on last frame).",
+      "start_seconds": 39.0,
       "end_seconds": 41.0,
       "shot_language": {
         "shot_size": "extreme_close_up",
@@ -221,7 +238,7 @@
         "color_temperature": "cool"
       },
       "shot_intent": "climax",
-      "overlay_notes": "Blender camera CAM_S13_pinned"
+      "overlay_notes": "Blender camera CAM_S13b_pinned_face"
     },
     {
       "id": "S14_pullback",

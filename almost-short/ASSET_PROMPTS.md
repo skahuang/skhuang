@@ -3,7 +3,8 @@
 **用法：** 每次生成都**附上參考圖**（你原本的 Rin 設定圖、Rin 六姿勢圖、Nova 設定圖、喪屍設定圖），先貼「風格鎖定」，再貼該素材的提示詞。
 產出的 PNG 用**表格裡的檔名**放進 `assets/sprites/` 或 `assets/textures/`，重跑 Blender 腳本就會自動套用並開始逐格播放。
 
-- ★ = 最優先，先做這 5 組，確認動作和風格
+- ★ = 最優先，先做這 6 組，確認動作和風格
+- **每一個鏡頭都有逐幀動畫**：19 個鏡頭各自對應的組圖，見 README 第 5.3 節的表格
 - **調性：驚悚、有受傷感、不血腥。** 可以有擦傷、瘀青、髒污、撕破的衣服、紅腫的抓痕；**不要有流血、血跡、血滴、傷口特寫**
 - **Rin 維持原本的風格**：你上傳的 RIN 設定圖和六姿勢圖就是標準，不做任何修改
 
@@ -92,10 +93,12 @@ Every cell is the same size, the character is the same size and centred in every
 
 | 檔名 | 鏡頭 | 格數 / 速度 | 動作（每格描述） |
 |---|---|---|---|
+| `door_fingers_sheet.png` | S01 | 3×2 = 6 格・12fps・循環 | `Close-up of 3-4 grey-green zombie FINGERS with cracked dirty nails squirming out of a narrow vertical gap (the door and gap are NOT drawn, only the fingers and part of the back of a hand, entering from the right edge of every cell). Frames 1-6: fingers curl, scrape, stretch out and claw back in, a second hand pushes through. No blood.` |
 | `rin_backing_away_sheet.png` | S02 | 4×2 = 8 格・12fps・循環 | `RIN stumbling BACKWARDS in fear, both boots on. Frames 1-8: a full backwards walk cycle — step back with the left foot, weight shifts, step back with the right foot, arms raised defensively in front of her chest, head turned toward something terrifying on the left, hair bouncing with each step.` |
 | ★ `rin_boot_grab_sheet.png` | S03 | 4×3 = 12 格・12fps・播一次 | `Low angle close to the ground. A grey-green zombie hand (only the hand and wrist, entering from the left edge of every cell) grips RIN's LEFT boot. 1-3: she falls onto her back, panicking. 4-6: she kicks hard with her right foot (like pose 5 of the reference). 7-9: she yanks her leg, the boot slides off and stays in the zombie's hand. 10-12: she scrambles backwards on her hands, now barefoot on the left, reddened scratch marks on her calf (no blood).` |
 | ★ `rin_climb_back_sheet.png` | S04 | 4×2 = 8 格・12fps・循環 | `BACK VIEW climbing a ladder (do NOT draw the ladder). Frames 1-8: a full climb cycle — right hand reaches up, left foot (bare) pushes, left hand reaches up, right foot (boot) pushes; hoodie fringe and hair sway; head occasionally turns so we see her cheek.` |
 | `rin_cling_scared_sheet.png` | S05、S06 | 4×1 = 4 格・12fps・循環 | `RIN clinging tightly to a vertical ladder (ladder not drawn), body pressed forward, knees tucked like pose 4 of the reference. Frames 1-4: trembling — tiny shake of the shoulders, she glances down over her shoulder, eyes wet with tears, then squeezes her eyes shut.` |
+| `rin_look_up_sheet.png` | S06 | 4×2 = 8 格・12fps・播一次 | `RIN clinging to a ladder (ladder not drawn), seen from slightly BELOW. Frames 1-8: a bright white light hits her from above — she flinches (1-2), squints and raises her free hand to shield her eyes (3-5), lowers the hand slowly (6-7), mouth falling open in awe, light reflected in her eyes (8).` |
 | ★ `rin_cling_hope_sheet.png` | S07–S09 | 4×2 = 8 格・8fps・來回 | `RIN holding the ladder with one hand (ladder not drawn), looking UP at a bright light. Frames 1-8: she slowly stretches her free hand upward, chest rising with a deep breath, her face changes from fear to hope to a small relieved smile, light growing in her eyes, hair lifting in the wind.` |
 | `rin_slip_shock_sheet.png` | S10 | 4×2 = 8 格・12fps・播一次 | `RIN on the ladder (not drawn). Frames 1-8: the smile freezes, her hands jolt as the ladder shakes, fingers slide off one by one, the last frame shows both hands open, body tipping backwards, eyes wide in shock.` |
 | `rin_falling_sheet.png` | S11 | 3×2 = 6 格・12fps・循環 | `RIN falling backwards through the air, full figure, no ground, raindrops around her. Frames 1-6: a flailing loop — arms and legs windmill, one hand keeps reaching up toward something above, hair and hoodie fluttering upward, mouth open screaming.` |
@@ -111,9 +114,20 @@ Every cell is the same size, the character is the same size and centred in every
 
 **動作原則：** 喪屍是**抓、拉、壓住**，不咬、不打、不流血。觸手纏手臂和腳踝，**不纏脖子**；外套被扯但**不露出身體**。
 
+**表情要跟你原本的三張壓制圖一致**（生成時一定要附上那三張圖）：
+
+| 原圖 | 表情 | 用在哪幾格 |
+|---|---|---|
+| 圖 3（9:16 貼地特寫） | 臉頰貼地、咬緊牙、眉頭緊皺、眼睛睜大往上斜看，害怕但不放棄 | 中層第 1–3 格、特寫第 4–6 格 |
+| 圖 1（張嘴大叫） | 嘴巴大張哭喊、眉毛上揚、眼眶含淚 | 中層第 4–6 格、特寫第 7–9 格 |
+| 圖 2（咬牙趴地） | 咬牙忍痛、臉被壓著、眼睛斜往上看 | 中層第 10–12 格、特寫第 1–3 格 |
+
+特寫最後停在第 12 格「咬牙瞪著上方」，接 S14 鏡頭拉遠。
+
 | 檔名 | 層 | 格數 / 速度 | 提示詞 |
 |---|---|---|---|
-| ★ `pin_layer_rin_sheet.png` | 中層：倒地的 Rin | 4×2 = 8 格・8fps・來回 | `ONLY RIN (exactly as in the reference sheet), lying on her stomach on the ground like pose 6 of the pose sheet, cheek near the floor, eyes straining UPWARD. Her red hoodie is being pulled back at the shoulder (the hands are NOT drawn). Frames 1-8: she struggles — reaches forward, claws at the ground, twists her shoulders, kicks her bare left foot, grits her teeth, glances up. Scrapes, dirt and wet hair, no blood. Transparent background, no zombies, no floor.` |
+| ★ `pin_layer_rin_sheet.png` | 中層：倒地的 Rin | 4×3 = 12 格・8fps・循環 | `ONLY RIN (exactly as in the reference sheet), lying on her stomach on wet ground like pose 6 of the pose sheet, her red hoodie pulled back at the shoulder and a fist in her hair (the zombie hands are NOT drawn). Use the EXACT facial expressions of the attached pinned images. Frames 1-3: she pushes up on her forearm, teeth gritted, brows knotted, cheek near the floor (like image 3). Frames 4-6: her head is yanked back by the hair, she cries out — mouth wide open, eyebrows shooting up, eyes wet with tears (like image 1). Frames 7-9: she twists her shoulders, claws at the floor with her right hand and kicks her bare left foot. Frames 10-12: she sags, then her eyes dart UP and to the side toward something above while her hand reaches toward the camera (like image 2). Scrapes, dirt and wet hair, no blood. Transparent background, no zombies, no floor.` |
+| ★ `pin_face_closeup_sheet.png` | S13b 臉部大特寫 | 4×3 = 12 格・8fps・播一次（最後停在第 12 格） | `EXTREME CLOSE-UP of RIN's face only (exactly her reference face), cheek pressed against wet tiles, strands of wet black hair across her face, a grey-green zombie hand gripping her hair at the top of every cell and another pressing her shoulder at the side. Copy the emotions of the attached pinned images. Frames 1-3: teeth gritted, eyes squeezed shut, brows knotted in pain, her head jerks as her hair is pulled (image 2). Frames 4-6: eyes snap open wide, pupils dart UP and to the side toward the empty tower above (image 3). Frames 7-9: mouth opens in a desperate cry, eyebrows shoot up, tears well up and spill (image 1). Frames 10-12: jaw clenches again, she glares upward, frightened but defiant, one tear rolls across her nose. Scrapes and dirt on her cheek, no blood. Transparent background except the hands, no floor drawn.` |
 | `pin_layer_back_sheet.png` | 後層：警察 + 黃雨衣 | 3×2 = 6 格・8fps・來回 | `ONLY the two zombies BEHIND her: Z03 the huge police zombie leaning forward, both fists gripping and tugging a red hoodie (the red fabric runs to the bottom edge of the cell), and Z04 the yellow raincoat zombie reaching down, tentacles curling toward the ground. Frames 1-6: Z03 tugs back and forth, Z04's tentacles writhe and coil, both roar. No blood. Transparent background, no girl, no floor.` |
 | `pin_layer_front_sheet.png` | 前層：觀光客 + 工人 | 3×2 = 6 格・8fps・來回 | `ONLY the two zombies IN FRONT, closest to camera: Z02 the teal tourist zombie on the left crouched low, pressing both hands down on something at the bottom edge (an arm, not drawn), and Z01 the orange mechanic zombie on the right pressing down on something at the bottom edge (her head, not drawn). Frames 1-6: they lean and press harder, heads jerk, mouths snap open snarling. No blood. Transparent background, no girl, no floor.` |
 | `pin_keyframe_close.png`（選用） | 單張特寫 | — | 如果拆層對不齊，可以生成一張完整的 9:16 特寫（含背景），合成時當 S13 的插入畫面，再接回 Blender 的 S14 拉遠：`Recreate the attached pinned close-up as a vertical 1080x1920 frame with RIN exactly as in her reference sheet, the same four zombies, rain, wet reflective rooftop tiles. Injuries but NO blood. Clothes tugged but not exposing skin, tentacles wrapped around her arm and ankle, not her neck.` |
@@ -136,7 +150,7 @@ Every cell is the same size, the character is the same size and centred in every
 |---|---|---|
 | `walk` | 4×2 = 8 格・12fps・循環 | `<ZOMBIE> shambling forward. Frames 1-8: a full limping walk cycle — one foot drags, arms half raised and swinging loosely, head lolling side to side, tentacles swaying.` |
 | ★ `reach`（先做 `zombie_z01_mechanic_reach_sheet.png`） | 3×2 = 6 格・8fps・來回 | `<ZOMBIE> standing still with BOTH arms stretched UP toward the sky. Frames 1-6: grasping — fingers open and close, arms stretch higher, head thrown back, jaw snapping, tentacles reaching upward.` |
-| `climb` | 3×2 = 6 格・12fps・循環 | `<ZOMBIE> seen from behind three-quarter, climbing over other bodies (not drawn). Frames 1-6: a climb cycle — one arm hooks high, knee lifts, body heaves up, other arm hooks, tentacles hooking upward.` |
+| `climb`（S05 圍在塔腳往上爬的喪屍會用到） | 3×2 = 6 格・12fps・循環 | `<ZOMBIE> seen from behind three-quarter, climbing over other bodies (not drawn). Frames 1-6: a climb cycle — one arm hooks high, knee lifts, body heaves up, other arm hooks, tentacles hooking upward.` |
 
 ---
 
@@ -185,13 +199,13 @@ Every cell is the same size, the character is the same size and centred in every
 
 | 類別 | 組圖數 | 總格數 |
 |---|---|---|
-| Rin | 9 | 70 |
-| 壓制三層 | 3 | 20 |
+| Rin（含 S01 門縫手指） | 11 | 84 |
+| 壓制三層 + 臉部特寫 | 4 | 36 |
 | 喪屍 | 12 | 80 |
 | Nova | 3 | 28 |
-| **合計** | **27 張組圖** | **約 198 格** |
+| **合計** | **30 張組圖** | **約 228 格** |
 
-建議順序：先做 5 組 ★ → 放進 Blender 看動作 → 確認 OK 再生其他組圖。
+建議順序：先做 6 組 ★ → 放進 Blender 看動作 → 確認 OK 再生其他組圖。
 
 ---
 

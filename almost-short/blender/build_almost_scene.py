@@ -71,12 +71,15 @@ ANIM = {
     "rin_backing_away":    (4, 2, 8, 12, "loop"),      # stumbling backwards
     "rin_boot_grab":       (4, 3, 12, 12, "once"),     # kick, pull, boot slips off, scramble free
     "rin_climb_back":      (4, 2, 8, 12, "loop"),      # ladder climb cycle
+    "door_fingers":        (3, 2, 6, 12, "loop"),      # S01 grey fingers squirming through the door gap
     "rin_cling_scared":    (4, 1, 4, 12, "loop"),      # trembling, glancing down
+    "rin_look_up":         (4, 2, 8, 12, "once"),      # S06 sees the light: squints, shields eyes, awe
     "rin_cling_hope":      (4, 2, 8, 8, "pingpong"),   # reaching up, breathing, hair in the wind
     "rin_slip_shock":      (4, 2, 8, 12, "once"),      # fingers slide off the rung
     "rin_falling":         (3, 2, 6, 12, "loop"),      # flailing fall
     "rin_impact":          (4, 2, 8, 12, "once"),      # land, bounce, push up on one elbow
-    "pin_layer_rin":       (4, 2, 8, 8, "pingpong"),   # struggling under the horde
+    "pin_layer_rin":       (4, 3, 12, 8, "loop"),      # struggle beats: push up / cry out / twist+kick / look up
+    "pin_face_closeup":    (4, 3, 12, 8, "once"),      # S13b face ECU: grit teeth -> eyes to tower -> cry -> defiance
     "pin_layer_back":      (3, 2, 6, 8, "pingpong"),   # pulling the hoodie, tentacles writhing
     "pin_layer_front":     (3, 2, 6, 8, "pingpong"),   # pressing down, snarling
     "rin_reset_lookup":    (4, 2, 8, 12, "once"),      # slowly tilts head up to the lens
@@ -105,7 +108,7 @@ SHOTS = [
     ("S04_run_climb",     8.5, 12.0, 35, (-0.09, -0.11, 1.14),   (0.02, -0.03, 1.165),   (0.08, 0.10, 1.12),   (0.10, 0.12, 1.18)),
     ("S05_pile_topdown", 12.0, 15.0, 35, (0.15, 0.02, 1.58),     (0.12, 0.06, 1.52),     (0.10, 0.14, 1.10),   (0.10, 0.14, 1.12)),
     # ---- Act 2: false rescue (15-32 s)
-    ("S06_light_above",  15.0, 18.0, 24, (0.075, 0.085, 1.205),  (0.075, 0.085, 1.20),   (0.11, 0.17, 1.60),   (0.12, 0.20, 1.70)),
+    ("S06_light_above",  15.0, 18.0, 14, (0.10, 0.03, 1.16),     (0.10, 0.035, 1.158),   (0.105, 0.13, 1.29),  (0.105, 0.13, 1.30)),
     ("S07_claw_descends",18.0, 22.0, 35, (0.32, -0.16, 1.42),    (0.30, -0.15, 1.38),    (0.10, 0.14, 1.30),   (0.10, 0.14, 1.24)),
     ("S08_grip_lift",    22.0, 26.0, 35, (0.28, -0.20, 1.34),    (0.30, -0.22, 1.47),    (0.10, 0.14, 1.20),   (0.10, 0.14, 1.42)),
     ("S09_false_hope",   26.0, 30.0, 50, (0.04, -0.12, 1.30),    (0.05, -0.10, 1.33),    (0.10, 0.14, 1.52),   (0.10, 0.14, 1.56)),
@@ -113,7 +116,8 @@ SHOTS = [
     # ---- Act 3: fall, pinned, pull-back (32-45 s) — the tower stays in the claw, only Rin falls
     ("S11_fall",         32.0, 35.0, 35, (0.28, -0.22, 1.42),    (0.20, -0.15, 1.20),    (0.10, 0.10, 1.40),   (0.03, 0.00, 1.11)),
     ("S12_impact",       35.0, 36.0, 50, (0.065, -0.05, 1.106),  (0.065, -0.05, 1.106),  (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
-    ("S13_pinned",       36.0, 41.0, 50, (0.036, -0.036, 1.106), (0.033, -0.031, 1.106), (0.02, 0.0, 1.109),   (0.02, 0.0, 1.109)),
+    ("S13a_pinned",      36.0, 39.0, 50, (0.036, -0.036, 1.106), (0.033, -0.031, 1.106), (0.02, 0.0, 1.109),   (0.02, 0.0, 1.109)),
+    ("S13b_pinned_face", 39.0, 41.0, 50, (0.02, -0.052, 1.108),  (0.02, -0.046, 1.108),  (0.02, -0.013, 1.108), (0.02, -0.013, 1.108)),
     ("S14_pullback",     41.0, 45.0, 24, (0.045, -0.06, 1.108),  (0.13, -0.34, 1.22),    (0.02, 0.0, 1.115),   (0.06, 0.08, 1.27)),
     # ---- Act 4: reveal + loop (45-60 s)
     ("S15_glass_reveal", 45.0, 51.0, 35, (0.13, -0.34, 1.22),    (-0.45, -2.30, 1.78),   (0.06, 0.08, 1.27),   (0.05, -0.30, 1.20)),
@@ -709,7 +713,8 @@ def build_characters(C, M, face, tower_root):
         ("rin_backing_away",  "rin_backing_away.png",  ["S02_establish"],                 (0.0, -0.03, ROOF_Z), None),
         ("rin_boot_grab",     "rin_boot_grab.png",     ["S03_lost_boot"],                 (0.0, 0.0, ROOF_Z), None),
         ("rin_climb_back",    "rin_climb_back.png",    ["S04_run_climb"],                 (0.0, -0.041, 0.035), tower_root),
-        ("rin_cling_scared",  "rin_cling_scared.png",  ["S05_pile_topdown", "S06_light_above"], (0.0, -0.041, 0.075), tower_root),
+        ("rin_cling_scared",  "rin_cling_scared.png",  ["S05_pile_topdown"],              (0.0, -0.041, 0.075), tower_root),
+        ("rin_look_up",       "rin_look_up.png",       ["S06_light_above"],               (0.0, -0.041, 0.075), tower_root),
         ("rin_cling_hope",    "rin_cling_hope.png",    ["S07_claw_descends", "S08_grip_lift", "S09_false_hope"], (0.0, -0.041, 0.075), tower_root),
         ("rin_slip_shock",    "rin_slip_shock.png",    ["S10_slip"],                      (0.0, -0.041, 0.07), tower_root),
         ("rin_reset_lookup",  "rin_reset_lookup.png",  ["S17b_reset_loop"],               (0.0, -0.01, ROOF_Z), None),
@@ -733,7 +738,8 @@ def build_characters(C, M, face, tower_root):
     key_visible(imp, [shot_rng["S12_impact"]])
     animate_sheet(imp.data.materials[0], [shot_rng["S12_impact"]])
     # PINNED GROUP: three parallax layers (back zombies / Rin / front zombies), visible until the reset
-    pin_rng = [(shot_rng["S13_pinned"][0], R - 1)]
+    # (hidden during the face ECU, where the close-up sheet carries the same struggle at face size)
+    pin_rng = [(shot_rng["S13a_pinned"][0], shot_rng["S13a_pinned"][1]), (shot_rng["S14_pullback"][0], R - 1)]
     for name, fn, h, dy, col in [
         ("pin_layer_back",  "pin_layer_back.png",  0.034, +0.010, (0.40, 0.30, 0.20)),
         ("pin_layer_rin",   "pin_layer_rin.png",   0.012,  0.000, RIN),
@@ -743,6 +749,14 @@ def build_characters(C, M, face, tower_root):
         key_visible(o, pin_rng)
         animate_sheet(o.data.materials[0], pin_rng)
         rin[name] = o
+    face_cu = sprite("pin_face_closeup", "pin_face_closeup.png", 0.017, (PIN_XY[0], PIN_XY[1] - 0.013, ROOF_Z), ch, face, RIN)
+    key_visible(face_cu, [shot_rng["S13b_pinned_face"]])
+    animate_sheet(face_cu.data.materials[0], [shot_rng["S13b_pinned_face"]])
+    # S01: grey fingers squirming out of the gap on the door's free edge
+    fingers = sprite("door_fingers", "door_fingers.png", 0.014,
+                     (DOOR_XY[0] + 0.013, DOOR_XY[1] - 0.004, ROOF_Z + 0.010), ch, face, (0.45, 0.55, 0.45))
+    key_visible(fingers, [shot_rng["S01_door_bang"]])
+    animate_sheet(fingers.data.materials[0], [shot_rng["S01_door_bang"]])
     # tiny lost boot on the rooftop from S03 on (callback in the prize tray)
     bt = box("rin_lost_boot_on_roof", (0.003, 0.005, 0.0035), (0.004, -0.004, ROOF_Z + 0.002), M["boot"], ch)
     key_visible(bt, [(f(6.8), R - 1)])
@@ -750,7 +764,7 @@ def build_characters(C, M, face, tower_root):
     NOVA = (0.55, 0.40, 0.78)
     nova_defs = [
         ("nova_back_joystick", "nova_back_joystick.png", ["S15_glass_reveal"], (NOVA_XY[0], NOVA_XY[1], 0.0), NOVA_H),
-        ("nova_profile_almost","nova_profile_almost.png",["S16_nova_almost"],  (NOVA_XY[0], NOVA_XY[1], 0.0), NOVA_H),
+        ("nova_profile_almost","nova_profile_almost.png",["S16_nova_almost"],  (NOVA_XY[0], NOVA_XY[1], 0.87), 0.75),  # waist-up art
         ("nova_hand_coin",     "nova_hand_coin.png",     ["S17a_coin"],        (0.40, -0.56, 0.80), 0.16),
     ]
     for name, fn, shots, loc, h in nova_defs:
@@ -792,7 +806,7 @@ def build_crowd(C, M, face):
         rad = rnd.uniform(0.04, 0.14) if i > 20 else rnd.uniform(0.03, 0.06)
         gx = max(-0.165, min(0.165, tx + math.cos(ang) * rad - 0.03))
         gy = max(-0.115, min(0.215, ty + math.sin(ang) * rad - 0.05))
-        pose = "reach" if rad < 0.07 else "walk"
+        pose = "climb" if rad < 0.045 else ("reach" if rad < 0.07 else "walk")   # climbers pile up the tower legs
         m, asp = mats[(vname, pose, i % 3)]
         h = ZOMBIE_H * (1.25 if vname == "Z03_cop_brute" else rnd.uniform(0.93, 1.05))
         o = sprite(f"zombie_{i:03d}", None, h, (0, 0, 0), cr, face, (1, 1, 1), aspect=asp, parent=root,
@@ -899,13 +913,13 @@ def build_cameras(C):
         cd.dof.use_dof = True
         cd.dof.focus_object = aim
         # at 1:60 scale f/1.4 blurs everything; f/2.8-4 still reads as tilt-shift miniature
-        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S12_impact", "S13_pinned", "S17b_reset_loop") else 2.8
+        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S12_impact", "S13a_pinned", "S13b_pinned_face", "S17b_reset_loop") else 2.8
         if sid == "S15_glass_reveal":   # rack DOF wider as we exit the glass
             cd.dof.aperture_fstop = 2.0
             cd.keyframe_insert("dof.aperture_fstop", frame=f(a))
             cd.dof.aperture_fstop = 5.6
             cd.keyframe_insert("dof.aperture_fstop", frame=f(b) - 1)
-        if sid in ("S12_impact", "S13_pinned"):    # handheld shake on impact
+        if sid in ("S12_impact", "S13a_pinned", "S13b_pinned_face"):    # handheld shake on impact
             for k in range(0, 10):
                 key_loc(cam, f(a) + k * 2, (c0[0] + random.uniform(-0.002, 0.002), c0[1], c0[2] + random.uniform(-0.002, 0.002)))
         mk = scn.timeline_markers.new(sid, frame=f(a))
