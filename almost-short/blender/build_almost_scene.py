@@ -82,7 +82,7 @@ ANIM = {
     "pin_layer_rin":       (4, 3, 12, 8, "loop"),      # struggle beats: push up / cry out / twist+kick / look up
     "pin_face_closeup":    (4, 3, 12, 8, "once"),      # S13b face ECU: grit teeth -> eyes to tower -> cry -> defiance
     "pin_layer_back":      (3, 2, 6, 8, "pingpong"),   # pulling the hoodie, tentacles writhing
-    "pin_layer_front":     (3, 2, 6, 8, "pingpong"),   # pressing down, snarling
+    "pin_layer_front":     (4, 3, 12, 8, "loop"),      # pressing down; frame-locked to pin_layer_rin (same clock, phase 0)
     "rin_reset_lookup":    (4, 2, 8, 12, "once"),      # slowly tilts head up to the lens
     "nova_back_joystick":  (4, 2, 8, 12, "loop"),      # joystick jiggle, shoulders tense
     "nova_profile_almost": (4, 3, 12, 8, "once"),      # wince, exhale, glance at the chute
@@ -210,6 +210,7 @@ def apply_surface_texture(m, filename, tile, bump):
         tex.extension = "CLIP"
         nt.links.new(tc.outputs["UV"], tex.inputs["Vector"])
     if m.name == "glass":   # greyscale smudges -> rougher, slightly more visible glass
+        tex.image.colorspace_settings.name = "Non-Color"
         nt.links.new(tex.outputs["Color"], bsdf.inputs["Roughness"])
         return True
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
