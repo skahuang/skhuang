@@ -167,20 +167,59 @@ Every cell is the same size, the character is the same size and centred in every
 
 ---
 
-## 7. 背景與貼圖（`assets/textures/`）
+## 7. 背景與材質貼圖（`assets/textures/`）
 
-這些**不用透明背景**，也不用做成逐幀組圖。
+這些**不用透明背景**，也不用做成逐幀組圖。放進 `assets/textures/` 後重跑腳本，**會自動套到場景的材質上**（找不到檔案就維持原本的純色）。
+
+**材質通用風格（每張可平鋪材質的提示詞前都加）：**
+
+```text
+TEXTURE LOCK: square seamless TILEABLE texture (left edge matches right edge, top matches bottom), photographed straight-on,
+orthographic, flat even lighting, NO shadows, NO highlights, NO perspective, NO objects on top, NO text, NO watermark.
+Stylized but realistic surface for a dark, rainy, post-apocalyptic miniature diorama; slightly desaturated, cool blue-grey night palette.
+```
+
+GPT 生成的方圖通常是 1024×1024，直接用就好。橫式或直式的尺寸請在提示詞裡寫比例，生成後再裁切。
+
+### 7.1 印刷背板（整張貼，不平鋪）
+
+| 檔名 | 尺寸 | 套在哪裡 | 提示詞 |
+|---|---|---|---|
+| ★ `tex_backdrop_city_sky.png` | 1024×1024 | 櫃體背板的印刷畫（S06、S09、S14 的天空） | `Flat printed backdrop painting for a miniature diorama: night sky with heavy blue-grey storm clouds, a burning ruined city skyline along the bottom third (dark silhouettes, orange fire glow, a few lit windows). NO MOON (the moon is a real lamp). Painterly matte-painting style, slightly visible print texture, straight-on view, no perspective distortion, fills the entire frame.` |
+| `tex_arcade_bokeh_plate.png` | 1024×1820（9:16） | S15–S16 Nova 身後的遊樂場背景 | `Out-of-focus arcade interior at night, strong magenta, cyan and purple bokeh circles from other machines and neon signs, dark floor, no readable text, no people, vertical composition.` |
+
+### 7.2 機台內的微縮場景（可平鋪，先貼「材質通用風格」）
+
+| 檔名 | 套在哪個材質 → 物件 | 提示詞 |
+|---|---|---|
+| ★ `tex_roof_tiles_wet.png` | `roof_wet` → 屋頂地磚 `roof_tiles` | `Top-down view of small square grey-blue concrete roof tiles in a regular 8 x 8 grid, wet glossy sheen like resin varnish, dark grime in the grout lines, a few hairline cracks, two or three dead leaves, shallow puddle stains.` |
+| ★ `tex_concrete_peel.png` | `concrete` → 主建築 `hero_building`、樓梯間、圍牆 | `Flat-on weathered grey concrete wall with peeling pale paint patches, dark water stains running downward, moss streaks near the bottom, small chips and cracks.` |
+| `tex_city_facade_windows.png` | `concrete_dark` → 遠方城市大樓 `city_*` | `Flat-on facade of a dark abandoned apartment block at night: a regular grid of small windows, most black and broken, a few dimly lit warm orange, soot stains above some windows, dark blue-grey concrete.` |
+| `tex_street_asphalt_wet.png` | `street` → 底座地面 `bed` | `Top-down wet dark asphalt street with faded cracked white lane markings, scattered debris and small puddles reflecting faint orange light.` |
+| ★ `tex_rust_metal.png` | `rust` → 水塔腳、梯子、欄杆、夾爪爪子 | `Riveted steel plate with heavy orange-brown rust streaks, flaking and chipped dark grey paint, small rivets in rows.` |
+| `tex_water_tank_paint.png` | `tank_metal` → 水塔桶身、夾爪中心 | `Curved painted metal of an old rooftop water tank: faded pale grey-green paint, vertical welded seams, rust dripping down from bolts, dirt streaks.` |
+| `tex_metal_scratched.png` | `metal_dull` → 冷氣室外機 `ac_unit_*` | `Dull brushed grey sheet metal with fine scratches, dents, dirt in the corners and a few rust spots, a faint louvred vent pattern.` |
+| `tex_door_green_metal.png`（整張貼，不平鋪） | `door_green` → 樓梯間的門 `shed_door` | `Front view of a dented green metal rooftop door filling the whole frame, chipped paint showing grey metal underneath, scratches, a rusty handle, dirty bottom edge. Portrait 2:3, no frame around it.` |
+
+### 7.3 機台外殼與遊樂場（先貼「材質通用風格」，但把「night blue-grey palette」改成「arcade neon palette」）
+
+| 檔名 | 套在哪個材質 → 物件 | 提示詞 |
+|---|---|---|
+| ★ `tex_cabinet_body.png` | `cab_body` → 機台下半部、頂蓋、旁邊其他機台 | `Glossy dark purple-black plastic arcade cabinet panel with subtle star and lightning-bolt pattern printed in dark magenta, light scuffs and fingerprints, slightly worn edges.` |
+| `tex_marquee_logo.png`（整張貼，不平鋪） | `marquee` → 頂部招牌 `cab_marquee`（會發光） | `Arcade claw machine marquee sign, glowing neon tube lettering "差一點 ALMOST" in magenta and cyan, small pixel-art claw icon, dark purple background, straight-on. Wide banner 16:3.` |
+| `tex_arcade_carpet.png` | `floor` → 遊樂場地板 | `Classic arcade carpet seen from above: black background with bright neon magenta, cyan and yellow squiggles, planets and stars, slightly worn and dusty.` |
+| `tex_arcade_wall.png` | `wall` → 遊樂場後牆 | `Dark purple painted wall with faint vertical panel seams, scuffs, and a soft gradient of magenta neon spill from above.` |
+| `tex_glass_smudge.png`（整張貼，黑白） | `glass` → 機台玻璃（控制粗糙度） | `Greyscale map on a pure BLACK background: faint WHITE fingerprints, palm smudges and dried water spots on glass, denser near the bottom centre where people press against it, mostly black overall.` |
+
+### 7.4 其他（手動貼）
 
 | 檔名 | 尺寸 | 用途 | 提示詞 |
 |---|---|---|---|
-| ★ `tex_backdrop_city_sky.png` | 1024×1024 | 櫃體背板的印刷畫（S06、S09、S14 的天空） | `Flat printed backdrop painting for a miniature diorama: night sky with heavy blue-grey storm clouds, a burning ruined city skyline along the bottom third (dark silhouettes, orange fire glow, a few lit windows). NO MOON (the moon is a real lamp). Painterly matte-painting style, slightly visible print texture, straight-on view, no perspective distortion, fills the entire frame.` |
-| `tex_arcade_bokeh_plate.png` | 1024×1820 | S15–S16 Nova 身後的遊樂場背景 | `Out-of-focus arcade interior at night, strong magenta, cyan and purple bokeh circles from other machines and neon signs, dark floor, no readable text, no people, vertical composition.` |
-| `tex_roof_tiles_wet.png` | 1024×1024 可平鋪 | 屋頂地磚（手動貼在 `roof_tiles`） | `Seamless tileable texture, top-down, small square grey-blue concrete roof tiles, wet glossy sheen like resin varnish, cracks, a few dead leaves, orthographic, even lighting.` |
-| `tex_concrete_peel.png` | 1024×1024 可平鋪 | 建築外牆（手動貼在 `hero_building`、`city_*`） | `Seamless tileable texture, flat-on, weathered grey concrete wall with peeling paint patches, moss streaks and water stains, orthographic, even lighting.` |
-| `tex_rust_metal.png` | 1024×1024 可平鋪 | 水塔、夾爪 | `Seamless tileable texture, riveted steel plate with orange-brown rust streaks and chipped grey paint, orthographic, even lighting.` |
-| `tex_marquee_logo.png` | 2048×360 | 機台頂部招牌 | `Arcade claw machine marquee sign, glowing neon tube lettering "差一點 ALMOST" in magenta and cyan, small pixel-art claw icon, dark purple background, straight-on.` |
 | `tex_cabinet_decals.png` | 1024×1024 | 控制台貼紙（INSERT COIN、1 PLAY） | `Sticker sheet for an arcade claw machine: "INSERT COIN" with arrow, "1 PLAY = 1 TOKEN", "GRAB!" button label, "PRIZE" with down arrow, retro 90s arcade style, each sticker separated on a white background.` |
 | `tex_led_timer.png`（選用） | 512×160 | 揭曉時的 `00:00` 紅色 LED | `Red seven-segment LED display reading "00:00", glowing, black background, straight-on.` |
+
+> **平鋪密度調整：** 如果磚塊或鐵鏽看起來太大或太小，改 `blender/build_almost_scene.py` 裡的 `SURFACE_TEX` 表第二欄（每多少公尺重複一次），數字越小紋理越密。
+> **檢查無縫：** 在 GPT 生成後，把圖排成 2×2 看接縫；有明顯接縫就請 GPT「make the edges wrap seamlessly」重做。
 
 ---
 

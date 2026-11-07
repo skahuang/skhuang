@@ -60,6 +60,7 @@ RESET_S = 57.0
 TIMER_START = 32           # overlay countdown hits 00:00 at 32 s, the moment her grip fails
 
 ASSET_DIR = None  # resolved in main()
+TEX_DIR = None    # resolved in main()
 
 # --------------------------------------------------------------------------
 # 2D frame-by-frame sheets. Each character pose is ONE PNG laid out as a grid
@@ -148,7 +149,7 @@ def link(obj, collection):
 def mat(name, color=(0.5, 0.5, 0.5), rough=0.6, metal=0.0, emit=None, strength=0.0, alpha=1.0):
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.use_nodes = True
-    bsdf = m.node_tree.nodes.get("Principled BSDF")
+    bsdf = node_of_type(m.node_tree, "BSDF_PRINCIPLED")
     bsdf.inputs["Base Color"].default_value = (*color, 1.0)
     bsdf.inputs["Roughness"].default_value = rough
     bsdf.inputs["Metallic"].default_value = metal
@@ -160,6 +161,67 @@ def mat(name, color=(0.5, 0.5, 0.5), rough=0.6, metal=0.0, emit=None, strength=0
         m.surface_render_method = "BLENDED"
     m.diffuse_color = (*color, alpha)
     return m
+
+
+def node_of_type(tree, kind):
+    """Find a node by type, not by name (names are translated in non-English UIs)."""
+    for n in tree.nodes:
+        if n.type == kind:
+            return n
+    return None
+
+
+# Surface textures (assets/textures/). Missing file -> the flat colour from mat() stays.
+#   key: (filename, tile size in metres or None = use the mesh UVs, bump strength)
+SURFACE_TEX = {
+    "roof_wet":      ("tex_roof_tiles_wet.png",       0.04, 0.15),
+    "concrete":      ("tex_concrete_peel.png",        0.06, 0.20),
+    "concrete_dark": ("tex_city_facade_windows.png",  0.08, 0.10),
+    "street":        ("tex_street_asphalt_wet.png",   0.15, 0.15),
+    "rust":          ("tex_rust_metal.png",           0.02, 0.20),
+    "tank_metal":    ("tex_water_tank_paint.png",     0.07, 0.15),
+    "metal_dull":    ("tex_metal_scratched.png",      0.03, 0.10),
+    "door_green":    ("tex_door_green_metal.png",     None, 0.15),
+    "cab_body":      ("tex_cabinet_body.png",         0.50, 0.05),
+    "marquee":       ("tex_marquee_logo.png",         None, 0.00),
+    "floor":         ("tex_arcade_carpet.png",        1.00, 0.05),
+    "wall":          ("tex_arcade_wall.png",          2.00, 0.05),
+    "glass":         ("tex_glass_smudge.png",         None, 0.00),
+}
+
+
+def apply_surface_texture(m, filename, tile, bump):
+    path = os.path.join(TEX_DIR, filename)
+    if not (TEX_DIR and os.path.isfile(path)):
+        return False
+    nt = m.node_tree
+    bsdf = node_of_type(nt, "BSDF_PRINCIPLED")
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(path, check_existing=True)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    if tile:   # tileable: box-project in object space, one repeat every `tile` metres
+        mp = nt.nodes.new("ShaderNodeMapping")
+        mp.inputs["Scale"].default_value = (1 / tile, 1 / tile, 1 / tile)
+        nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
+        nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
+        tex.projection = "BOX"
+        tex.projection_blend = 0.2
+    else:      # whole image on each face (default cube UVs)
+        tex.extension = "CLIP"
+        nt.links.new(tc.outputs["UV"], tex.inputs["Vector"])
+    if m.name == "glass":   # greyscale smudges -> rougher, slightly more visible glass
+        nt.links.new(tex.outputs["Color"], bsdf.inputs["Roughness"])
+        return True
+    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    if bsdf.inputs["Emission Strength"].default_value > 0:
+        nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
+    if bump > 0:
+        bp = nt.nodes.new("ShaderNodeBump")
+        bp.inputs["Strength"].default_value = bump
+        bp.inputs["Distance"].default_value = 0.001
+        nt.links.new(tex.outputs["Color"], bp.inputs["Height"])
+        nt.links.new(bp.outputs["Normal"], bsdf.inputs["Normal"])
+    return True
 
 
 def box(name, size, loc, material, collection, rot=(0, 0, 0)):
@@ -443,8 +505,16 @@ def sprite(name, filename, height, loc, collection, face_target, color, aspect=0
 # Scene construction
 # --------------------------------------------------------------------------
 def reset_scene():
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+    # Wipe data instead of read_factory_settings(): that call also unloads add-ons
+    # (including the Blender MCP server) when the script runs inside a live session.
+    for coll_name in ("objects", "meshes", "materials", "images", "cameras", "lights",
+                      "curves", "collections", "actions", "worlds", "node_groups"):
+        data = getattr(bpy.data, coll_name, None)
+        if data is not None:
+            for block in list(data):
+                data.remove(block)
     scn = bpy.context.scene
+    scn.timeline_markers.clear()
     scn.name = "ALMOST"
     scn.render.resolution_x = RES_X
     scn.render.resolution_y = RES_Y
@@ -467,8 +537,9 @@ def reset_scene():
         pass
     world = bpy.data.worlds.new("W_arcade_dark")
     world.use_nodes = True
-    world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.012, 0.008, 0.02, 1)
-    world.node_tree.nodes["Background"].inputs["Strength"].default_value = 0.4
+    bg = node_of_type(world.node_tree, "BACKGROUND")
+    bg.inputs["Color"].default_value = (0.012, 0.008, 0.02, 1)
+    bg.inputs["Strength"].default_value = 0.4
     scn.world = world
     return scn
 
@@ -929,7 +1000,7 @@ def build_cameras(C):
 
 
 def build_materials():
-    return {
+    M = {
         "cab_body":      mat("cab_body", (0.06, 0.07, 0.10), 0.35, 0.2),
         "cab_trim":      mat("cab_trim", (0.55, 0.58, 0.65), 0.25, 0.8),
         "chrome":        mat("chrome", (0.85, 0.85, 0.9), 0.12, 1.0),
@@ -956,6 +1027,9 @@ def build_materials():
         "floor":         mat("floor", (0.05, 0.04, 0.07), 0.15, 0.1),
         "wall":          mat("wall", (0.03, 0.02, 0.05), 0.6),
     }
+    found = [k for k, (fn, tile, bump) in SURFACE_TEX.items() if apply_surface_texture(M[k], fn, tile, bump)]
+    print(f"surface textures: {len(found)}/{len(SURFACE_TEX)} found", found)
+    return M
 
 
 def render_previews(out_dir, every_shot_frac=0.5):
@@ -978,13 +1052,14 @@ def render_previews(out_dir, every_shot_frac=0.5):
 
 
 def main():
-    global ASSET_DIR
+    global ASSET_DIR, TEX_DIR
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
     out = argv[argv.index("--out") + 1] if "--out" in argv else None
     preview = argv[argv.index("--preview") + 1] if "--preview" in argv else None
     here = os.path.dirname(os.path.abspath(out)) if out else (
         bpy.path.abspath("//") or os.path.dirname(os.path.abspath(__file__)))
     ASSET_DIR = os.path.join(here, "assets", "sprites")
+    TEX_DIR = os.path.join(here, "assets", "textures")
     random.seed(SEED)
 
     reset_scene()
