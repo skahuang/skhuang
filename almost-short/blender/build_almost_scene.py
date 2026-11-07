@@ -180,6 +180,119 @@ def node_of_type(tree, kind):
 # Surface textures (assets/textures/). Missing file -> the flat colour from mat() stays.
 #   key: (filename, tile size in metres or None = use the mesh UVs, bump strength)
 SURFACE_TEX = {
+    "roof_wet":       ("tex_roof_tiles_wet.png",                               0.04, 0.15),
+    "concrete":       ("tex_concrete_peel.png",                                0.06, 0.20),
+    "facade":         (["tex_facade_stained.png", "tex_concrete_peel.png"],    0.08, 0.20),
+    "parapet":        (["tex_parapet_moss.png", "tex_concrete_peel.png"],      0.04, 0.20),
+    "concrete_dark":  (["tex_ruins_facade.png", "tex_city_facade_windows.png"], 0.08, 0.10),
+    "street":         ("tex_street_asphalt_wet.png",                           0.15, 0.15),
+    "rust":           ("tex_rust_metal.png",                                   0.02, 0.20),
+    "tank_metal":     (["tex_tank_galvanized.png", "tex_water_tank_paint.png"], 0.07, 0.15),
+    "metal_dull":     ("tex_metal_scratched.png",                              0.03, 0.10),
+    "chrome":         ("tex_chrome_scratched.png",                             0.05, 0.03),
+    "cable":          ("tex_cable_corrugated.png",                             0.012, 0.30),
+    "door_green":     ("tex_door_green_metal.png",                             None, 0.15),
+    "window_broken":  ("tex_window_broken.png",                                None, 0.10),
+    "window_boarded": ("tex_window_boarded.png",                               None, 0.20),
+    "shutter":        ("tex_shutter_rolling.png",                              None, 0.20),
+    "cab_body":       ("tex_cabinet_body.png",                                 0.50, 0.05),
+    "marquee":        ("tex_marquee_logo.png",                                 None, 0.00),
+    "floor":          ("tex_arcade_carpet.png",                                1.00, 0.05),
+    "wall":           ("tex_arcade_wall.png",                                  2.00, 0.05),
+    "glass":          ("tex_glass_smudge.png",                                 None, 0.00),
+}
+ZOMBIE_ANIM = {
+    "walk":  (4, 2, 8, 12, "loop"),
+    "reach": (3, 2, 6, 8, "pingpong"),
+    "climb": (3, 2, 6, 12, "loop"),
+}
+
+
+def f(sec):
+    """seconds -> frame number (1-based)."""
+    return int(round(sec * FPS)) + 1
+
+
+# Shot list — must match README.md §3. (id, start_s, end_s, lens, cam_from, cam_to, aim_from, aim_to)
+SHOTS = [
+    # ---- Act 1: trapped (0-15 s)
+    ("S01_door_bang",     0.0,  2.5, 50, (-0.085, -0.03, 1.114),  (-0.092, -0.005, 1.116), (-0.11, 0.11, 1.124), (-0.11, 0.11, 1.122)),
+    ("S02_establish",     2.5,  6.0, 35, (0.26, -0.46, 1.56),    (0.18, -0.30, 1.32),    (0.0, 0.05, 1.11),    (0.0, 0.04, 1.11)),
+    ("S03_lost_boot",     6.0,  8.5, 50, (0.03, -0.085, 1.104),  (0.025, -0.075, 1.104), (0.0, 0.0, 1.104),    (0.0, 0.0, 1.104)),
+    ("S04_run_climb",     8.5, 12.0, 35, (-0.09, -0.11, 1.14),   (0.02, -0.03, 1.165),   (0.08, 0.10, 1.12),   (0.10, 0.12, 1.18)),
+    ("S05_pile_topdown", 12.0, 15.0, 35, (0.15, 0.02, 1.58),     (0.12, 0.06, 1.52),     (0.10, 0.14, 1.10),   (0.10, 0.14, 1.12)),
+    # ---- Act 2: false rescue (15-32 s)
+    ("S06_light_above",  15.0, 18.0, 16, (0.108, 0.070, 1.170),  (0.107, 0.071, 1.171),  (0.10, 0.103, 1.215), (0.10, 0.103, 1.220)),
+    ("S07_claw_descends",18.0, 22.0, 35, (0.32, -0.16, 1.42),    (0.30, -0.15, 1.38),    (0.10, 0.14, 1.30),   (0.10, 0.14, 1.24)),
+    ("S08_grip_lift",    22.0, 26.0, 35, (0.28, -0.20, 1.34),    (0.30, -0.22, 1.47),    (0.10, 0.14, 1.20),   (0.10, 0.14, 1.42)),
+    ("S09_false_hope",   26.0, 30.0, 50, (0.016, -0.105, 0.080), (0.013, -0.098, 0.088), (0.0, -0.041, 0.087), (0.0, -0.041, 0.090)),  # local to TOWER_ROOT
+    ("S10_slip",         30.0, 32.0, 35, (0.00, -0.08, 1.66),    (0.01, -0.07, 1.65),    (0.10, 0.14, 1.48),   (0.10, 0.14, 1.48)),
+    # ---- Act 3: fall, pinned, pull-back (32-45 s) — the tower stays in the claw, only Rin falls
+    ("S11_fall",         32.0, 35.0, 35, (0.28, -0.22, 1.42),    (0.20, -0.15, 1.20),    (0.10, 0.10, 1.40),   (0.03, 0.00, 1.11)),
+    ("S12_impact",       35.0, 36.0, 50, (0.065, -0.05, 1.106),  (0.065, -0.05, 1.106),  (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
+    ("S13a_pinned",      36.0, 39.0, 50, (0.034, -0.034, 1.105), (0.031, -0.030, 1.105), (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
+    ("S13b_pinned_face", 39.0, 41.0, 50, (0.02, -0.052, 1.108),  (0.02, -0.046, 1.108),  (0.02, -0.013, 1.108), (0.02, -0.013, 1.108)),
+    ("S14_pullback",     41.0, 45.0, 24, (0.034, -0.034, 1.105), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.08, 0.10, 1.47)),
+    # ---- Act 4: reveal + loop (45-60 s)
+    ("S15_glass_reveal", 45.0, 51.0, 35, (0.14, -0.44, 1.37),    (-0.45, -2.30, 1.78),   (0.08, 0.10, 1.47),   (0.05, -0.30, 1.20)),
+    ("S16_nova_almost",  51.0, 55.0, 85, (0.62, -1.30, 1.56),    (0.60, -1.25, 1.55),    (0.25, -0.85, 1.50),  (0.25, -0.85, 1.50)),
+    ("S17a_coin",        55.0, 57.0, 50, (0.58, -0.86, 0.98),    (0.55, -0.80, 0.95),    (0.36, -0.52, 0.86),  (0.36, -0.52, 0.86)),
+    ("S17b_reset_loop",  57.0, 60.0, 35, (0.02, -0.04, 1.30),    (-0.085, -0.03, 1.114), (0.0, -0.01, 1.10),   (-0.11, 0.11, 1.124)),
+]
+
+
+# --------------------------------------------------------------------------
+# Generic helpers
+# --------------------------------------------------------------------------
+# Shots whose camera + aim ride with a moving object (coordinates above are then local to it)
+SHOT_PARENT = {"S09_false_hope": "TOWER_ROOT"}
+# Shots that aim past the subject but must keep her sharp
+SHOT_FOCUS = {"S06_light_above": "rin_look_up"}
+
+
+def coll(name, parent=None):
+    c = bpy.data.collections.get(name) or bpy.data.collections.new(name)
+    p = parent or bpy.context.scene.collection
+    if c.name not in [x.name for x in p.children]:
+        p.children.link(c)
+    return c
+
+
+def link(obj, collection):
+    for c in list(obj.users_collection):
+        c.objects.unlink(obj)
+    collection.objects.link(obj)
+    return obj
+
+
+def mat(name, color=(0.5, 0.5, 0.5), rough=0.6, metal=0.0, emit=None, strength=0.0, alpha=1.0):
+    m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
+    m.use_nodes = True
+    bsdf = node_of_type(m.node_tree, "BSDF_PRINCIPLED")
+    bsdf.inputs["Base Color"].default_value = (*color, 1.0)
+    bsdf.inputs["Roughness"].default_value = rough
+    bsdf.inputs["Metallic"].default_value = metal
+    bsdf.inputs["Alpha"].default_value = alpha
+    if emit is not None:
+        bsdf.inputs["Emission Color"].default_value = (*emit, 1.0)
+        bsdf.inputs["Emission Strength"].default_value = strength
+    if alpha < 1.0 and hasattr(m, "surface_render_method"):
+        m.surface_render_method = "BLENDED"
+    m.diffuse_color = (*color, alpha)
+    return m
+
+
+def node_of_type(tree, kind):
+    """Find a node by type, not by name (names are translated in non-English UIs)."""
+    for n in tree.nodes:
+        if n.type == kind:
+            return n
+    return None
+
+
+# Surface textures (assets/textures/). Missing file -> the flat colour from mat() stays.
+#   key: (filename, tile size in metres or None = use the mesh UVs, bump strength)
+SURFACE_TEX = {
     "roof_wet":      ("tex_roof_tiles_wet.png",       0.04, 0.15),
     "concrete":      ("tex_concrete_peel.png",        0.06, 0.20),
     "concrete_dark": ("tex_city_facade_windows.png",  0.08, 0.10),
@@ -196,9 +309,21 @@ SURFACE_TEX = {
 }
 
 
+SURFACE_TINT = {"facade": 0.3, "parapet": 0.45, "concrete": 0.6}   # brightness multipliers
+
+
+def first_texture(names):
+    """First existing file in assets/textures/ from a name or list of names (newest art first)."""
+    for fn in ([names] if isinstance(names, str) else names):
+        path = os.path.join(TEX_DIR or "", fn)
+        if TEX_DIR and os.path.isfile(path):
+            return path
+    return None
+
+
 def apply_surface_texture(m, filename, tile, bump):
-    path = os.path.join(TEX_DIR, filename)
-    if not (TEX_DIR and os.path.isfile(path)):
+    path = first_texture(filename)
+    if not path:
         return False
     nt = m.node_tree
     bsdf = node_of_type(nt, "BSDF_PRINCIPLED")
@@ -212,7 +337,7 @@ def apply_surface_texture(m, filename, tile, bump):
         nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
         tex.projection = "BOX"
         tex.projection_blend = 0.2
-    else:      # whole image on each face (default cube UVs)
+    else:      # whole image on each face (box() lays UVs over each face's two largest axes)
         tex.extension = "CLIP"
         nt.links.new(tc.outputs["UV"], tex.inputs["Vector"])
     if m.name == "glass":   # greyscale smudges -> rougher, slightly more visible glass
@@ -223,7 +348,13 @@ def apply_surface_texture(m, filename, tile, bump):
         nt.links.new(tex.outputs["Color"], mr.inputs["Value"])
         nt.links.new(mr.outputs["Result"], bsdf.inputs["Roughness"])
         return True
-    nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
+    col_out = tex.outputs["Color"]
+    if m.name in SURFACE_TINT:   # darken pale GPT art to the night palette of the references
+        hsv = nt.nodes.new("ShaderNodeHueSaturation")
+        hsv.inputs["Value"].default_value = SURFACE_TINT[m.name]
+        nt.links.new(col_out, hsv.inputs["Color"])
+        col_out = hsv.outputs["Color"]
+    nt.links.new(col_out, bsdf.inputs["Base Color"])
     if bsdf.inputs["Emission Strength"].default_value > 0:
         nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
     if bump > 0:
@@ -235,14 +366,48 @@ def apply_surface_texture(m, filename, tile, bump):
     return True
 
 
+def add_puddles(m):
+    """Optional greyscale puddle mask (black = standing water): mirror-smooth puddles, rougher dry tiles."""
+    path = first_texture("tex_roof_puddle_mask.png")
+    if not path:
+        return
+    nt = m.node_tree
+    bsdf = node_of_type(nt, "BSDF_PRINCIPLED")
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(path, check_existing=True)
+    tex.image.colorspace_settings.name = "Non-Color"
+    tex.projection = "BOX"
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = (1 / 0.12, 1 / 0.12, 1 / 0.12)
+    nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
+    nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
+    mr = nt.nodes.new("ShaderNodeMapRange")
+    mr.inputs["To Min"].default_value = 0.02
+    mr.inputs["To Max"].default_value = 0.45
+    nt.links.new(tex.outputs["Color"], mr.inputs["Value"])
+    nt.links.new(mr.outputs["Result"], bsdf.inputs["Roughness"])
+
+
 def box(name, size, loc, material, collection, rot=(0, 0, 0)):
     bpy.ops.mesh.primitive_cube_add(size=1, location=loc, rotation=rot)
     o = bpy.context.active_object
     o.name = name
     o.scale = size
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    box_uv(o.data, size)
     o.data.materials.append(material)
     return link(o, collection)
+
+
+def box_uv(me, size):
+    """UV = position on the box's two largest axes, so a window/door/sign image fills its front face."""
+    ax = sorted(range(3), key=lambda k: -size[k])[:2]
+    ax.sort(key=lambda k: 2 if k == 2 else k)          # horizontal axis first, Z (if used) second
+    uv = me.uv_layers.active or me.uv_layers.new(name="UVMap")
+    for loop in me.loops:
+        co = me.vertices[loop.vertex_index].co
+        uv.data[loop.index].uv = (co[ax[0]] / size[ax[0]] + 0.5, co[ax[1]] / size[ax[1]] + 0.5)
 
 
 def cyl(name, r, depth, loc, material, collection, verts=32, rot=(0, 0, 0)):
@@ -578,7 +743,8 @@ def build_cabinet(C, M):
     box("neon_left", (0.012, 0.012, 0.92), (-0.50, -0.50, BED_Z + 0.46), M["neon_pink"], cab)
     box("neon_right", (0.012, 0.012, 0.92), (0.50, -0.50, BED_Z + 0.46), M["neon_cyan"], cab)
     # printed sky/city backdrop on the inside back wall
-    img, _ = load_image("../textures/tex_backdrop_city_sky.png", (0.10, 0.14, 0.30), "card", 512, 512)
+    bd_file = "tex_backdrop_ruins_fog.png" if first_texture("tex_backdrop_ruins_fog.png") else "tex_backdrop_city_sky.png"
+    img, _ = load_image("../textures/" + bd_file, (0.10, 0.14, 0.30), "card", 512, 512)
     bd = sprite_material("M_backdrop", img, emission=0.6)
     me = sprite_mesh("ME_backdrop", 0.90, 1.0)
     me.materials.append(bd)
@@ -609,34 +775,91 @@ def build_cabinet(C, M):
     return moon
 
 
+def build_facade(dio, M, rnd, cx, cy, w, d, z0, floors, floor_h, prefix, shutter_side="S"):
+    """Windows, sills, floor bands and wall AC units on all four faces of a block building."""
+    faces = [("S", (0, -1)), ("N", (0, 1)), ("E", (1, 0)), ("W", (-1, 0))]
+    for side, (nx, ny) in faces:
+        span = w if nx == 0 else d
+        rot = (0, 0, 0) if nx == 0 else (0, 0, math.pi / 2)
+        n_win = max(2, int(span / 0.075))
+        for fl in range(floors):
+            zc = z0 + fl * floor_h + floor_h * 0.55
+            for k in range(n_win):
+                t = -span / 2 + span * (k + 0.5) / n_win
+                px = cx + (t if nx == 0 else nx * (w / 2 + 0.0006))
+                py = cy + (t if ny == 0 else ny * (d / 2 + 0.0006))
+                if fl == 0 and side == shutter_side and abs(t) < 0.06:
+                    continue    # ground-floor shutter goes here
+                r = rnd.random()
+                kind = "window_lit" if r < 0.04 else ("window_boarded" if r < 0.32 else "window_broken")
+                box(f"{prefix}_win_{side}{fl}{k}", (0.030, 0.0012, 0.026), (px, py, zc), M[kind], dio, rot=rot)
+                ox, oy = nx * 0.0012, ny * 0.0012
+                box(f"{prefix}_sill_{side}{fl}{k}", (0.036, 0.004, 0.0025), (px + ox, py + oy, zc - 0.0145), M["parapet"], dio, rot=rot)
+                box(f"{prefix}_lintel_{side}{fl}{k}", (0.034, 0.003, 0.003), (px + ox * 0.5, py + oy * 0.5, zc + 0.0145), M["parapet"], dio, rot=rot)
+                if fl > 0 and rnd.random() < 0.18:   # wall-hung AC unit under the window
+                    box(f"{prefix}_wac_{side}{fl}{k}", (0.016, 0.008, 0.011),
+                        (px + nx * 0.004, py + ny * 0.004, zc - 0.024), M["metal_dull"], dio, rot=rot)
+    for fl in range(1, floors):   # floor bands
+        z = z0 + fl * floor_h
+        box(f"{prefix}_band_{fl}", (w + 0.004, d + 0.004, 0.003), (cx, cy, z), M["parapet"], dio)
+
+
 def build_diorama(C, M):
     dio = coll("DIORAMA", C["root"])
     rnd = random.Random(SEED)
     box("bed", (0.90, 0.90, 0.01), (0, 0, BED_Z), M["street"], dio)
-    # hero building (matches the rooftop concept art: shed back-left, tower back-right)
-    box("hero_building", (0.36, 0.36, ROOF_Z - BED_Z), (0, 0.05, (ROOF_Z + BED_Z) / 2), M["concrete"], dio)
+    # ---- hero building: 3 storeys (3 m each at 1:60), shed back-left, tower back-right
+    HB, HC = 0.36, (0, 0.05)
+    box("hero_building", (HB, HB, ROOF_Z - BED_Z), (HC[0], HC[1], (ROOF_Z + BED_Z) / 2), M["facade"], dio)
+    build_facade(dio, M, rnd, HC[0], HC[1], HB, HB, BED_Z + 0.005, 3, 0.05, "hb")
+    # ground-floor roller shutter + green emergency lamps (reference: green light spilling on the wet street)
+    sy = HC[1] - HB / 2 - 0.0008
+    box("hb_shutter", (0.09, 0.0015, 0.036), (0, sy, BED_Z + 0.023), M["shutter"], dio)
+    box("hb_shutter_box", (0.096, 0.006, 0.006), (0, sy - 0.002, BED_Z + 0.044), M["metal_dull"], dio)
+    for x in (-0.06, 0.06):
+        box(f"hb_lamp_{x:+.2f}", (0.006, 0.003, 0.003), (x, sy - 0.002, BED_Z + 0.046), M["green_glow"], dio)
+        L = bpy.data.lights.new(f"L_hb_green_{x:+.2f}", "POINT")
+        L.energy, L.color, L.shadow_soft_size = 0.08, (0.35, 1.0, 0.45), 0.003
+        lo = bpy.data.objects.new(L.name, L)
+        lo.location = (x, sy - 0.01, BED_Z + 0.042)
+        dio.objects.link(lo)
     box("roof_tiles", (0.35, 0.35, 0.002), (0, 0.05, ROOF_Z + 0.001), M["roof_wet"], dio)
+    # thick parapet (1.1 m) with a pipe railing on top
+    PH, PT = 0.018, 0.008
     for name, size, loc in [
-        ("parapet_N", (0.36, 0.006, 0.012), (0, 0.23, ROOF_Z + 0.006)),
-        ("parapet_S", (0.36, 0.006, 0.012), (0, -0.13, ROOF_Z + 0.006)),
-        ("parapet_E", (0.006, 0.36, 0.012), (0.18, 0.05, ROOF_Z + 0.006)),
-        ("parapet_W", (0.006, 0.36, 0.012), (-0.18, 0.05, ROOF_Z + 0.006)),
+        ("parapet_N", (HB + 0.004, PT, PH), (0, 0.05 + HB / 2 - PT / 2 + 0.002, ROOF_Z + PH / 2)),
+        ("parapet_S", (HB + 0.004, PT, PH), (0, 0.05 - HB / 2 + PT / 2 - 0.002, ROOF_Z + PH / 2)),
+        ("parapet_E", (PT, HB + 0.004, PH), (HB / 2 - PT / 2 + 0.002, 0.05, ROOF_Z + PH / 2)),
+        ("parapet_W", (PT, HB + 0.004, PH), (-HB / 2 + PT / 2 - 0.002, 0.05, ROOF_Z + PH / 2)),
     ]:
-        box(name, size, loc, M["concrete"], dio)
-    # railing posts along parapet
+        box(name, size, loc, M["parapet"], dio)
+        box(name + "_cap", (size[0] + 0.002, size[1] + 0.002, 0.002), (loc[0], loc[1], ROOF_Z + PH + 0.001), M["parapet"], dio)
     for i in range(13):
         t = -0.17 + i * 0.0283
-        for loc in ((t, 0.228, ROOF_Z + 0.02), (t, -0.128, ROOF_Z + 0.02)):
-            cyl(f"rail_post_{i}_{loc[1]:.2f}", 0.0007, 0.016, loc, M["rust"], dio, verts=6)
+        for loc in ((t, 0.227, ROOF_Z + PH + 0.007), (t, -0.127, ROOF_Z + PH + 0.007)):
+            cyl(f"rail_post_{i}_{loc[1]:.2f}", 0.0006, 0.012, loc, M["rust"], dio, verts=6)
+    for y in (0.227, -0.127):
+        for z in (ROOF_Z + PH + 0.012, ROOF_Z + PH + 0.006):
+            cyl(f"rail_bar_{y:.2f}_{z:.3f}", 0.0005, 0.345, (0, y, z), M["rust"], dio, verts=6, rot=(0, math.pi / 2, 0))
+    # roof clutter: drains, vent pipes, puddle-catching debris
+    for i, (x, y) in enumerate([(-0.16, -0.11), (0.16, -0.11), (0.16, 0.21)]):
+        cyl(f"roof_drain_{i}", 0.003, 0.002, (x, y, ROOF_Z + 0.003), M["metal_dull"], dio, verts=10)
+    for i, (x, y) in enumerate([(0.03, 0.20), (-0.02, 0.19)]):
+        cyl(f"vent_pipe_{i}", 0.0025, 0.014, (x, y, ROOF_Z + 0.007), M["rust"], dio, verts=10)
     # stair shed + door (door hinge animated: bang in S01, burst open S02)
-    box("stair_shed", (0.08, 0.06, 0.05), (SHED_XY[0], SHED_XY[1] + 0.005, ROOF_Z + 0.025), M["concrete"], dio)
+    box("stair_shed", (0.08, 0.06, 0.05), (SHED_XY[0], SHED_XY[1] + 0.005, ROOF_Z + 0.025), M["parapet"], dio)
+    box("stair_shed_roof", (0.088, 0.068, 0.004), (SHED_XY[0], SHED_XY[1] + 0.005, ROOF_Z + 0.052), M["parapet"], dio)
+    for x in (-0.0135, 0.0135):
+        box(f"door_frame_{x:+.3f}", (0.003, 0.003, 0.041), (DOOR_XY[0] + x, DOOR_XY[1] - 0.0005, ROOF_Z + 0.0205), M["metal_dull"], dio)
+    box("door_frame_top", (0.030, 0.003, 0.003), (DOOR_XY[0], DOOR_XY[1] - 0.0005, ROOF_Z + 0.0405), M["metal_dull"], dio)
     hinge = empty("door_hinge", (DOOR_XY[0] - 0.012, DOOR_XY[1] - 0.001, ROOF_Z), dio)
     door = box("shed_door", (0.024, 0.002, 0.038), (0.012, 0, 0.019), M["door_green"], dio)
     door.parent = hinge
     box("door_lamp", (0.010, 0.004, 0.003), (DOOR_XY[0], DOOR_XY[1] - 0.002, ROOF_Z + 0.044), M["green_glow"], dio)
     for i, (x, y) in enumerate([(-0.15, -0.09), (0.05, -0.10), (0.15, 0.0)]):
         box(f"ac_unit_{i}", (0.022, 0.016, 0.016), (x, y, ROOF_Z + 0.008), M["metal_dull"], dio)
-    # surrounding city blocks (forced perspective: lower toward the back)
+        box(f"ac_fan_{i}", (0.012, 0.012, 0.001), (x, y, ROOF_Z + 0.0165), M["black"], dio)
+    # ---- ruined city (forced perspective: lower toward the back); fog-blue, a few green lights, rare fires
     for i in range(60):
         x = rnd.uniform(-0.43, 0.43)
         y = rnd.uniform(-0.43, 0.43)
@@ -646,16 +869,56 @@ def build_diorama(C, M):
             continue
         h = rnd.uniform(0.04, 0.17) * (0.7 if y > 0.2 else 1.0)
         w = rnd.uniform(0.04, 0.09)
-        box(f"city_{i:02d}", (w, w * rnd.uniform(0.8, 1.3), h), (x, y, BED_Z + h / 2), M["concrete_dark"], dio)
-        if rnd.random() < 0.3:  # fires
+        dd = w * rnd.uniform(0.8, 1.3)
+        box(f"city_{i:02d}", (w, dd, h), (x, y, BED_Z + h / 2), M["concrete_dark"], dio)
+        # collapsed top: a few tilted slabs and stubs of columns
+        if rnd.random() < 0.55:
+            for k in range(rnd.randint(1, 3)):
+                sw = w * rnd.uniform(0.3, 0.6)
+                box(f"city_{i:02d}_rubble_{k}", (sw, sw * 0.8, 0.004),
+                    (x + rnd.uniform(-w, w) * 0.3, y + rnd.uniform(-dd, dd) * 0.3, BED_Z + h + 0.004),
+                    M["concrete_dark"], dio, rot=(rnd.uniform(-0.5, 0.5), rnd.uniform(-0.5, 0.5), rnd.uniform(0, 3)))
+            for k in range(rnd.randint(1, 3)):
+                ch = rnd.uniform(0.008, 0.025)
+                box(f"city_{i:02d}_col_{k}", (0.003, 0.003, ch),
+                    (x + rnd.uniform(-w, w) * 0.4, y + rnd.uniform(-dd, dd) * 0.4, BED_Z + h + ch / 2), M["concrete_dark"], dio)
+        if rnd.random() < 0.08:  # rare distant fire
             box(f"fire_{i:02d}", (w * 0.4, w * 0.4, 0.004), (x, y, BED_Z + h + 0.002), M["fire"], dio)
             L = bpy.data.lights.new(f"L_fire_{i:02d}", "POINT")
-            L.energy = 0.6
-            L.color = (1.0, 0.45, 0.12)
-            L.shadow_soft_size = 0.01
+            L.energy, L.color, L.shadow_soft_size = 0.4, (1.0, 0.45, 0.12), 0.01
             lo = bpy.data.objects.new(L.name, L)
             lo.location = (x, y, BED_Z + h + 0.02)
             dio.objects.link(lo)
+    # green street lamps along the streets around the hero block
+    for i, (x, y) in enumerate([(-0.24, -0.16), (0.24, -0.16), (-0.24, 0.12), (0.24, 0.12), (0.0, -0.2),
+                                (-0.12, -0.2), (0.12, -0.2), (0.3, -0.32), (-0.05, 0.3)]):
+        cyl(f"street_pole_{i}", 0.0008, 0.07, (x, y, BED_Z + 0.035), M["metal_dull"], dio, verts=6)
+        box(f"street_lamp_{i}", (0.006, 0.003, 0.002), (x, y, BED_Z + 0.071), M["street_lamp"], dio)
+        L = bpy.data.lights.new(f"L_street_{i}", "POINT")
+        L.energy, L.color, L.shadow_soft_size = 0.12, (0.35, 1.0, 0.45), 0.004
+        lo = bpy.data.objects.new(L.name, L)
+        lo.location = (x, y, BED_Z + 0.068)
+        dio.objects.link(lo)
+    # a wrecked car on the street in front (reference 6/7/11)
+    box("car_wreck_body", (0.024, 0.011, 0.006), (0.07, -0.2, BED_Z + 0.008), M["metal_dull"], dio, rot=(0, 0, 0.25))
+    box("car_wreck_cab", (0.013, 0.010, 0.005), (0.068, -0.2, BED_Z + 0.0135), M["window_broken"], dio, rot=(0, 0, 0.25))
+    # low fog inside the cabinet (reference: blue haze swallowing the ruins)
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0, 0, BED_Z + 0.20))
+    fog = bpy.context.active_object
+    fog.name = "fog_volume"
+    fog.scale = (0.89, 0.89, 0.40)
+    fm = bpy.data.materials.new("fog")
+    fm.use_nodes = True
+    nt = fm.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputMaterial")
+    vol = nt.nodes.new("ShaderNodeVolumePrincipled")
+    vol.inputs["Color"].default_value = (0.30, 0.42, 0.65, 1)
+    vol.inputs["Density"].default_value = 0.35
+    nt.links.new(vol.outputs["Volume"], out.inputs["Volume"])
+    fog.data.materials.append(fm)
+    fog.display_type = "WIRE"
+    link(fog, dio)
     return dio, hinge
 
 
@@ -664,19 +927,75 @@ def build_tower(C, M):
     root = empty("TOWER_ROOT", (TOWER_XY[0], TOWER_XY[1], ROOF_Z), tw, "ARROWS", 0.03)
     parts = []
     leg_h = 0.04
+    R_TANK, H_TANK = 0.035, 0.07
+    legs = []
     for i, a in enumerate((45, 135, 225, 315)):
         r = 0.026
         x, y = math.cos(math.radians(a)) * r, math.sin(math.radians(a)) * r
+        legs.append((x, y))
         parts.append(cyl(f"tower_leg_{i}", 0.0018, leg_h, (x, y, leg_h / 2), M["rust"], tw, verts=8))
-    parts.append(cyl("tower_tank", 0.035, 0.07, (0, 0, leg_h + 0.035), M["tank_metal"], tw))
-    bpy.ops.mesh.primitive_cone_add(radius1=0.036, radius2=0.004, depth=0.014, vertices=32, location=(0, 0, leg_h + 0.077))
+        parts.append(box(f"tower_footplate_{i}", (0.007, 0.007, 0.0012), (x, y, 0.0006), M["rust"], tw))
+    # X-bracing between neighbouring legs
+    for i in range(4):
+        (x0, y0), (x1, y1) = legs[i], legs[(i + 1) % 4]
+        mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+        span = math.hypot(x1 - x0, y1 - y0)
+        yaw = math.atan2(y1 - y0, x1 - x0)
+        diag = math.atan2(leg_h * 0.7, span)
+        for sgn in (1, -1):
+            parts.append(box(f"tower_brace_{i}_{sgn:+d}", (math.hypot(span, leg_h * 0.7), 0.0008, 0.0008),
+                             (mx, my, leg_h * 0.5), M["rust"], tw, rot=(0, sgn * diag, yaw)))
+        parts.append(box(f"tower_ring_{i}", (span, 0.0009, 0.0009), (mx, my, leg_h * 0.15), M["rust"], tw, rot=(0, 0, yaw)))
+    parts.append(cyl("tower_tank", R_TANK, H_TANK, (0, 0, leg_h + H_TANK / 2), M["tank_metal"], tw, verts=40))
+    # riveted hoop bands + rivet heads
+    for k, zb in enumerate((0.004, H_TANK * 0.36, H_TANK * 0.68, H_TANK - 0.004)):
+        bpy.ops.mesh.primitive_torus_add(major_radius=R_TANK + 0.0004, minor_radius=0.0009, major_segments=48,
+                                         minor_segments=6, location=(0, 0, leg_h + zb))
+        band = bpy.context.active_object
+        band.name = f"tower_band_{k}"
+        band.data.materials.append(M["rust"] if k in (0, 3) else M["tank_metal"])
+        parts.append(link(band, tw))
+        for n in range(18):
+            a = n / 18 * math.tau
+            parts.append(cyl(f"tower_rivet_{k}_{n:02d}", 0.0006, 0.0008,
+                             (math.cos(a) * (R_TANK + 0.0011), math.sin(a) * (R_TANK + 0.0011), leg_h + zb),
+                             M["rust"], tw, verts=6, rot=(math.pi / 2, 0, a + math.pi / 2)))
+    # domed lid with hatch and two bent pipe handles
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=R_TANK + 0.001, segments=40, ring_count=12,
+                                         location=(0, 0, leg_h + H_TANK))
     roof = bpy.context.active_object
     roof.name = "tower_roof"
+    roof.scale = (1, 1, 0.32)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(roof.data)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < -1e-5], context="VERTS")
+    bm.to_mesh(roof.data)
+    bm.free()
     roof.data.materials.append(M["tank_metal"])
     parts.append(link(roof, tw))
+    top = leg_h + H_TANK + (R_TANK + 0.001) * 0.32
+    parts.append(cyl("tower_hatch", 0.008, 0.004, (0, 0, top + 0.001), M["tank_metal"], tw, verts=24))
+    parts.append(cyl("tower_hatch_knob", 0.002, 0.003, (0, 0, top + 0.004), M["rust"], tw, verts=10))
+    for k, a in enumerate((60, 120)):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.004, minor_radius=0.0006, major_segments=16, minor_segments=6,
+                                         location=(math.cos(math.radians(a)) * 0.022, math.sin(math.radians(a)) * 0.022, top - 0.003),
+                                         rotation=(math.pi / 2, 0, math.radians(a)))
+        h = bpy.context.active_object
+        h.name = f"tower_lid_handle_{k}"
+        h.data.materials.append(M["rust"])
+        parts.append(link(h, tw))
     # ladder on the front (-Y) side so Rin reads to the S07/S08 camera
     for side in (-1, 1):
         parts.append(box(f"ladder_rail_{side}", (0.0012, 0.0012, 0.11), (side * 0.006, -0.037, 0.055), M["rust"], tw))
+        parts.append(box(f"ladder_standoff_{side}", (0.0008, 0.004, 0.0008), (side * 0.006, -0.0355, 0.09), M["rust"], tw))
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.004, minor_radius=0.0006, major_segments=16, minor_segments=6,
+                                         location=(side * 0.006, -0.034, 0.111), rotation=(0, math.pi / 2, 0))
+        g = bpy.context.active_object
+        g.name = f"ladder_grab_{side}"
+        g.data.materials.append(M["rust"])
+        parts.append(link(g, tw))
     for i in range(14):
         parts.append(box(f"ladder_rung_{i:02d}", (0.012, 0.001, 0.001), (0, -0.037, 0.004 + i * 0.0075), M["rust"], tw))
     for p in parts:
@@ -684,28 +1003,84 @@ def build_tower(C, M):
     return root
 
 
+def swept_bar(name, pts, w0, t0, w1, t1, material, collection):
+    """Rectangular bar swept along a polyline in the local YZ plane (x = width), tapering w0/t0 -> w1/t1."""
+    import bmesh
+    from mathutils import Vector
+    bm = bmesh.new()
+    rings = []
+    n = len(pts)
+    for k, (y, z) in enumerate(pts):
+        a_ = Vector((0, *pts[max(k - 1, 0)]))
+        b_ = Vector((0, *pts[min(k + 1, n - 1)]))
+        tan = (b_ - a_).normalized()
+        nrm = Vector((0, -tan.z, tan.y))
+        f = k / (n - 1)
+        w, t = w0 + (w1 - w0) * f, t0 + (t1 - t0) * f
+        c = Vector((0, y, z))
+        rings.append([bm.verts.new(c + Vector((sx * w / 2, 0, 0)) + nrm * (sy * t / 2))
+                      for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))])
+    for r0, r1 in zip(rings, rings[1:]):
+        for q in range(4):
+            bm.faces.new((r0[q], r0[(q + 1) % 4], r1[(q + 1) % 4], r1[q]))
+    bm.faces.new(rings[0][::-1])
+    bm.faces.new(rings[-1])
+    me = bpy.data.meshes.new(name)
+    bm.to_mesh(me)
+    bm.free()
+    me.materials.append(material)
+    o = bpy.data.objects.new(name, me)
+    collection.objects.link(o)
+    return o
+
+
 def build_claw(C, M):
     cl = coll("CLAW", C["root"])
     root = empty("CLAW_ROOT", (TOWER_XY[0], TOWER_XY[1], 1.80), cl, "ARROWS", 0.04)
-    hub = cyl("claw_hub", 0.022, 0.03, (0, 0, 0.03), M["tank_metal"], cl)
-    hub.parent = root
-    cable = cyl("claw_cable", 0.002, 0.8, (0, 0, 0.44), M["chrome"], cl, verts=8)
+    ch = M["chrome"]
+    # stacked chrome body (reference: collar, two drums, a ribbed neck, black cap)
+    stack = [("claw_cap", 0.007, 0.012, 0.085, M["black"]), ("claw_neck", 0.009, 0.020, 0.069, ch),
+             ("claw_collar", 0.012, 0.005, 0.0565, M["metal_dull"]), ("claw_drum", 0.014, 0.026, 0.041, ch),
+             ("claw_hub", 0.020, 0.010, 0.023, ch), ("claw_base_ring", 0.022, 0.004, 0.016, M["metal_dull"])]
+    for name, r, h, z, mat_ in stack:
+        o = cyl(name, r, h, (0, 0, z), mat_, cl, verts=32)
+        o.parent = root
+    for k in range(4):
+        o = cyl(f"claw_neck_rib_{k}", 0.0098, 0.0012, (0, 0, 0.062 + k * 0.0045), M["metal_dull"], cl, verts=32)
+        o.parent = root
+    # black corrugated cable up to the gantry
+    cable = cyl("claw_cable", 0.005, 0.8, (0, 0, 0.49), M["cable"], cl, verts=16)
     cable.parent = root
+    glow = cyl("claw_neon_ring", 0.0205, 0.0015, (0, 0, 0.0285), M["neon_purple"], cl, verts=32)
+    glow.parent = root
     pivots = []
     for i, a in enumerate((90, 210, 330)):
         pv = empty(f"prong_pivot_{i}", (0, 0, 0.018), cl, "SINGLE_ARROW", 0.02)
         pv.parent = root
         pv.rotation_euler = (0, 0, math.radians(a))
-        # pivot local +Y points outward; prong hangs down and hooks inward
-        upper = box(f"prong_{i}_upper", (0.008, 0.006, 0.07), (0, 0.03, -0.02), M["rust"], cl, rot=(math.radians(-35), 0, 0))
-        lower = box(f"prong_{i}_tip", (0.007, 0.005, 0.045), (0, 0.045, -0.07), M["rust"], cl, rot=(math.radians(25), 0, 0))
-        upper.parent = pv
-        lower.parent = pv
+        # pivot local +Y points outward; arm goes out, knuckle, then a curved finger hooking inward
+        # one continuous curved finger (pivot local: +Y outward, -Z down), tapering toward an inward hook
+        pts = [(0.004, 0.000), (0.026, -0.012), (0.040, -0.036), (0.043, -0.062),
+               (0.038, -0.084), (0.028, -0.098), (0.016, -0.104)]
+        o = swept_bar(f"prong_{i}", pts, 0.0085, 0.0055, 0.0045, 0.0028, ch, cl)
+        o.parent = pv
+        for k, (py, pz) in enumerate((pts[1], pts[3])):
+            o = cyl(f"prong_{i}_knuckle_{k}", 0.0036, 0.0105, (0, py, pz), M["metal_dull"], cl, verts=16, rot=(0, math.pi / 2, 0))
+            o.parent = pv
+        o = cyl(f"prong_{i}_bolt", 0.0034, 0.0105, (0, 0.004, 0.0), M["metal_dull"], cl, verts=16, rot=(0, math.pi / 2, 0))
+        o.parent = pv
         pivots.append(pv)
+    # purple rim light that rides with the claw (reference glow)
+    L = bpy.data.lights.new("L_claw_rim", "POINT")
+    L.energy, L.color, L.shadow_soft_size = 0.15, (0.6, 0.3, 1.0), 0.01
+    lo = bpy.data.objects.new(L.name, L)
+    lo.location = (0.05, 0.04, 0.03)
+    lo.parent = root
+    cl.objects.link(lo)
     # gantry rails under the cabinet roof
     for x in (-0.40, 0.40):
-        box(f"gantry_rail_{x:+.1f}", (0.015, 0.88, 0.015), (x, 0, 1.855), M["chrome"], cl)
-    box("gantry_bridge", (0.82, 0.03, 0.02), (0, TOWER_XY[1], 1.845), M["chrome"], cl)
+        box(f"gantry_rail_{x:+.1f}", (0.015, 0.88, 0.015), (x, 0, 1.855), ch, cl)
+    box("gantry_bridge", (0.82, 0.03, 0.02), (0, TOWER_XY[1], 1.845), ch, cl)
     return root, pivots
 
 
@@ -1061,8 +1436,18 @@ def build_materials():
         "fire":          mat("fire", (1, 0.4, 0.1), 0.5, 0, emit=(1, 0.42, 0.1), strength=30),
         "floor":         mat("floor", (0.05, 0.04, 0.07), 0.15, 0.1),
         "wall":          mat("wall", (0.03, 0.02, 0.05), 0.6),
+        "facade":        mat("facade", (0.33, 0.34, 0.34), 0.85),
+        "parapet":       mat("parapet", (0.30, 0.31, 0.30), 0.85),
+        "window_broken": mat("window_broken", (0.015, 0.02, 0.025), 0.15),
+        "window_boarded":mat("window_boarded", (0.22, 0.18, 0.14), 0.8),
+        "window_lit":    mat("window_lit", (0.1, 0.3, 0.15), 0.4, 0, emit=(0.35, 1.0, 0.45), strength=3),
+        "shutter":       mat("shutter", (0.18, 0.22, 0.20), 0.6, 0.5),
+        "cable":         mat("cable", (0.01, 0.01, 0.012), 0.45),
+        "neon_purple":   mat("neon_purple", (0.6, 0.2, 1.0), 0.3, 0, emit=(0.6, 0.25, 1.0), strength=10),
+        "street_lamp":   mat("street_lamp", (0.3, 1.0, 0.45), 0.4, 0, emit=(0.35, 1.0, 0.45), strength=20),
     }
     found = [k for k, (fn, tile, bump) in SURFACE_TEX.items() if apply_surface_texture(M[k], fn, tile, bump)]
+    add_puddles(M["roof_wet"])
     print(f"surface textures: {len(found)}/{len(SURFACE_TEX)} found", found)
     return M
 
