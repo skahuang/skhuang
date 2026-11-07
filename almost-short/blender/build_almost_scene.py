@@ -4,7 +4,7 @@
 
 Builds the whole 60 s, 9:16 short as ONE continuous world:
 the zombie rooftop is a real miniature diorama inside a claw-machine cabinet,
-so the twist (13) is a genuine camera pull-out through the glass, not a cut.
+so the reveal (S14-S15) is a genuine camera pull-out through the glass, not a cut.
 
 2D characters are flat "acrylic standee" sprite planes (image + alpha) that
 always yaw toward the active camera. Drop the GPT-generated PNGs into
@@ -52,6 +52,10 @@ RIN_H = 0.023              # Rin standee height
 ZOMBIE_H = 0.026
 NOVA_XY = (0.25, -0.85)
 NOVA_H = 1.62
+PIN_XY = (0.02, 0.0)       # where Rin lands and gets pinned
+CHUTE_XY = (-0.33, -0.33)  # prize chute
+RESET_S = 57.0
+TIMER_START = 32           # overlay countdown hits 00:00 at 32 s, the moment her grip fails
 
 ASSET_DIR = None  # resolved in main()
 
@@ -63,22 +67,28 @@ def f(sec):
 
 # Shot list — must match README.md §3. (id, start_s, end_s, lens, cam_from, cam_to, aim_from, aim_to)
 SHOTS = [
-    ("S01_door_bang",     0.0,  3.0, 50, (-0.085, -0.03, 1.114),  (-0.092, -0.005, 1.116), (-0.11, 0.11, 1.124), (-0.11, 0.11, 1.122)),
-    ("S02_establish",     3.0,  7.0, 35, (0.26, -0.46, 1.56),    (0.18, -0.30, 1.32),    (0.0, 0.05, 1.11),    (0.0, 0.04, 1.11)),
-    ("S03_lost_boot",     7.0, 10.0, 50, (0.03, -0.085, 1.104),  (0.025, -0.075, 1.104), (0.0, 0.0, 1.104),    (0.0, 0.0, 1.104)),
-    ("S04_run_climb",    10.0, 14.0, 35, (-0.09, -0.11, 1.14),   (0.02, -0.03, 1.165),   (0.08, 0.10, 1.12),   (0.10, 0.12, 1.18)),
-    ("S05_pile_topdown", 14.0, 18.0, 35, (0.15, 0.02, 1.58),     (0.12, 0.06, 1.52),     (0.10, 0.14, 1.10),   (0.10, 0.14, 1.12)),
-    ("S06_light_above",  18.0, 22.0, 24, (0.075, 0.085, 1.205),  (0.075, 0.085, 1.20),   (0.11, 0.17, 1.60),   (0.12, 0.20, 1.70)),
-    ("S07_claw_descends",22.0, 27.0, 35, (0.32, -0.16, 1.42),    (0.30, -0.15, 1.38),    (0.10, 0.14, 1.30),   (0.10, 0.14, 1.24)),
-    ("S08_grip_lift",    27.0, 32.0, 35, (0.28, -0.20, 1.34),    (0.30, -0.22, 1.47),    (0.10, 0.14, 1.20),   (0.10, 0.14, 1.42)),
-    ("S09_false_hope",   32.0, 37.0, 50, (0.04, -0.12, 1.30),    (0.05, -0.10, 1.33),    (0.10, 0.14, 1.52),   (0.10, 0.14, 1.56)),
-    ("S10_slip",         37.0, 40.0, 35, (0.00, -0.08, 1.66),    (0.01, -0.07, 1.65),    (0.10, 0.14, 1.48),   (0.10, 0.14, 1.48)),
-    ("S11_fall",         40.0, 43.0, 35, (0.30, -0.20, 1.50),    (0.29, -0.19, 1.30),    (0.10, 0.14, 1.40),   (0.11, 0.12, 1.13)),
-    ("S12_impact",       43.0, 45.0, 50, (0.22, -0.06, 1.16),    (0.22, -0.06, 1.16),    (0.12, 0.11, 1.12),   (0.12, 0.11, 1.12)),
-    ("S13_pullout",      45.0, 51.0, 35, (0.20, -0.18, 1.30),    (-0.45, -2.30, 1.78),   (0.10, 0.10, 1.15),   (0.05, -0.30, 1.20)),
-    ("S14_nova_almost",  51.0, 55.0, 85, (0.62, -1.30, 1.56),    (0.60, -1.25, 1.55),    (0.25, -0.85, 1.50),  (0.25, -0.85, 1.50)),
-    ("S15a_coin",        55.0, 57.0, 50, (0.58, -0.86, 0.98),    (0.55, -0.80, 0.95),    (0.36, -0.52, 0.86),  (0.36, -0.52, 0.86)),
-    ("S15b_reset_loop",  57.0, 60.0, 35, (0.02, -0.04, 1.30),    (-0.085, -0.03, 1.114), (0.0, -0.01, 1.10),   (-0.11, 0.11, 1.124)),
+    # ---- Act 1: trapped (0-15 s)
+    ("S01_door_bang",     0.0,  2.5, 50, (-0.085, -0.03, 1.114),  (-0.092, -0.005, 1.116), (-0.11, 0.11, 1.124), (-0.11, 0.11, 1.122)),
+    ("S02_establish",     2.5,  6.0, 35, (0.26, -0.46, 1.56),    (0.18, -0.30, 1.32),    (0.0, 0.05, 1.11),    (0.0, 0.04, 1.11)),
+    ("S03_lost_boot",     6.0,  8.5, 50, (0.03, -0.085, 1.104),  (0.025, -0.075, 1.104), (0.0, 0.0, 1.104),    (0.0, 0.0, 1.104)),
+    ("S04_run_climb",     8.5, 12.0, 35, (-0.09, -0.11, 1.14),   (0.02, -0.03, 1.165),   (0.08, 0.10, 1.12),   (0.10, 0.12, 1.18)),
+    ("S05_pile_topdown", 12.0, 15.0, 35, (0.15, 0.02, 1.58),     (0.12, 0.06, 1.52),     (0.10, 0.14, 1.10),   (0.10, 0.14, 1.12)),
+    # ---- Act 2: false rescue (15-32 s)
+    ("S06_light_above",  15.0, 18.0, 24, (0.075, 0.085, 1.205),  (0.075, 0.085, 1.20),   (0.11, 0.17, 1.60),   (0.12, 0.20, 1.70)),
+    ("S07_claw_descends",18.0, 22.0, 35, (0.32, -0.16, 1.42),    (0.30, -0.15, 1.38),    (0.10, 0.14, 1.30),   (0.10, 0.14, 1.24)),
+    ("S08_grip_lift",    22.0, 26.0, 35, (0.28, -0.20, 1.34),    (0.30, -0.22, 1.47),    (0.10, 0.14, 1.20),   (0.10, 0.14, 1.42)),
+    ("S09_false_hope",   26.0, 30.0, 50, (0.04, -0.12, 1.30),    (0.05, -0.10, 1.33),    (0.10, 0.14, 1.52),   (0.10, 0.14, 1.56)),
+    ("S10_slip",         30.0, 32.0, 35, (0.00, -0.08, 1.66),    (0.01, -0.07, 1.65),    (0.10, 0.14, 1.48),   (0.10, 0.14, 1.48)),
+    # ---- Act 3: fall, pinned, pull-back (32-45 s) — the tower stays in the claw, only Rin falls
+    ("S11_fall",         32.0, 35.0, 35, (0.28, -0.22, 1.42),    (0.20, -0.15, 1.20),    (0.10, 0.10, 1.40),   (0.03, 0.00, 1.11)),
+    ("S12_impact",       35.0, 36.0, 50, (0.065, -0.05, 1.106),  (0.065, -0.05, 1.106),  (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
+    ("S13_pinned",       36.0, 41.0, 50, (0.036, -0.036, 1.106), (0.033, -0.031, 1.106), (0.02, 0.0, 1.109),   (0.02, 0.0, 1.109)),
+    ("S14_pullback",     41.0, 45.0, 24, (0.045, -0.06, 1.108),  (0.13, -0.34, 1.22),    (0.02, 0.0, 1.115),   (0.06, 0.08, 1.27)),
+    # ---- Act 4: reveal + loop (45-60 s)
+    ("S15_glass_reveal", 45.0, 51.0, 35, (0.13, -0.34, 1.22),    (-0.45, -2.30, 1.78),   (0.06, 0.08, 1.27),   (0.05, -0.30, 1.20)),
+    ("S16_nova_almost",  51.0, 55.0, 85, (0.62, -1.30, 1.56),    (0.60, -1.25, 1.55),    (0.25, -0.85, 1.50),  (0.25, -0.85, 1.50)),
+    ("S17a_coin",        55.0, 57.0, 50, (0.58, -0.86, 0.98),    (0.55, -0.80, 0.95),    (0.36, -0.52, 0.86),  (0.36, -0.52, 0.86)),
+    ("S17b_reset_loop",  57.0, 60.0, 35, (0.02, -0.04, 1.30),    (-0.085, -0.03, 1.114), (0.0, -0.01, 1.10),   (-0.11, 0.11, 1.124)),
 ]
 
 
@@ -490,72 +500,78 @@ def build_claw(C, M):
 
 
 def animate_story(rig):
-    tower, claw, pivots, hinge, crowd, face = rig["tower"], rig["claw"], rig["pivots"], rig["hinge"], rig["crowd"], rig["face"]
+    tower, claw, pivots, hinge, face = rig["tower"], rig["claw"], rig["pivots"], rig["hinge"], rig["face"]
     tx, ty = TOWER_XY
-    # ---- door: bangs in S01, bursts open at 3.0 s
+    R = f(RESET_S)
+    # ---- door: bangs in S01, bursts open at 2.5 s, shuts again on reset
     key_rot(hinge, 1, (0, 0, 0))
-    for s in (0.6, 1.5, 2.3):
-        key_rot(hinge, f(s), (0, 0, math.radians(-8)))
-        key_rot(hinge, f(s) + 3, (0, 0, 0))
-    key_rot(hinge, f(3.0), (0, 0, 0))
-    key_rot(hinge, f(3.25), (0, 0, math.radians(-115)))
-    key_rot(hinge, f(57.0) - 1, (0, 0, math.radians(-115)))
-    key_rot(hinge, f(57.0), (0, 0, 0))           # reset: door shut again
-    # ---- claw: parked high -> descend -> grip -> lift -> wobble -> slip
-    open_a, closed_a, loose_a = math.radians(-38), math.radians(4), math.radians(-14)
+    for sec in (0.5, 1.2, 1.9):
+        key_rot(hinge, f(sec), (0, 0, math.radians(-8)))
+        key_rot(hinge, f(sec) + 3, (0, 0, 0))
+    key_rot(hinge, f(2.5), (0, 0, 0))
+    key_rot(hinge, f(2.75), (0, 0, math.radians(-115)))
+    key_rot(hinge, R - 1, (0, 0, math.radians(-115)))
+    key_rot(hinge, R, (0, 0, 0))
+    set_interp(hinge, "CONSTANT")
+    for fc in fcurves_of(hinge):   # keep the bangs/opening smooth, only the reset snaps
+        for kp in fc.keyframe_points:
+            if int(kp.co.x) < R - 1:
+                kp.interpolation = "BEZIER"
+
+    # ---- claw + tower. The tower hangs HOLD below the claw from grip until it drops into the chute.
+    open_a, closed_a = math.radians(-38), math.radians(4)
+    HOLD = 0.135
+
     def prongs(frame, ang):
         for pv in pivots:
             key_rot(pv, frame, (ang, 0, pv.rotation_euler.z))
+
+    def both(frame, x, y, cz, tilt=0.0):
+        key_loc(claw, frame, (x, y, cz))
+        key_loc(tower, frame, (x, y, cz - HOLD))
+        key_rot(tower, frame, (math.radians(tilt), 0, 0))
+
     key_loc(claw, 1, (tx, ty, 1.80))
     prongs(1, closed_a)
-    key_loc(claw, f(18.0), (tx, ty, 1.80))
-    key_loc(claw, f(22.0), (tx, ty, 1.72))
-    prongs(f(22.0), closed_a)
+    key_loc(claw, f(15.0), (tx, ty, 1.80))
+    key_loc(claw, f(18.0), (tx, ty, 1.72))
+    prongs(f(18.0), closed_a)
+    prongs(f(19.0), open_a)
+    key_loc(claw, f(22.0), (tx, ty, ROOF_Z + HOLD))
     prongs(f(23.0), open_a)
-    key_loc(claw, f(26.5), (tx, ty, ROOF_Z + 0.135))
-    key_loc(claw, f(27.5), (tx, ty, ROOF_Z + 0.135))
-    prongs(f(27.5), open_a)
-    prongs(f(28.5), closed_a)
-    key_loc(claw, f(29.0), (tx, ty, ROOF_Z + 0.135))
-    key_loc(claw, f(32.0), (tx, ty, ROOF_Z + 0.34))
-    key_loc(claw, f(37.0), (tx, ty, ROOF_Z + 0.42))
-    prongs(f(37.0), closed_a)
-    for i, s in enumerate((37.5, 38.0, 38.5, 39.0)):   # the classic weak-grip jitter
-        key_loc(claw, f(s), (tx + (0.004 if i % 2 else -0.004), ty, ROOF_Z + 0.42))
-    prongs(f(39.0), loose_a)
-    prongs(f(40.0), open_a)
-    key_loc(claw, f(40.0), (tx, ty, ROOF_Z + 0.42))
-    key_loc(claw, f(45.0), (tx, ty, ROOF_Z + 0.45))
-    key_loc(claw, f(51.0), (tx, ty, 1.80))
-    prongs(f(51.0), closed_a)
-    # ---- tower follows the claw from grip until slip, then falls onto its side
-    lift = lambda dz: (tx, ty, ROOF_Z + dz)
-    key_loc(tower, 1, lift(0))
+    prongs(f(24.0), closed_a)
+    key_loc(tower, 1, (tx, ty, ROOF_Z))
     key_rot(tower, 1, (0, 0, 0))
-    key_loc(tower, f(29.0), lift(0))
-    key_loc(tower, f(32.0), lift(0.205))
-    key_loc(tower, f(37.0), lift(0.285))
-    key_rot(tower, f(37.0), (0, 0, 0))
-    for i, s in enumerate((37.5, 38.0, 38.5, 39.0)):
-        key_loc(tower, f(s), (tx + (0.004 if i % 2 else -0.004), ty, ROOF_Z + 0.285 - i * 0.004))
-        key_rot(tower, f(s), (math.radians(3 if i % 2 else -3), 0, 0))
-    key_loc(tower, f(40.0), lift(0.27))
-    key_rot(tower, f(40.0), (math.radians(-8), 0, 0))
-    key_loc(tower, f(42.4), (tx + 0.01, ty - 0.03, ROOF_Z + 0.035))
-    key_rot(tower, f(42.4), (math.radians(-82), 0, math.radians(15)))
-    key_loc(tower, f(42.7), (tx + 0.01, ty - 0.035, ROOF_Z + 0.040))   # bounce
-    key_loc(tower, f(43.2), (tx + 0.01, ty - 0.035, ROOF_Z + 0.035))
-    key_loc(tower, f(57.0) - 1, (tx + 0.01, ty - 0.035, ROOF_Z + 0.035))
-    key_rot(tower, f(57.0) - 1, (math.radians(-82), 0, math.radians(15)))
-    key_loc(tower, f(57.0), lift(0))
-    key_rot(tower, f(57.0), (0, 0, 0))
-    set_interp(tower, "BEZIER")
-    for fc in fcurves_of(tower):  # hard snap for the reset frame
-        for kp in fc.keyframe_points:
-            if int(kp.co.x) in (f(57.0) - 1, f(57.0)):
-                kp.interpolation = "CONSTANT"
-    # ---- crowd: each zombie standee keys its own visibility (hidden again at the 57 s reset)
-    # ---- face target follows the active shot camera so standees always face lens
+    both(f(24.5), tx, ty, ROOF_Z + HOLD)
+    both(f(26.0), tx, ty, ROOF_Z + 0.34)
+    both(f(30.0), tx, ty, ROOF_Z + 0.42)
+    for i, sec in enumerate((30.5, 31.0, 31.5, 32.0)):      # the classic weak-grip jitter shakes Rin loose
+        both(f(sec), tx + (0.005 if i % 2 else -0.005), ty, ROOF_Z + 0.42, 4 if i % 2 else -4)
+    both(f(33.0), tx, ty, ROOF_Z + 0.42, 2)                 # tower keeps swinging, empty
+    both(f(38.0), tx, ty, ROOF_Z + 0.43, -1.5)
+    both(f(45.0), tx, ty, ROOF_Z + 0.44, 0)
+    both(f(46.5), tx, ty, 1.70)                            # reveal: claw homes to the prize chute...
+    both(f(49.0), CHUTE_XY[0], CHUTE_XY[1], 1.70)
+    prongs(f(49.0), closed_a)
+    prongs(f(49.6), open_a)                                # ...and drops the EMPTY tower in: wrong prize
+    key_loc(tower, f(49.6), (CHUTE_XY[0], CHUTE_XY[1], 1.70 - HOLD))
+    key_loc(tower, f(50.3), (CHUTE_XY[0], CHUTE_XY[1], BED_Z + 0.004))
+    key_rot(tower, f(50.3), (math.radians(18), 0, math.radians(30)))
+    key_loc(tower, R - 1, (CHUTE_XY[0], CHUTE_XY[1], BED_Z + 0.004))
+    key_rot(tower, R - 1, (math.radians(18), 0, math.radians(30)))
+    key_loc(tower, R, (tx, ty, ROOF_Z))
+    key_rot(tower, R, (0, 0, 0))
+    key_loc(claw, R - 1, (CHUTE_XY[0], CHUTE_XY[1], 1.70))
+    prongs(R - 1, open_a)
+    key_loc(claw, R, (tx, ty, 1.80))
+    prongs(R, closed_a)
+    for ob in [tower, claw] + list(pivots):   # hard snap only on the reset frame
+        for fc in fcurves_of(ob):
+            for kp in fc.keyframe_points:
+                if int(kp.co.x) in (R - 1, R):
+                    kp.interpolation = "CONSTANT"
+
+    # ---- face target follows the active shot camera so standees always face the lens
     for sid, a, b, lens, c0, c1, *_ in SHOTS:
         key_loc(face, f(a), c0)
         key_loc(face, f(b) - 1, c1)
@@ -566,7 +582,8 @@ def build_characters(C, M, face, tower_root):
     ch = coll("CHARACTERS_2D", C["root"])
     base = M["acrylic"]
     RIN = (0.75, 0.15, 0.12)
-    sp = lambda *a, **k: sprite(*a, face_target=face, base_mat=k.pop("base", base), **k)
+    R = f(RESET_S)
+    shot_rng = {s[0]: (f(s[1]), f(s[2]) - 1) for s in SHOTS}
     rin = {}
     # (object, file, shots-visible, location, parent)
     defs = [
@@ -576,23 +593,41 @@ def build_characters(C, M, face, tower_root):
         ("rin_cling_scared",  "rin_cling_scared.png",  ["S05_pile_topdown", "S06_light_above"], (0.0, -0.041, 0.075), tower_root),
         ("rin_cling_hope",    "rin_cling_hope.png",    ["S07_claw_descends", "S08_grip_lift", "S09_false_hope"], (0.0, -0.041, 0.075), tower_root),
         ("rin_slip_shock",    "rin_slip_shock.png",    ["S10_slip"],                      (0.0, -0.041, 0.07), tower_root),
-        ("rin_falling",       "rin_falling.png",       ["S11_fall", "S12_impact"],        (0.0, -0.045, 0.06), tower_root),
-        ("rin_reset_lookup",  "rin_reset_lookup.png",  ["S15b_reset_loop"],               (0.0, -0.01, ROOF_Z), None),
+        ("rin_reset_lookup",  "rin_reset_lookup.png",  ["S17b_reset_loop"],               (0.0, -0.01, ROOF_Z), None),
     ]
-    shot_rng = {s[0]: (f(s[1]), f(s[2]) - 1) for s in SHOTS}
     for name, fn, shots, loc, parent in defs:
-        o = sp(name, fn, RIN_H, loc, ch, color=RIN, parent=parent, base=None if parent else base)
+        o = sprite(name, fn, RIN_H, loc, ch, face, RIN, parent=parent, base_mat=None if parent else base)
         key_visible(o, [shot_rng[s] for s in shots])
         rin[name] = o
-    # tiny lost boot on the rooftop from S03 on (callback in prize tray)
+    # falling: leaves the ladder (world pos of the hanging tower) and lands on the roof at PIN_XY
+    fall = sprite("rin_falling", "rin_falling.png", RIN_H, (0, 0, 0), ch, face, RIN)
+    tx, ty = TOWER_XY
+    key_loc(fall, f(32.0), (tx, ty - 0.041, ROOF_Z + 0.42 - 0.135 + 0.07))
+    key_loc(fall, f(32.6), (tx - 0.01, ty - 0.05, ROOF_Z + 0.34))      # slow-mo hang
+    key_loc(fall, f(34.8), (PIN_XY[0], PIN_XY[1], ROOF_Z + 0.002))
+    key_visible(fall, [shot_rng["S11_fall"]])
+    rin["rin_falling"] = fall
+    imp = sprite("rin_impact", "rin_impact.png", RIN_H * 0.55, (PIN_XY[0], PIN_XY[1], ROOF_Z), ch, face, RIN)
+    key_visible(imp, [shot_rng["S12_impact"]])
+    # PINNED GROUP: three parallax layers (back zombies / Rin / front zombies), visible until the reset
+    pin_rng = [(shot_rng["S13_pinned"][0], R - 1)]
+    for name, fn, h, dy, col in [
+        ("pin_layer_back",  "pin_layer_back.png",  0.034, +0.010, (0.40, 0.30, 0.20)),
+        ("pin_layer_rin",   "pin_layer_rin.png",   0.012,  0.000, RIN),
+        ("pin_layer_front", "pin_layer_front.png", 0.024, -0.010, (0.30, 0.45, 0.40)),
+    ]:
+        o = sprite(name, fn, h, (PIN_XY[0], PIN_XY[1] + dy, ROOF_Z), ch, face, col)
+        key_visible(o, pin_rng)
+        rin[name] = o
+    # tiny lost boot on the rooftop from S03 on (callback in the prize tray)
     bt = box("rin_lost_boot_on_roof", (0.003, 0.005, 0.0035), (0.004, -0.004, ROOF_Z + 0.002), M["boot"], ch)
-    key_visible(bt, [(f(7.8), f(57.0) - 1)])
+    key_visible(bt, [(f(6.8), R - 1)])
     # Nova (real-world scale)
     NOVA = (0.55, 0.40, 0.78)
     nova_defs = [
-        ("nova_back_joystick", "nova_back_joystick.png", ["S13_pullout"],     (NOVA_XY[0], NOVA_XY[1], 0.0), NOVA_H),
-        ("nova_profile_almost","nova_profile_almost.png",["S14_nova_almost"], (NOVA_XY[0], NOVA_XY[1], 0.0), NOVA_H),
-        ("nova_hand_coin",     "nova_hand_coin.png",     ["S15a_coin"],       (0.40, -0.56, 0.80), 0.16),
+        ("nova_back_joystick", "nova_back_joystick.png", ["S15_glass_reveal"], (NOVA_XY[0], NOVA_XY[1], 0.0), NOVA_H),
+        ("nova_profile_almost","nova_profile_almost.png",["S16_nova_almost"],  (NOVA_XY[0], NOVA_XY[1], 0.0), NOVA_H),
+        ("nova_hand_coin",     "nova_hand_coin.png",     ["S17a_coin"],        (0.40, -0.56, 0.80), 0.16),
     ]
     for name, fn, shots, loc, h in nova_defs:
         o = sprite(name, fn, h, loc, ch, face, NOVA, shape="hand" if "hand" in name else "figure")
@@ -617,11 +652,12 @@ def build_crowd(C, M, face):
             img, _ = load_image(f"zombie_{vname.lower()}_{pose}.png", col)
             mats[(vname, pose)] = (sprite_material(f"M_{vname}_{pose}", img), img.size[0] / max(img.size[1], 1))
     tx, ty = TOWER_XY
+    R = f(RESET_S)
     n = 96
     for i in range(n):
         vname, _ = variants[i % 4]
-        # spawn order: first 6 at the door in S01/S02, rest stream out 3-16 s
-        spawn = 3.0 + (i / n) * 13.0 if i >= 6 else 2.6
+        # spawn order: first 6 burst out with the door at 2.5 s, the rest stream out until ~14 s
+        spawn = 2.5 + (i / n) * 11.5 if i >= 6 else 2.5
         ang = rnd.uniform(0, math.tau)
         rad = rnd.uniform(0.04, 0.14) if i > 20 else rnd.uniform(0.03, 0.06)
         gx = max(-0.165, min(0.165, tx + math.cos(ang) * rad - 0.03))
@@ -635,12 +671,19 @@ def build_crowd(C, M, face):
         key_loc(o, 1, door)
         key_loc(o, f(spawn), door)
         key_loc(o, f(spawn) + rnd.randint(36, 70), (gx, gy, ROOF_Z))
-        # shuffle / sway while waiting (standees wobble on their bases)
+        # after Rin lands (35 s) the nearest half of the horde swarms the pin spot and rings it
+        swarm = i % 2 == 0
+        ring = rnd.uniform(0.022, 0.07)
+        sx = PIN_XY[0] + math.cos(ang) * ring
+        sy = PIN_XY[1] + abs(math.sin(ang)) * ring * 0.8 + 0.012   # always BEHIND her: the lens is on the -Y side
         t = spawn + 3.0
-        while t < 56.5:
-            key_loc(o, f(t), (gx + rnd.uniform(-0.004, 0.004), gy + rnd.uniform(-0.004, 0.004), ROOF_Z))
-            t += rnd.uniform(1.2, 2.2)
-        key_visible(o, [(f(spawn) if i >= 6 else f(3.0), f(57.0) - 1)])
+        while t < RESET_S - 0.5:
+            # anyone standing in the lens path (in front of the pin spot) is pushed behind her too
+            in_lens = gy < PIN_XY[1] + 0.012 and abs(gx - PIN_XY[0]) < 0.10
+            cx, cy = (sx, sy) if ((swarm or in_lens) and t > 35.6) else (gx, gy)
+            key_loc(o, f(t), (cx + rnd.uniform(-0.004, 0.004), cy + rnd.uniform(-0.004, 0.004), ROOF_Z))
+            t += rnd.uniform(0.6, 1.0) if 35 < t < 41 else rnd.uniform(1.2, 2.2)
+        key_visible(o, [(f(spawn), R - 1)])
     return root
 
 
@@ -691,9 +734,9 @@ def build_lights(C):
     o.location = (TOWER_XY[0], TOWER_XY[1], 1.78)
     lt.objects.link(o)
     L.energy = 0.0
-    L.keyframe_insert("energy", frame=f(18.0))
+    L.keyframe_insert("energy", frame=f(15.0))
     L.energy = 3.0
-    L.keyframe_insert("energy", frame=f(19.0))
+    L.keyframe_insert("energy", frame=f(16.0))
     L.keyframe_insert("energy", frame=f(43.0))
     L.energy = 0.0
     L.keyframe_insert("energy", frame=f(45.0))
@@ -726,13 +769,13 @@ def build_cameras(C):
         cd.dof.use_dof = True
         cd.dof.focus_object = aim
         # at 1:60 scale f/1.4 blurs everything; f/2.8-4 still reads as tilt-shift miniature
-        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S12_impact", "S15b_reset_loop") else 2.8
-        if sid == "S13_pullout":   # rack DOF wider as we exit the glass
+        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S12_impact", "S13_pinned", "S17b_reset_loop") else 2.8
+        if sid == "S15_glass_reveal":   # rack DOF wider as we exit the glass
             cd.dof.aperture_fstop = 2.0
             cd.keyframe_insert("dof.aperture_fstop", frame=f(a))
             cd.dof.aperture_fstop = 5.6
             cd.keyframe_insert("dof.aperture_fstop", frame=f(b) - 1)
-        if sid == "S12_impact":    # handheld shake on impact
+        if sid in ("S12_impact", "S13_pinned"):    # handheld shake on impact
             for k in range(0, 10):
                 key_loc(cam, f(a) + k * 2, (c0[0] + random.uniform(-0.002, 0.002), c0[1], c0[2] + random.uniform(-0.002, 0.002)))
         mk = scn.timeline_markers.new(sid, frame=f(a))
@@ -813,7 +856,7 @@ def main():
     build_arcade_room(C, M)
     build_lights(C)
     build_cameras(C)
-    animate_story({"tower": tower, "claw": claw, "pivots": pivots, "hinge": hinge, "crowd": crowd, "face": face})
+    animate_story({"tower": tower, "claw": claw, "pivots": pivots, "hinge": hinge, "face": face})
     bpy.context.scene.frame_set(1)
 
     if out:
