@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "style_playbook": "custom:almost-miniature-standee-mature",
+  "style_playbook": "custom:almost-miniature-standee-framebyframe",
   "scenes": [
     {
       "id": "S01_door_bang",
@@ -39,7 +39,7 @@
     {
       "id": "S03_lost_boot",
       "type": "animation",
-      "description": "A bloody-nailed hand grabs Rin's ankle; she yanks free, loses her left boot, calf scratched.",
+      "description": "Frame-by-frame: Rin falls, kicks, yanks free of a zombie hand and loses her left boot; red scratch marks, no blood.",
       "start_seconds": 6.0,
       "end_seconds": 8.5,
       "shot_language": {
@@ -209,7 +209,7 @@
     {
       "id": "S13_pinned",
       "type": "animation",
-      "description": "Pinned (ref image 3): cop pulls her hoodie, mechanic grips her hair, tourist pins her arm, tentacles bind arm and ankle. Mild gore. Her eyes strain up at the empty tower.",
+      "description": "Pinned (ref image 3): cop pulls her hoodie, mechanic grips her hair, tourist pins her arm, tentacles bind arm and ankle. Injuries but no blood; 3-layer frame-by-frame struggle loop. Her eyes strain up at the empty tower.",
       "start_seconds": 36.0,
       "end_seconds": 41.0,
       "shot_language": {
@@ -294,7 +294,7 @@
     {
       "id": "S17b_reset_loop",
       "type": "animation",
-      "description": "Diorama resets; Rin, still blood-smeared from the last round, looks up into camera; whip back to the door = frame 1 for a seamless loop. Text 再一局？",
+      "description": "Diorama resets; Rin, still scraped and muddy from the last round, looks up into camera; whip back to the door = frame 1 for a seamless loop. Text 再一局？",
       "start_seconds": 57.0,
       "end_seconds": 60.0,
       "shot_language": {

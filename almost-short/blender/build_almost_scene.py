@@ -7,7 +7,9 @@ the zombie rooftop is a real miniature diorama inside a claw-machine cabinet,
 so the reveal (S14-S15) is a genuine camera pull-out through the glass, not a cut.
 
 2D characters are flat "acrylic standee" sprite planes (image + alpha) that
-always yaw toward the active camera. Drop the GPT-generated PNGs into
+always yaw toward the active camera, animated FRAME BY FRAME from sprite
+sheets (<name>_sheet.png, grid left->right / top->bottom) at 8-12 fps — see
+the ANIM table below and ASSET_PROMPTS.md. Drop the GPT-generated PNGs into
   <blend dir>/assets/sprites/   and   <blend dir>/assets/textures/
 using the filenames listed in ASSET_PROMPTS.md, then re-run this script.
 Missing files are replaced by coloured placeholder silhouettes so the
@@ -58,6 +60,35 @@ RESET_S = 57.0
 TIMER_START = 32           # overlay countdown hits 00:00 at 32 s, the moment her grip fails
 
 ASSET_DIR = None  # resolved in main()
+
+# --------------------------------------------------------------------------
+# 2D frame-by-frame sheets. Each character pose is ONE PNG laid out as a grid
+# (left->right, top->bottom) named "<sprite>_sheet.png"; see ASSET_PROMPTS.md.
+# (cols, rows, frames, fps, mode)   mode: loop | once (hold last) | pingpong
+# Missing sheet -> falls back to "<sprite>.png" still -> animated placeholder.
+# --------------------------------------------------------------------------
+ANIM = {
+    "rin_backing_away":    (4, 2, 8, 12, "loop"),      # stumbling backwards
+    "rin_boot_grab":       (4, 3, 12, 12, "once"),     # kick, pull, boot slips off, scramble free
+    "rin_climb_back":      (4, 2, 8, 12, "loop"),      # ladder climb cycle
+    "rin_cling_scared":    (4, 1, 4, 12, "loop"),      # trembling, glancing down
+    "rin_cling_hope":      (4, 2, 8, 8, "pingpong"),   # reaching up, breathing, hair in the wind
+    "rin_slip_shock":      (4, 2, 8, 12, "once"),      # fingers slide off the rung
+    "rin_falling":         (3, 2, 6, 12, "loop"),      # flailing fall
+    "rin_impact":          (4, 2, 8, 12, "once"),      # land, bounce, push up on one elbow
+    "pin_layer_rin":       (4, 2, 8, 8, "pingpong"),   # struggling under the horde
+    "pin_layer_back":      (3, 2, 6, 8, "pingpong"),   # pulling the hoodie, tentacles writhing
+    "pin_layer_front":     (3, 2, 6, 8, "pingpong"),   # pressing down, snarling
+    "rin_reset_lookup":    (4, 2, 8, 12, "once"),      # slowly tilts head up to the lens
+    "nova_back_joystick":  (4, 2, 8, 12, "loop"),      # joystick jiggle, shoulders tense
+    "nova_profile_almost": (4, 3, 12, 8, "once"),      # wince, exhale, glance at the chute
+    "nova_hand_coin":      (4, 2, 8, 12, "once"),      # flip token, push it into the slot
+}
+ZOMBIE_ANIM = {
+    "walk":  (4, 2, 8, 12, "loop"),
+    "reach": (3, 2, 6, 8, "pingpong"),
+    "climb": (3, 2, 6, 12, "loop"),
+}
 
 
 def f(sec):
@@ -243,7 +274,40 @@ def load_image(filename, color, shape="figure", w=256, h=512):
     return placeholder_image("PH_" + os.path.basename(filename), color, w, h, shape), False
 
 
-def sprite_material(name, image, emission=0.15):
+def placeholder_sheet(name, color, cols, rows, frames, cw=128, ch=256):
+    """Grid of figure silhouettes whose arm swings and body sways per cell, so previews show motion."""
+    img = bpy.data.images.get(name)
+    if img:
+        return img
+    W, H = cw * cols, ch * rows
+    img = bpy.data.images.new(name, W, H, alpha=True)
+    if np is not None:
+        px = np.zeros((H, W, 4), np.float32)
+        yy, xx = np.mgrid[0:ch, 0:cw]
+        for i in range(frames):
+            c, r = i % cols, i // cols
+            ph = i / max(frames, 1) * math.tau
+            cx = cw / 2 + math.sin(ph) * cw * 0.08
+            head = ((xx - cx) ** 2 + (yy - ch * 0.86) ** 2) < (cw * 0.17) ** 2
+            body = (np.abs(xx - cx) < cw * 0.22) & (yy > ch * 0.06) & (yy < ch * 0.74)
+            ang = math.sin(ph) * 1.1
+            ax, ay = cx + cw * 0.2, ch * 0.66                     # shoulder
+            ux, uy = math.sin(ang), math.cos(ang)                   # arm direction
+            t = (xx - ax) * ux + (yy - ay) * uy
+            d = np.abs((xx - ax) * uy - (yy - ay) * ux)
+            arm = (t > 0) & (t < ch * 0.3) & (d < cw * 0.06)
+            m = head | body | arm
+            cell = np.zeros((ch, cw, 4), np.float32)
+            cell[..., :3] = np.array(color, np.float32) * (0.65 + 0.35 * (yy / ch))[..., None]
+            cell[..., 3] = m
+            y0 = (rows - 1 - r) * ch                                # Blender pixel rows start at the bottom
+            px[y0:y0 + ch, c * cw:(c + 1) * cw] = cell
+        img.pixels.foreach_set(px.ravel())
+    img.pack()
+    return img
+
+
+def sprite_material(name, image, emission=0.15, cols=1, rows=1, frames=1, fps=12, mode="loop"):
     m = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     m.use_nodes = True
     nt = m.node_tree
@@ -252,7 +316,15 @@ def sprite_material(name, image, emission=0.15):
     bsdf = nt.nodes.new("ShaderNodeBsdfPrincipled")
     tex = nt.nodes.new("ShaderNodeTexImage")
     tex.image = image
-    tex.interpolation = "Closest" if image.size[0] < 300 else "Linear"
+    tex.interpolation = "Closest" if image.size[0] < 300 * cols else "Linear"
+    tex.extension = "CLIP"
+    uv = nt.nodes.new("ShaderNodeTexCoord")
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.name = "SHEET_MAPPING"
+    mp.inputs["Scale"].default_value = (1.0 / cols, 1.0 / rows, 1.0)
+    mp.inputs["Location"].default_value = (0.0, (rows - 1) / rows, 0.0)   # first cell = top-left
+    nt.links.new(uv.outputs["UV"], mp.inputs["Vector"])
+    nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
     nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
     # a little self-illumination keeps painted 2D art readable under dark scene light
@@ -264,7 +336,52 @@ def sprite_material(name, image, emission=0.15):
     if hasattr(m, "surface_render_method"):
         m.surface_render_method = "DITHERED"
     m.use_backface_culling = False
+    m["sheet"] = [cols, rows, frames, fps]
+    m["sheet_mode"] = mode
     return m
+
+
+def load_sheet(name, color, spec, mat_name=None):
+    """-> (material, frame_aspect). Prefers <name>_sheet.png, then <name>.png still, then a placeholder sheet."""
+    cols, rows, frames, fps, mode = spec
+    sheet = os.path.join(ASSET_DIR, name + "_sheet.png")
+    still = os.path.join(ASSET_DIR, name + ".png")
+    if os.path.isfile(sheet):
+        img, _ = load_image(name + "_sheet.png", color)
+    elif os.path.isfile(still):
+        img, _ = load_image(name + ".png", color)
+        cols = rows = frames = 1
+    else:
+        img = placeholder_sheet("PH_" + name + "_sheet", color, cols, rows, frames)
+    aspect = (img.size[0] / cols) / max(img.size[1] / rows, 1)
+    return sprite_material(mat_name or ("M_" + name), img, cols=cols, rows=rows, frames=frames, fps=fps, mode=mode), aspect
+
+
+def animate_sheet(mat, ranges, phase=0):
+    """Step the sheet's UV window through its cells on 2s/3s (12 or 8 fps) inside each visible range."""
+    cols, rows, frames, fps = [int(v) for v in mat["sheet"]]
+    if frames <= 1:
+        return
+    mode = mat["sheet_mode"]
+    mp = mat.node_tree.nodes["SHEET_MAPPING"]
+    step = max(1, round(FPS / fps))
+    for a, b in ranges:
+        k, fr = phase, a
+        while fr <= b:
+            if mode == "once":
+                i = min(k, frames - 1)
+            elif mode == "pingpong":
+                period = 2 * frames - 2
+                i = k % period
+                i = i if i < frames else period - i
+            else:
+                i = k % frames
+            c, r = i % cols, i // cols
+            mp.inputs["Location"].default_value = (c / cols, (rows - 1 - r) / rows, 0.0)
+            mp.inputs["Location"].keyframe_insert("default_value", frame=fr)
+            fr += step
+            k += 1
+    set_interp(mat.node_tree, "CONSTANT")
 
 
 def sprite_mesh(name, height, aspect):
@@ -294,6 +411,8 @@ def add_standee_base(o, height, collection, material):
 
 def sprite(name, filename, height, loc, collection, face_target, color, aspect=0.5,
            parent=None, base_mat=None, shape="figure", mesh_name=None, material=None):
+    if material is None and name in ANIM:
+        material, aspect = load_sheet(name, color, ANIM[name])
     if material is None:
         img, _ = load_image(filename, color, shape)
         if img.size[1]:
@@ -597,7 +716,9 @@ def build_characters(C, M, face, tower_root):
     ]
     for name, fn, shots, loc, parent in defs:
         o = sprite(name, fn, RIN_H, loc, ch, face, RIN, parent=parent, base_mat=None if parent else base)
-        key_visible(o, [shot_rng[s] for s in shots])
+        rng = [shot_rng[s] for s in shots]
+        key_visible(o, rng)
+        animate_sheet(o.data.materials[0], rng)
         rin[name] = o
     # falling: leaves the ladder (world pos of the hanging tower) and lands on the roof at PIN_XY
     fall = sprite("rin_falling", "rin_falling.png", RIN_H, (0, 0, 0), ch, face, RIN)
@@ -606,9 +727,11 @@ def build_characters(C, M, face, tower_root):
     key_loc(fall, f(32.6), (tx - 0.01, ty - 0.05, ROOF_Z + 0.34))      # slow-mo hang
     key_loc(fall, f(34.8), (PIN_XY[0], PIN_XY[1], ROOF_Z + 0.002))
     key_visible(fall, [shot_rng["S11_fall"]])
+    animate_sheet(fall.data.materials[0], [shot_rng["S11_fall"]])
     rin["rin_falling"] = fall
     imp = sprite("rin_impact", "rin_impact.png", RIN_H * 0.55, (PIN_XY[0], PIN_XY[1], ROOF_Z), ch, face, RIN)
     key_visible(imp, [shot_rng["S12_impact"]])
+    animate_sheet(imp.data.materials[0], [shot_rng["S12_impact"]])
     # PINNED GROUP: three parallax layers (back zombies / Rin / front zombies), visible until the reset
     pin_rng = [(shot_rng["S13_pinned"][0], R - 1)]
     for name, fn, h, dy, col in [
@@ -618,6 +741,7 @@ def build_characters(C, M, face, tower_root):
     ]:
         o = sprite(name, fn, h, (PIN_XY[0], PIN_XY[1] + dy, ROOF_Z), ch, face, col)
         key_visible(o, pin_rng)
+        animate_sheet(o.data.materials[0], pin_rng)
         rin[name] = o
     # tiny lost boot on the rooftop from S03 on (callback in the prize tray)
     bt = box("rin_lost_boot_on_roof", (0.003, 0.005, 0.0035), (0.004, -0.004, ROOF_Z + 0.002), M["boot"], ch)
@@ -631,7 +755,9 @@ def build_characters(C, M, face, tower_root):
     ]
     for name, fn, shots, loc, h in nova_defs:
         o = sprite(name, fn, h, loc, ch, face, NOVA, shape="hand" if "hand" in name else "figure")
-        key_visible(o, [shot_rng[s] for s in shots])
+        rng = [shot_rng[s] for s in shots]
+        key_visible(o, rng)
+        animate_sheet(o.data.materials[0], rng)
     return rin
 
 
@@ -645,14 +771,18 @@ def build_crowd(C, M, face):
         ("Z03_cop_brute",(0.12, 0.15, 0.30)),
         ("Z04_raincoat", (0.80, 0.70, 0.15)),
     ]
-    # each variant: 3 pose sprites (walk / reach-up / climb) -> materials shared across instances
+    # each variant: 3 frame-by-frame pose sheets (walk / reach-up / climb), each in 3 phase-offset
+    # copies so neighbouring standees never move in lock-step. Materials are shared across instances.
+    R = f(RESET_S)
     mats = {}
     for vname, col in variants:
-        for pose in ("walk", "reach", "climb"):
-            img, _ = load_image(f"zombie_{vname.lower()}_{pose}.png", col)
-            mats[(vname, pose)] = (sprite_material(f"M_{vname}_{pose}", img), img.size[0] / max(img.size[1], 1))
+        for pose, spec in ZOMBIE_ANIM.items():
+            for ph in range(3):
+                key = f"zombie_{vname.lower()}_{pose}"
+                m, asp = load_sheet(key, col, spec, mat_name=f"M_{key}_ph{ph}")
+                animate_sheet(m, [(1, R - 1)], phase=ph * 3)
+                mats[(vname, pose, ph)] = (m, asp)
     tx, ty = TOWER_XY
-    R = f(RESET_S)
     n = 96
     for i in range(n):
         vname, _ = variants[i % 4]
@@ -663,10 +793,10 @@ def build_crowd(C, M, face):
         gx = max(-0.165, min(0.165, tx + math.cos(ang) * rad - 0.03))
         gy = max(-0.115, min(0.215, ty + math.sin(ang) * rad - 0.05))
         pose = "reach" if rad < 0.07 else "walk"
-        m, asp = mats[(vname, pose)]
+        m, asp = mats[(vname, pose, i % 3)]
         h = ZOMBIE_H * (1.25 if vname == "Z03_cop_brute" else rnd.uniform(0.93, 1.05))
         o = sprite(f"zombie_{i:03d}", None, h, (0, 0, 0), cr, face, (1, 1, 1), aspect=asp, parent=root,
-                   base_mat=M["acrylic"], material=m, mesh_name=f"ME_{vname}_{pose}_{h:.4f}")
+                   base_mat=M["acrylic"], material=m, mesh_name=f"ME_{vname}_{pose}_{i % 3}_{h:.4f}")
         door = (DOOR_XY[0] + rnd.uniform(-0.01, 0.01), DOOR_XY[1] - 0.01, ROOF_Z)
         key_loc(o, 1, door)
         key_loc(o, f(spawn), door)
