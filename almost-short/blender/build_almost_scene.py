@@ -75,7 +75,7 @@ ANIM = {
     "door_fingers":        (3, 2, 6, 12, "loop"),      # S01 grey fingers squirming through the door gap
     "rin_cling_scared":    (4, 1, 4, 12, "loop"),      # trembling, glancing down
     "rin_look_up":         (4, 2, 8, 12, "once"),      # S06 sees the light: squints, shields eyes, awe
-    "rin_cling_hope":      (4, 2, 8, 8, "pingpong"),   # reaching up, breathing, hair in the wind
+    "rin_cling_hope":      (4, 2, 8, 4, "once"),       # each shot: fear -> hope -> smile in 2 s, then holds the smile
     "rin_slip_shock":      (4, 2, 8, 12, "once"),      # fingers slide off the rung
     "rin_falling":         (3, 2, 6, 12, "loop"),      # flailing fall
     "rin_impact":          (4, 2, 8, 12, "once"),      # land, bounce, push up on one elbow
@@ -109,7 +109,7 @@ SHOTS = [
     ("S04_run_climb",     8.5, 12.0, 35, (-0.09, -0.11, 1.14),   (0.02, -0.03, 1.165),   (0.08, 0.10, 1.12),   (0.10, 0.12, 1.18)),
     ("S05_pile_topdown", 12.0, 15.0, 35, (0.15, 0.02, 1.58),     (0.12, 0.06, 1.52),     (0.10, 0.14, 1.10),   (0.10, 0.14, 1.12)),
     # ---- Act 2: false rescue (15-32 s)
-    ("S06_light_above",  15.0, 18.0, 28, (0.112, 0.058, 1.168),  (0.110, 0.061, 1.170),  (0.10, 0.099, 1.192), (0.10, 0.099, 1.196)),
+    ("S06_light_above",  15.0, 18.0, 16, (0.108, 0.070, 1.170),  (0.107, 0.071, 1.171),  (0.10, 0.103, 1.215), (0.10, 0.103, 1.220)),
     ("S07_claw_descends",18.0, 22.0, 35, (0.32, -0.16, 1.42),    (0.30, -0.15, 1.38),    (0.10, 0.14, 1.30),   (0.10, 0.14, 1.24)),
     ("S08_grip_lift",    22.0, 26.0, 35, (0.28, -0.20, 1.34),    (0.30, -0.22, 1.47),    (0.10, 0.14, 1.20),   (0.10, 0.14, 1.42)),
     ("S09_false_hope",   26.0, 30.0, 50, (0.016, -0.105, 0.080), (0.013, -0.098, 0.088), (0.0, -0.041, 0.087), (0.0, -0.041, 0.090)),  # local to TOWER_ROOT
@@ -117,11 +117,11 @@ SHOTS = [
     # ---- Act 3: fall, pinned, pull-back (32-45 s) — the tower stays in the claw, only Rin falls
     ("S11_fall",         32.0, 35.0, 35, (0.28, -0.22, 1.42),    (0.20, -0.15, 1.20),    (0.10, 0.10, 1.40),   (0.03, 0.00, 1.11)),
     ("S12_impact",       35.0, 36.0, 50, (0.065, -0.05, 1.106),  (0.065, -0.05, 1.106),  (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
-    ("S13a_pinned",      36.0, 39.0, 50, (0.034, -0.034, 1.109), (0.031, -0.030, 1.108), (0.02, 0.0, 1.105),   (0.02, 0.0, 1.105)),
+    ("S13a_pinned",      36.0, 39.0, 50, (0.034, -0.034, 1.105), (0.031, -0.030, 1.105), (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
     ("S13b_pinned_face", 39.0, 41.0, 50, (0.02, -0.052, 1.108),  (0.02, -0.046, 1.108),  (0.02, -0.013, 1.108), (0.02, -0.013, 1.108)),
-    ("S14_pullback",     41.0, 45.0, 24, (0.034, -0.034, 1.109), (0.14, -0.44, 1.34),    (0.02, 0.0, 1.105),   (0.06, 0.08, 1.38)),
+    ("S14_pullback",     41.0, 45.0, 24, (0.034, -0.034, 1.105), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.08, 0.10, 1.47)),
     # ---- Act 4: reveal + loop (45-60 s)
-    ("S15_glass_reveal", 45.0, 51.0, 35, (0.14, -0.44, 1.34),    (-0.45, -2.30, 1.78),   (0.06, 0.08, 1.38),   (0.05, -0.30, 1.20)),
+    ("S15_glass_reveal", 45.0, 51.0, 35, (0.14, -0.44, 1.37),    (-0.45, -2.30, 1.78),   (0.08, 0.10, 1.47),   (0.05, -0.30, 1.20)),
     ("S16_nova_almost",  51.0, 55.0, 85, (0.62, -1.30, 1.56),    (0.60, -1.25, 1.55),    (0.25, -0.85, 1.50),  (0.25, -0.85, 1.50)),
     ("S17a_coin",        55.0, 57.0, 50, (0.58, -0.86, 0.98),    (0.55, -0.80, 0.95),    (0.36, -0.52, 0.86),  (0.36, -0.52, 0.86)),
     ("S17b_reset_loop",  57.0, 60.0, 35, (0.02, -0.04, 1.30),    (-0.085, -0.03, 1.114), (0.0, -0.01, 1.10),   (-0.11, 0.11, 1.124)),
@@ -133,6 +133,8 @@ SHOTS = [
 # --------------------------------------------------------------------------
 # Shots whose camera + aim ride with a moving object (coordinates above are then local to it)
 SHOT_PARENT = {"S09_false_hope": "TOWER_ROOT"}
+# Shots that aim past the subject but must keep her sharp
+SHOT_FOCUS = {"S06_light_above": "rin_look_up"}
 
 
 def coll(name, parent=None):
@@ -401,7 +403,12 @@ def sprite_material(name, image, emission=0.15, cols=1, rows=1, frames=1, fps=12
     nt.links.new(uv.outputs["UV"], mp.inputs["Vector"])
     nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Base Color"])
-    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    # GPT cut-outs carry soft, partly transparent interiors; firm them up so standees read as solid acrylic prints
+    am = nt.nodes.new("ShaderNodeMapRange")
+    am.inputs["From Max"].default_value = 0.6
+    am.clamp = True
+    nt.links.new(tex.outputs["Alpha"], am.inputs["Value"])
+    nt.links.new(am.outputs["Result"], bsdf.inputs["Alpha"])
     # a little self-illumination keeps painted 2D art readable under dark scene light
     nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
     bsdf.inputs["Emission Strength"].default_value = emission
@@ -825,7 +832,7 @@ def build_characters(C, M, face, tower_root):
         ("pin_layer_rin",   "pin_layer_rin.png",   0.012,  0.000, RIN),
         ("pin_layer_front", "pin_layer_front.png", 0.012, -0.0004, (0.30, 0.45, 0.40)),  # same plane as pin_layer_rin
     ]:
-        o = sprite(name, fn, h, (PIN_XY[0], PIN_XY[1] + dy, ROOF_Z), ch, face, col)
+        o = sprite(name, fn, h, (PIN_XY[0], PIN_XY[1] + dy, ROOF_Z + 0.002), ch, face, col)   # sit ON the 2 mm roof tiles
         key_visible(o, pin_rng)
         animate_sheet(o.data.materials[0], pin_rng)
         rin[name] = o
@@ -1008,9 +1015,11 @@ def build_cameras(C):
         key_loc(aim, f(b) - 1, t1)
         # miniature look: shallow DOF focused on the aim point
         cd.dof.use_dof = True
-        cd.dof.focus_object = aim
+        cd.dof.focus_object = bpy.data.objects.get(SHOT_FOCUS.get(sid, "")) or aim
         # at 1:60 scale f/1.4 blurs everything; f/2.8-4 still reads as tilt-shift miniature
-        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S06_light_above", "S12_impact", "S13a_pinned", "S13b_pinned_face", "S17b_reset_loop") else 2.8
+        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S12_impact", "S13a_pinned", "S13b_pinned_face", "S17b_reset_loop") else 2.8
+        if sid == "S06_light_above":    # 3 cm from her: needs deep focus to keep face and the light above readable
+            cd.dof.aperture_fstop = 22.0
         if sid == "S15_glass_reveal":   # rack DOF wider as we exit the glass
             cd.dof.aperture_fstop = 2.0
             cd.keyframe_insert("dof.aperture_fstop", frame=f(a))
