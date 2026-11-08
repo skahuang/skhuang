@@ -286,10 +286,21 @@ def add_puddles(m):
     mp.inputs["Scale"].default_value = (1 / 0.25, 1 / 0.25, 1 / 0.25)   # one puddle layout per 25 cm: hides the repeat
     nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
     nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
+    # only the darkest cores of the mask become standing water, broken up by noise so they read as
+    # small irregular puddles in the low spots instead of big repeating blobs
+    nz = nt.nodes.new("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = 60.0
+    nt.links.new(tc.outputs["Object"], nz.inputs["Vector"])
+    mix = nt.nodes.new("ShaderNodeMath")
+    mix.operation = "ADD"
+    nt.links.new(tex.outputs["Color"], mix.inputs[0])
+    nt.links.new(nz.outputs["Fac"], mix.inputs[1])
     mr = nt.nodes.new("ShaderNodeMapRange")
-    mr.inputs["To Min"].default_value = 0.02
+    mr.inputs["From Min"].default_value = 0.45
+    mr.inputs["From Max"].default_value = 0.70
+    mr.inputs["To Min"].default_value = 0.03
     mr.inputs["To Max"].default_value = 0.45
-    nt.links.new(tex.outputs["Color"], mr.inputs["Value"])
+    nt.links.new(mix.outputs["Value"], mr.inputs["Value"])
     nt.links.new(mr.outputs["Result"], bsdf.inputs["Roughness"])
 
 
@@ -773,6 +784,172 @@ def build_facade(dio, M, rnd, cx, cy, w, d, z0, floors, floor_h, prefix, shutter
         box(f"{prefix}_band_{fl}", (w + 0.004, d + 0.004, 0.003), (cx, cy, z), M["parapet"], dio)
 
 
+def build_roof_details(dio, M, rnd):
+    """Rooftop set dressing (1:60): junk, the survivor's camp, roof services and weeds.
+    Keeps clear: door -> tower walk (y 0.06-0.11), Rin's spots (0,-0.03)/(0,0)/PIN_XY, the tower base."""
+    Z = ROOF_Z + 0.002
+    def rot_z():
+        return (0, 0, rnd.uniform(0, math.tau))
+    # ---------- 1. junk ----------
+    # wooden pallet (slats + bearers), one leaning on the east parapet
+    for k, (px, py, tilt) in enumerate([(0.140, -0.075, 0.0), (0.163, -0.030, 1.2)]):
+        root = prop_root(f"pallet_{k}", (px, py, Z + (0.009 if tilt else 0)), 0.3 if not tilt else 1.57, dio)
+        root.rotation_euler = (0, tilt, root.rotation_euler.z)
+        parts = [box(f"pallet_{k}_slat_{i}", (0.020, 0.0028, 0.0006), (0, -0.009 + i * 0.0045, 0.0021), M["wood"], dio) for i in range(5)]
+        parts += [box(f"pallet_{k}_bearer_{i}", (0.0022, 0.020, 0.0015), (-0.008 + i * 0.008, 0, 0.0008), M["wood"], dio) for i in range(3)]
+        parented(parts, root)
+    # tipped-over plastic chair
+    ch = prop_root("chair_tipped", (0.085, -0.075, Z + 0.004), 0.7, dio)
+    ch.rotation_euler = (math.radians(80), 0, 0.7)
+    parented([box("chair_seat", (0.008, 0.008, 0.0008), (0, 0, 0), M["plastic_white"], dio),
+              box("chair_back", (0.008, 0.0008, 0.008), (0, 0.004, 0.004), M["plastic_white"], dio)] +
+             [cyl(f"chair_leg_{i}", 0.0004, 0.007, (sx * 0.0035, sy * 0.0035, -0.0035), M["plastic_white"], dio, verts=6)
+              for i, (sx, sy) in enumerate([(1, 1), (1, -1), (-1, 1), (-1, -1)])], ch)
+    # stacked tyres + one lying alone
+    for k, (tx_, ty_, tz) in enumerate([(0.150, -0.105, 0.0), (0.150, -0.105, 0.0035), (0.128, -0.112, 0.0)]):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.0055, minor_radius=0.0018, major_segments=24, minor_segments=8,
+                                         location=(tx_, ty_, Z + 0.0018 + tz))
+        t = bpy.context.active_object
+        t.name = f"tyre_{k}"
+        t.data.materials.append(M["rubber"])
+        link(t, dio)
+    # rusty oil drums (one on its side)
+    cyl("drum_0", 0.0048, 0.014, (0.160, 0.035, Z + 0.007), M["rust"], dio, verts=20)
+    cyl("drum_1", 0.0048, 0.014, (0.150, 0.050, Z + 0.0048), M["rust"], dio, verts=20, rot=(math.pi / 2, 0, 0.6))
+    # cardboard boxes and black trash bags along the south parapet
+    for k, (bx, by) in enumerate([(-0.05, -0.112), (-0.038, -0.108), (-0.044, -0.110), (0.03, -0.113)]):
+        sz = rnd.uniform(0.006, 0.010)
+        box(f"cardboard_{k}", (sz, sz * 0.8, sz * 0.7), (bx, by, Z + sz * 0.35 + (0.006 if k == 2 else 0)), M["cardboard"], dio, rot=rot_z())
+    for k, (bx, by) in enumerate([(-0.02, -0.112), (-0.010, -0.115), (0.045, -0.110), (-0.065, -0.114)]):
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=0.0045, segments=12, ring_count=8, location=(bx, by, Z + 0.003))
+        b = bpy.context.active_object
+        b.name = f"trash_bag_{k}"
+        b.scale = (1.0, 0.85, 0.75)
+        b.data.materials.append(M["trash_bag"])
+        link(b, dio)
+    # newspapers and broken bricks scattered (kept off the action spots)
+    def free(x, y):
+        return not (-0.03 < x < 0.06 and -0.05 < y < 0.03) and not (-0.15 < x < 0.13 and 0.06 < y < 0.12)
+    n = 0
+    while n < 26:
+        x, y = rnd.uniform(-0.165, 0.165), rnd.uniform(-0.115, 0.21)
+        if not free(x, y):
+            continue
+        if n < 14:
+            box(f"newspaper_{n}", (0.006, 0.0045, 0.0002), (x, y, Z + 0.0002), M["paper"], dio, rot=(rnd.uniform(-0.1, 0.1), 0, rnd.uniform(0, 3)))
+        else:
+            box(f"brick_{n}", (0.0036, 0.0018, 0.0012), (x, y, Z + 0.0006), M["brick"], dio, rot=rot_z())
+        n += 1
+    # ---------- 2. the survivor's camp (west side, where Rin starts) ----------
+    cx, cy = -0.085, 0.000
+    tent = prop_root("tarp_tent", (cx, cy, Z), 0.1, dio)
+    parented([box("tarp_left", (0.028, 0.0006, 0.020), (0, -0.0065, 0.0075), M["tarp"], dio, rot=(math.radians(-38), 0, 0)),
+              box("tarp_right", (0.028, 0.0006, 0.020), (0, 0.0065, 0.0075), M["tarp"], dio, rot=(math.radians(38), 0, 0)),
+              cyl("tarp_ridge", 0.0004, 0.030, (0, 0, 0.0158), M["rust"], dio, verts=6, rot=(0, math.pi / 2, 0)),
+              cyl("tarp_pole_a", 0.0004, 0.016, (-0.0145, 0, 0.008), M["rust"], dio, verts=6),
+              cyl("tarp_pole_b", 0.0004, 0.016, (0.0145, 0, 0.008), M["rust"], dio, verts=6)], tent)
+    bag = box("sleeping_bag", (0.020, 0.008, 0.0025), (cx + 0.002, cy, Z + 0.0013), M["sleeping_bag"], dio, rot=(0, 0, 0.1))
+    cyl("sleeping_bag_roll", 0.0022, 0.008, (cx + 0.013, cy, Z + 0.0022), M["sleeping_bag"], dio, verts=12, rot=(math.pi / 2, 0, 0.1))
+    # burnt-out fire barrel with a few embers + faint warm glow
+    fb = (-0.100, 0.030)
+    cyl("fire_barrel", 0.0050, 0.012, (fb[0], fb[1], Z + 0.006), M["rust"], dio, verts=20)
+    cyl("fire_barrel_embers", 0.0044, 0.0008, (fb[0], fb[1], Z + 0.0115), M["ember"], dio, verts=16)
+    L = bpy.data.lights.new("L_fire_barrel", "POINT")
+    L.energy, L.color, L.shadow_soft_size = 0.02, (1.0, 0.45, 0.12), 0.003
+    lo = bpy.data.objects.new(L.name, L)
+    lo.location = (fb[0], fb[1], Z + 0.016)
+    dio.objects.link(lo)
+    cyl("water_bucket", 0.0030, 0.0055, (-0.118, 0.032, Z + 0.00275), M["metal_dull"], dio, verts=16)
+    box("crate_seat", (0.007, 0.007, 0.006), (-0.088, 0.018, Z + 0.003), M["wood"], dio, rot=(0, 0, 0.4))
+    # clothesline on the west side (inside the S02 frame) with a few hanging clothes
+    for k, y in enumerate((-0.040, 0.050)):
+        cyl(f"line_pole_{k}", 0.0005, 0.026, (-0.135, y, Z + 0.013), M["rust"], dio, verts=6)
+    cyl("clothesline", 0.00015, 0.090, (-0.135, 0.005, Z + 0.025), M["black"], dio, verts=4, rot=(math.pi / 2, 0, 0))
+    for k, (y, m_) in enumerate([(-0.028, "cloth_a"), (-0.010, "cloth_b"), (0.014, "cloth_a"), (0.036, "tarp")]):
+        box(f"cloth_{k}", (0.0006, rnd.uniform(0.008, 0.012), rnd.uniform(0.008, 0.013)), (-0.135, y, Z + 0.019), M[m_], dio,
+            rot=(rnd.uniform(-0.15, 0.15), 0, 0))
+    # ---------- 3. roof services ----------
+    for k, (y0, y1, x) in enumerate([(0.212, 0.212, None)]):
+        pass
+    # pipe runs along the north and east parapets, with elbows and wall brackets
+    cyl("pipe_north", 0.0016, 0.300, (0.0, 0.214, Z + 0.004), M["rust"], dio, verts=12, rot=(0, math.pi / 2, 0))
+    cyl("pipe_east", 0.0016, 0.20, (0.166, 0.110, Z + 0.004), M["rust"], dio, verts=12, rot=(math.pi / 2, 0, 0))
+    for k in range(7):
+        box(f"pipe_bracket_n{k}", (0.0012, 0.004, 0.006), (-0.13 + k * 0.043, 0.215, Z + 0.003), M["metal_dull"], dio)
+    cyl("pipe_riser", 0.0016, 0.03, (-0.15, 0.214, Z + 0.015), M["rust"], dio, verts=12)
+    # satellite dish on the shed roof and an antenna mast in the NE corner
+    dish = prop_root("satellite_dish", (SHED_XY[0] + 0.025, SHED_XY[1] + 0.02, ROOF_Z + 0.054), -0.5, dio)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.009, segments=24, ring_count=12, location=(0, 0, 0))
+    d = bpy.context.active_object
+    d.name = "dish_bowl"
+    d.scale = (1, 0.35, 1)
+    d.data.materials.append(M["plastic_white"])
+    link(d, dio)
+    d.location = (0, 0, 0.012)
+    d.rotation_euler = (math.radians(-30), 0, 0)
+    parented([d, cyl("dish_post", 0.0006, 0.010, (0, 0.002, 0.005), M["metal_dull"], dio, verts=6),
+              cyl("dish_arm", 0.0003, 0.010, (0, -0.005, 0.012), M["metal_dull"], dio, verts=6, rot=(math.radians(60), 0, 0))], dish)
+    cyl("antenna_mast", 0.0006, 0.07, (0.160, 0.205, Z + 0.035), M["metal_dull"], dio, verts=6)
+    for k in range(4):
+        cyl(f"antenna_bar_{k}", 0.0003, 0.016 - k * 0.003, (0.160, 0.205, Z + 0.045 + k * 0.007), M["metal_dull"], dio,
+            verts=4, rot=(0, math.pi / 2, 0.4))
+    for k, (ox, oy) in enumerate([(0.012, -0.004), (-0.004, -0.012)]):   # guy wires
+        cyl(f"antenna_guy_{k}", 0.00012, 0.06, (0.160 + ox / 2, 0.205 + oy / 2, Z + 0.028), M["black"], dio, verts=3,
+            rot=(math.atan2(-oy, 0.055), math.atan2(ox, 0.055), 0))
+    # electrical box on the shed's east wall with a blinking red LED
+    ex = SHED_XY[0] + 0.0405
+    box("electric_box", (0.003, 0.012, 0.016), (ex, SHED_XY[1] + 0.01, ROOF_Z + 0.022), M["metal_dull"], dio)
+    led = box("electric_box_led", (0.001, 0.0018, 0.0018), (ex + 0.0018, SHED_XY[1] + 0.006, ROOF_Z + 0.027), M["red_led"], dio)
+    cyl("electric_conduit", 0.0007, 0.012, (ex + 0.0005, SHED_XY[1] + 0.012, ROOF_Z + 0.008), M["metal_dull"], dio, verts=6)
+    em = node_of_type(M["red_led"].node_tree, "BSDF_PRINCIPLED").inputs["Emission Strength"]
+    for k in range(0, 60 * FPS, FPS):           # 1 s blink
+        em.default_value = 10.0
+        em.keyframe_insert("default_value", frame=k + 1)
+        em.default_value = 0.0
+        em.keyframe_insert("default_value", frame=k + 1 + FPS // 3)
+    set_interp(M["red_led"].node_tree, "CONSTANT")
+    # roof exhaust fan (mushroom vent)
+    cyl("exhaust_fan_base", 0.0055, 0.006, (-0.03, 0.195, Z + 0.003), M["metal_dull"], dio, verts=20)
+    bpy.ops.mesh.primitive_cone_add(radius1=0.0085, radius2=0.002, depth=0.005, vertices=20, location=(-0.03, 0.195, Z + 0.0085))
+    hood = bpy.context.active_object
+    hood.name = "exhaust_fan_hood"
+    hood.data.materials.append(M["metal_dull"])
+    link(hood, dio)
+    # ---------- 4. weeds, vines, leaves ----------
+    def tuft(name, x, y, hgt):
+        for k in range(rnd.randint(3, 6)):
+            bpy.ops.mesh.primitive_cone_add(radius1=0.0005, radius2=0.0, depth=hgt * rnd.uniform(0.6, 1.0), vertices=4,
+                                            location=(x + rnd.uniform(-0.0015, 0.0015), y + rnd.uniform(-0.0015, 0.0015), Z + hgt * 0.4),
+                                            rotation=(rnd.uniform(-0.4, 0.4), rnd.uniform(-0.4, 0.4), 0))
+            g = bpy.context.active_object
+            g.name = f"{name}_{k}"
+            g.data.materials.append(M["grass"])
+            link(g, dio)
+    k = 0
+    for side in ("N", "S", "E", "W"):            # along the parapet bases
+        for _ in range(7):
+            t = rnd.uniform(-0.165, 0.165)
+            x, y = {"N": (t, 0.217), "S": (t, -0.118), "E": (0.168, t * 0.95 + 0.05), "W": (-0.168, t * 0.95 + 0.05)}[side]
+            tuft(f"weed_{k:02d}", x, y, rnd.uniform(0.004, 0.008))
+            k += 1
+    for _ in range(10):                          # in floor cracks
+        x, y = rnd.uniform(-0.16, 0.16), rnd.uniform(-0.11, 0.20)
+        if free(x, y):
+            tuft(f"weed_{k:02d}", x, y, rnd.uniform(0.003, 0.005))
+            k += 1
+    for k, (x, y, side) in enumerate([(-0.172, 0.15, "W"), (-0.172, -0.06, "W"), (0.172, 0.17, "E"),
+                                      (-0.10, 0.222, "N"), (0.05, 0.222, "N"), (0.12, -0.127, "S")]):
+        for j in range(5):                      # zig-zag ivy strands down/up the parapet
+            dz = j * 0.0035
+            off = (0.0012 if j % 2 else -0.0012)
+            pos = (x, y + off, Z + 0.002 + dz) if side in "WE" else (x + off, y, Z + 0.002 + dz)
+            box(f"ivy_{k}_{j}", (0.0012, 0.0045, 0.0045) if side in "WE" else (0.0045, 0.0012, 0.0045), pos, M["grass"], dio,
+                rot=(0, 0, rnd.uniform(0, 3)))
+    for k in range(40):
+        x, y = rnd.uniform(-0.165, 0.165), rnd.uniform(-0.115, 0.21)
+        box(f"leaf_{k:02d}", (0.0018, 0.0011, 0.0001), (x, y, Z + 0.0001), M["leaf"], dio, rot=(0, 0, rnd.uniform(0, 3)))
+
+
 def build_diorama(C, M):
     dio = coll("DIORAMA", C["root"])
     rnd = random.Random(SEED)
@@ -825,9 +1002,10 @@ def build_diorama(C, M):
     door = box("shed_door", (0.024, 0.002, 0.038), (0.012, 0, 0.019), M["door_green"], dio)
     door.parent = hinge
     box("door_lamp", (0.010, 0.004, 0.003), (DOOR_XY[0], DOOR_XY[1] - 0.002, ROOF_Z + 0.044), M["green_glow"], dio)
-    for i, (x, y) in enumerate([(-0.15, -0.09), (0.05, -0.10), (0.15, 0.0)]):
+    for i, (x, y) in enumerate([(0.05, 0.17), (0.05, -0.10), (0.15, 0.0)]):
         box(f"ac_unit_{i}", (0.022, 0.016, 0.016), (x, y, ROOF_Z + 0.008), M["metal_dull"], dio)
         box(f"ac_fan_{i}", (0.012, 0.012, 0.001), (x, y, ROOF_Z + 0.0165), M["black"], dio)
+    build_roof_details(dio, M, rnd)
     # ---- ruined city (forced perspective: lower toward the back); fog-blue, a few green lights, rare fires
     for i in range(60):
         x = rnd.uniform(-0.43, 0.43)
@@ -1478,6 +1656,21 @@ def build_materials():
         "machine_yellow":mat("machine_yellow", (0.95, 0.7, 0.1), 0.4, 0.1),
         "ceiling":       mat("ceiling", (0.02, 0.02, 0.025), 0.8),
         "lamp_shade":    mat("lamp_shade", (0.05, 0.05, 0.05), 0.4, 0.8),
+        "wood":          mat("wood", (0.22, 0.15, 0.09), 0.85),
+        "plastic_white": mat("plastic_white", (0.55, 0.56, 0.55), 0.5),
+        "rubber":        mat("rubber", (0.015, 0.015, 0.015), 0.75),
+        "cardboard":     mat("cardboard", (0.30, 0.22, 0.13), 0.9),
+        "trash_bag":     mat("trash_bag", (0.01, 0.01, 0.012), 0.2),
+        "tarp":          mat("tarp", (0.05, 0.16, 0.35), 0.6),
+        "sleeping_bag":  mat("sleeping_bag", (0.45, 0.16, 0.05), 0.7),
+        "cloth_a":       mat("cloth_a", (0.35, 0.33, 0.30), 0.9),
+        "cloth_b":       mat("cloth_b", (0.30, 0.05, 0.05), 0.9),
+        "paper":         mat("paper", (0.45, 0.44, 0.40), 0.9),
+        "brick":         mat("brick", (0.30, 0.10, 0.06), 0.9),
+        "grass":         mat("grass", (0.08, 0.17, 0.05), 0.8),
+        "leaf":          mat("leaf", (0.25, 0.13, 0.04), 0.8),
+        "ember":         mat("ember", (0.3, 0.05, 0.0), 0.6, 0, emit=(1.0, 0.3, 0.05), strength=6),
+        "red_led":       mat("red_led", (0.3, 0.0, 0.0), 0.4, 0, emit=(1.0, 0.02, 0.02), strength=10),
         "chrome":        mat("chrome", (0.85, 0.85, 0.9), 0.12, 1.0),
         "black":         mat("black", (0.01, 0.01, 0.01), 0.5),
         "glass":         mat("glass", (0.75, 0.85, 1.0), 0.02, 0.0, alpha=0.04),
