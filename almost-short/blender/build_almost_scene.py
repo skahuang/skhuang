@@ -2602,7 +2602,7 @@ def build_arcade_room(C, M):
     neighbour_claw_machine(ar, M, "machine_left", (-1.45, 0.0, 0), 0, "machine_pink", "neon_pink", rnd)
     for k, y in enumerate((0.9, 1.9, 2.9, 3.9)):
         body = "machine_yellow" if k % 2 == 0 else "machine_pink"
-        neighbour_claw_machine(ar, M, f"machine_lane_{k}", (2.6, y, 0), math.pi / 2, body, "neon_pink", rnd)
+        neighbour_claw_machine(ar, M, f"machine_lane_{k}", (2.6, y, 0), -math.pi / 2, body, "neon_pink", rnd)   # fronts face the aisle (-X)
     for k, x in enumerate((0.0, 0.7)):
         arcade_cabinet(ar, M, f"arcade_cab_{k}", (x, 4.3, 0), 0)
     box("vending_machine", (0.9, 0.8, 1.9), (-1.0, 4.6, 0.95), M["machine_pink"], ar)
