@@ -151,7 +151,7 @@ SHOTS = [
     ("S09_false_hope",   26.0, 30.0, 50, (0.016, -0.105, 0.080), (0.013, -0.098, 0.088), (0.0, -0.041, 0.087), (0.0, -0.041, 0.090)),  # local to TOWER_ROOT
     ("S10_slip",         30.0, 32.0, 35, (0.00, -0.08, 1.66),    (0.01, -0.07, 1.65),    (0.10, 0.14, 1.48),   (0.10, 0.14, 1.48)),
     # ---- Act 3: fall, grabbed, pinned, pull-back (32-46 s) — the tower stays in the claw, only Rin falls
-    ("S11_fall",         32.0, 34.5, 35, (0.28, -0.22, 1.42),    (0.09, -0.07, 1.14),    (0.10, 0.10, 1.40),   (0.025, 0.00, 1.11)),   # SHOT_MID keeps her framed
+    ("S11_fall",         32.0, 34.5, 35, (0.28, -0.22, 1.42),    (0.075, -0.055, 1.13),    (0.10, 0.10, 1.40),   (0.025, 0.00, 1.11)),   # SHOT_MID keeps her framed
     ("S12_impact",       34.5, 35.5, 50, (0.065, -0.05, 1.106),  (0.065, -0.05, 1.106),  (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
     # S12b-S12d: the horde closes in, grabs her bare ankle and hood, drags her down and presses her flat
     ("S12b_surrounded",  35.5, 36.5, 35, (0.075, -0.075, 1.113), (0.066, -0.063, 1.110), (0.02, 0.004, 1.109), (0.02, 0.004, 1.108)),
@@ -159,9 +159,9 @@ SHOTS = [
     ("S12d_pressed",     38.0, 39.0, 50, (0.041, -0.049, 1.106), (0.039, -0.045, 1.106), (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
     ("S13a_pinned",      39.0, 41.0, 50, (0.039, -0.045, 1.106), (0.036, -0.040, 1.106), (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
     ("S13b_pinned_face", 41.0, 43.0, 50, (0.02, -0.052, 1.108),  (0.02, -0.046, 1.108),  (0.02, -0.013, 1.108), (0.02, -0.013, 1.108)),
-    ("S14_pullback",     43.0, 46.0, 24, (0.039, -0.045, 1.106), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.08, 0.10, 1.47)),
+    ("S14_pullback",     43.0, 46.0, 24, (0.039, -0.045, 1.106), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.07, 0.08, 1.31)),   # ends framing the pile AND the empty tower in the claw
     # ---- Act 4: reveal + loop (46-60 s)
-    ("S15_glass_reveal", 46.0, 51.0, 35, (0.14, -0.44, 1.37),    (-0.85, -3.40, 1.95),   (0.08, 0.10, 1.47),   (0.15, 0.30, 1.45)),   # ends wide enough to show the arcade
+    ("S15_glass_reveal", 46.0, 51.0, 35, (0.14, -0.44, 1.37),    (-0.85, -3.40, 1.95),   (0.07, 0.08, 1.31),   (0.15, 0.30, 1.45)),   # ends wide enough to show the arcade
     ("S16_nova_almost",  51.0, 55.0, 85, (1.00, -1.74, 1.23),    (0.95, -1.67, 1.22),    (0.24, -0.86, 1.115), (0.24, -0.86, 1.12)),   # tight 3/4 close-up on her face (eyes ~1.15 m)
     ("S17a_coin",        55.0, 57.0, 50, (0.44, -0.86, 0.98),    (0.41, -0.80, 0.95),    (0.22, -0.52, 0.84),  (0.22, -0.52, 0.84)),
     ("S17b_reset_loop",  57.0, 60.0, 35, (0.016, -0.075, 1.15),  (-0.085, -0.03, 1.114), (0.0, -0.01, 1.112),  (-0.11, 0.11, 1.124)),   # high 3/4, not top-down: a top-down lens sees the standee edge-on
@@ -178,9 +178,10 @@ SHOT_FOCUS = {"S06_light_above": "rin_look_up"}
 # Extra in-between camera keys: sid -> [(fraction of the shot, cam, aim)]
 SHOT_MID = {
     # keep the pinned group in frame while we rise: the aim lingers on her, then tilts up to the hanging tower
-    "S14_pullback": [(0.45, (0.06, -0.15, 1.17), (0.025, 0.01, 1.12)), (0.75, (0.10, -0.30, 1.27), (0.04, 0.03, 1.21))],
+    "S14_pullback": [(0.45, (0.06, -0.15, 1.17), (0.025, 0.01, 1.12)), (0.75, (0.10, -0.30, 1.27), (0.05, 0.05, 1.24))],
     # follow her down (she eases out of the slow-mo hang, then drops) and get close enough to read her
-    "S11_fall": [(0.5, (0.19, -0.11, 1.36), (0.08, 0.075, 1.39)), (0.8, (0.12, -0.09, 1.25), (0.048, 0.036, 1.24))],
+    "S11_fall": [(0.3, (0.17, -0.06, 1.42), (0.088, 0.085, 1.425)), (0.55, (0.14, -0.035, 1.37), (0.077, 0.07, 1.375)),
+                 (0.8, (0.095, -0.045, 1.25), (0.048, 0.036, 1.24))],
     # hold on Rin looking up into the lens, then whip back to the door for the loop
     "S17b_reset_loop": [(0.7, (0.012, -0.068, 1.145), (0.0, -0.01, 1.113))],
 }
@@ -916,7 +917,7 @@ def sprite_mesh(name, height, aspect):
 
 def add_standee_base(o, height, collection, material):
     """Tiny clear acrylic base — the visual clue that everyone inside is a prize standee."""
-    r = height * 0.28
+    r = height * 0.22
     bpy.ops.mesh.primitive_cylinder_add(radius=r, depth=height * 0.05, vertices=24, location=(0, 0, height * 0.025))
     b = bpy.context.active_object
     b.name = o.name + "_base"
@@ -3079,7 +3080,7 @@ def build_materials():
         "ac_fan":        mat("ac_fan", (0.01, 0.01, 0.01), 0.5),
         "crate":         mat("crate", (0.22, 0.15, 0.09), 0.85),
         "glass":         mat("glass", (0.75, 0.85, 1.0), 0.02, 0.0, alpha=0.04),
-        "acrylic":       mat("acrylic_base", (0.9, 0.95, 1.0), 0.05, 0.0, alpha=0.25),
+        "acrylic":       mat("acrylic_base", (0.30, 0.36, 0.42), 0.12, 0.0, alpha=0.10),   # dark, mostly clear: read as a glint, not a white disc
         "marquee":       mat("marquee", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=6),
         "marquee_pink":  mat("marquee_pink", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=5),
         "marquee_yellow":mat("marquee_yellow", (0.35, 0.25, 0.02), 0.4, 0, emit=(1.0, 0.8, 0.2), strength=5),
