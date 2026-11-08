@@ -241,6 +241,8 @@ SURFACE_TEX = {
     "cloth_towel":    (["tex_cloth_towel.png", "tex_sleeping_bag.png"],        None, 0.25),
     "cloth_blanket":  (["tex_cloth_blanket.png", "tex_sleeping_bag.png"],      None, 0.25),
     "cloth_blanket_b":(["tex_cloth_blanket_b.png", "tex_tarp_patched.png"],    None, 0.25),
+    "marquee_pink":   (["tex_marquee_neighbour_pink.png", "tex_marquee_logo.png"],   None, 0.00),
+    "marquee_yellow": (["tex_marquee_neighbour_yellow.png", "tex_marquee_logo.png"], None, 0.00),
 }
 
 
@@ -2293,7 +2295,7 @@ def neighbour_claw_machine(ar, M, name, loc, rotz, body, accent, rnd):
         box(f"{name}_belt", (0.92, 0.87, 0.04), (0, 0, 0.92), M[accent], ar),
         box(f"{name}_glass", (0.86, 0.81, 0.85), (0, 0, 1.365), M["glass"], ar),
         box(f"{name}_top", (0.92, 0.87, 0.10), (0, 0, 1.84), M[body], ar),
-        box(f"{name}_marquee", (0.78, 0.02, 0.085), (0, -0.445, 1.84), M["marquee"], ar),
+        box(f"{name}_marquee", (0.78, 0.02, 0.085), (0, -0.445, 1.84), M["marquee_yellow" if body == "machine_yellow" else "marquee_pink"], ar),
         box(f"{name}_plush_card", (0.82, 0.004, 0.42), (0, 0.38, 1.15), M["plush_card"], ar),
         box(f"{name}_ctrl", (0.42, 0.14, 0.08), (-0.15, -0.49, 0.84), M["cab_trim"], ar),
         box(f"{name}_coin", (0.08, 0.01, 0.12), (0.2, -0.43, 0.70), M["coin_mech"], ar),
@@ -2945,6 +2947,8 @@ def build_materials():
         "glass":         mat("glass", (0.75, 0.85, 1.0), 0.02, 0.0, alpha=0.04),
         "acrylic":       mat("acrylic_base", (0.9, 0.95, 1.0), 0.05, 0.0, alpha=0.25),
         "marquee":       mat("marquee", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=6),
+        "marquee_pink":  mat("marquee_pink", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=5),
+        "marquee_yellow":mat("marquee_yellow", (0.35, 0.25, 0.02), 0.4, 0, emit=(1.0, 0.8, 0.2), strength=5),
         "neon_pink":     mat("neon_pink", (1.0, 0.2, 0.7), 0.3, 0, emit=(1.0, 0.2, 0.7), strength=5),
         "neon_cyan":     mat("neon_cyan", (0.1, 0.85, 1.0), 0.3, 0, emit=(0.05, 0.8, 1.0), strength=5),
         "led_red":       mat("led_red", (0.2, 0.0, 0.0), 0.4, 0, emit=(1.0, 0.05, 0.05), strength=8),

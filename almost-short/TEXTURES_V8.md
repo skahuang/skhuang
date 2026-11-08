@@ -1,6 +1,7 @@
-# 差一點 / ALMOST — 第八批材質需求（頂樓曬衣繩的衣物）
+# 差一點 / ALMOST — 第八批材質需求（曬衣繩衣物＋鄰台娃娃機招牌）
 
 給樓梯間門外重做的曬衣繩用：兩件上衣、一件褲子、毛巾和襪子、兩條毯子。
+另外兩張是電玩店裡鄰台娃娃機的招牌（現在暫用主機台「差一點 ALMOST」的招牌）。
 做好後放進 `almost-short/assets/textures/`（或像之前一樣打包上傳），檔名照表格。
 腳本已經接好：沒圖之前先借用現有的布料圖（雨棚條紋、防水布、睡袋），有圖就自動換上。★ = 先做。
 
@@ -24,7 +25,23 @@ NO readable real-world text, NO real brand logos, NO watermark. Invented glyphs 
 | 5 | `tex_cloth_towel.png` | 512×768 | 毛巾、襪子、洗衣籃裡的床單 | `A thin mustard-yellow cotton towel, portrait 2:3: terry texture, two faded stripes near the ends, frayed edges, grey grime.` |
 | 6 | `tex_cloth_blanket_b.png` | 1024×768 | 掛在繩上的綠色毯子 | `An olive green army-style blanket, landscape 4:3: coarse wool, a pale stencilled invented-glyph mark, darned holes, a sewn-on patch of different fabric.` |
 
+## 鄰台娃娃機招牌（電玩店，會發光）
+
+這兩張用電玩店的風格鎖定：
+
+```text
+STYLE LOCK: match the night arcade reference — cyan and magenta neon, dark blue steel, glossy plastic, slightly worn.
+Straight-on orthographic view, image FILLS THE FRAME edge to edge, flat even lighting, no perspective.
+NO readable real-world text, NO real brand logos or existing game characters, NO watermark. Invented glyphs and original characters only.
+```
+
+| # | 檔名 | 尺寸 | 用在哪裡 | 提示詞（接在 STYLE LOCK 後面） |
+|---|---|---|---|---|
+| ★7 | `tex_marquee_neighbour_pink.png` | 1536×192 | 粉紅娃娃機頂上的招牌 | `Backlit marquee strip of an original plush claw machine, very wide 8:1: a row of invented glyphs as the title, a small cute original bunny-cloud mascot at the left, a claw icon at the right, hearts and stars, pink and white on magenta, glossy plastic.` |
+| ★8 | `tex_marquee_neighbour_yellow.png` | 1536×192 | 黃色娃娃機頂上的招牌 | `Backlit marquee strip of an original plush claw machine, very wide 8:1: a row of bold invented glyphs as the title, a small cute original round-cat mascot at the right, a coin icon at the left, stars and sparkles, yellow and orange with cyan outline.` |
+
 ## 小提醒
 
 - 都是**整張貼在一個面上**，請填滿畫面，不要留白邊、衣架或背景。
 - 衣服請**平放正面**，不要有人穿著，不要透視。
+- 招牌上**不要**寫「差一點」或「ALMOST」，用自創符號，和主機台區分開來。
