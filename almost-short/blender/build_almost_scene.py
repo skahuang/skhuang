@@ -213,7 +213,7 @@ SURFACE_TEX = {
 }
 
 
-SURFACE_TINT = {"facade": 0.3, "parapet": 0.45, "concrete": 0.6, "pillar": 0.7}   # brightness multipliers
+SURFACE_TINT = {"facade": 0.3, "parapet": 0.45, "concrete": 0.6, "pillar": 0.7, "cab_body": 1.8}   # brightness multipliers
 
 
 def first_texture(names):
