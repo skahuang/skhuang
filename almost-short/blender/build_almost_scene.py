@@ -195,7 +195,7 @@ SURFACE_TEX = {
     "window_broken":  ("tex_window_broken.png",                                None, 0.10),
     "window_boarded": ("tex_window_boarded.png",                               None, 0.20),
     "shutter":        ("tex_shutter_rolling.png",                              None, 0.20),
-    "cab_body":       ("tex_cab_body_bluesteel.png",                           0.50, 0.05),
+    "cab_body":       (["tex_cab_body_bluesteel.png", "tex_cabinet_body.png"], 0.50, 0.05),
     "cab_trim":       (["tex_steel_brushed.png", "tex_chrome_scratched.png"],  0.20, 0.03),
     "vent_grille":    ("tex_vent_grille.png",                                  None, 0.30),
     "louver":         ("tex_louver_vent.png",                                  None, 0.30),
@@ -207,7 +207,7 @@ SURFACE_TEX = {
     "plush_card":     ("tex_plush_pile.png",                                   None, 0.00),
     "machine_pink":   ("tex_claw_machine_pink.png",                            None, 0.05),
     "marquee":        ("tex_marquee_logo.png",                                 None, 0.00),
-    "floor":          ("tex_arcade_floor_tiles.png",                           1.20, 0.08),
+    "floor":          (["tex_arcade_floor_tiles.png", "tex_arcade_carpet.png"], 1.20, 0.08),
     "wall":           ("tex_arcade_wall.png",                                  2.00, 0.05),
     "glass":          ("tex_glass_smudge.png",                                 None, 0.00),
 }
@@ -225,6 +225,105 @@ def first_texture(names):
     return None
 
 
+# Procedural weathering (phase 1, no extra art): which layers each tiled surface gets.
+#   grime = dark dirt in corners/contacts (AO)   streaks = rain stains running down walls
+#   moss  = green growth on damp upward faces    vary  = per-object brightness/hue drift
+WEATHER = {
+    "roof_wet":      {"grime": 0.55, "moss": 0.25, "vary": 0.10},
+    "concrete":      {"grime": 0.60, "streaks": 0.45, "moss": 0.30, "vary": 0.15},
+    "facade":        {"grime": 0.50, "streaks": 0.55, "vary": 0.25},
+    "parapet":       {"grime": 0.55, "streaks": 0.50, "moss": 0.55, "vary": 0.15},
+    "concrete_dark": {"grime": 0.45, "streaks": 0.50, "vary": 0.30},
+    "rust":          {"grime": 0.40, "streaks": 0.35, "vary": 0.15},
+    "tank_metal":    {"grime": 0.45, "streaks": 0.60, "moss": 0.20, "vary": 0.05},
+    "metal_dull":    {"grime": 0.40, "vary": 0.10},
+    "pillar":        {"grime": 0.40, "streaks": 0.20, "vary": 0.10},
+    "floor":         {"grime": 0.50, "vary": 0.05},
+    "wall":          {"grime": 0.35, "streaks": 0.15, "vary": 0.05},
+}
+
+
+def _mix(nt, blend, fac, a, b):
+    mx = nt.nodes.new("ShaderNodeMix")
+    mx.data_type, mx.blend_type = "RGBA", blend
+    if isinstance(fac, float):
+        mx.inputs[0].default_value = fac
+    else:
+        nt.links.new(fac, mx.inputs[0])
+    for sock, v in ((mx.inputs[6], a), (mx.inputs[7], b)):
+        if isinstance(v, tuple):
+            sock.default_value = v
+        else:
+            nt.links.new(v, sock)
+    return mx.outputs[2]
+
+
+def _ramp(nt, src, lo, hi, out_lo=0.0, out_hi=1.0):
+    mr = nt.nodes.new("ShaderNodeMapRange")
+    mr.inputs["From Min"].default_value, mr.inputs["From Max"].default_value = lo, hi
+    mr.inputs["To Min"].default_value, mr.inputs["To Max"].default_value = out_lo, out_hi
+    nt.links.new(src, mr.inputs["Value"])
+    return mr.outputs["Result"]
+
+
+def _noise(nt, scale_vec, detail=4.0, rough=0.6):
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Scale"].default_value = scale_vec
+    nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
+    nz = nt.nodes.new("ShaderNodeTexNoise")
+    nz.inputs["Detail"].default_value, nz.inputs["Roughness"].default_value = detail, rough
+    nt.links.new(mp.outputs["Vector"], nz.inputs["Vector"])
+    return nz.outputs["Fac"]
+
+
+def add_weathering(nt, bsdf, col, tile, w):
+    """Layer grime / rain streaks / moss / per-object drift over a tiled base colour.
+    Everything is driven by geometry (AO, normals, height) so the same base image ages differently
+    on every surface instead of repeating."""
+    geo = nt.nodes.new("ShaderNodeNewGeometry")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(geo.outputs["Normal"], sep.inputs["Vector"])
+    up = sep.outputs["Z"]
+    # macro variation: large soft blotches so the tile never reads as a grid
+    macro = _ramp(nt, _noise(nt, (0.15 / tile,) * 3, 2.0, 0.5), 0.3, 0.7, 0.62, 1.18)
+    col = _mix(nt, "MULTIPLY", 1.0, col, macro)
+    if w.get("vary"):
+        oi = nt.nodes.new("ShaderNodeObjectInfo")
+        hsv = nt.nodes.new("ShaderNodeHueSaturation")
+        hsv.inputs["Hue"].default_value = 0.5
+        nt.links.new(_ramp(nt, oi.outputs["Random"], 0, 1, 1 - w["vary"], 1 + w["vary"] * 0.5), hsv.inputs["Value"])
+        nt.links.new(_ramp(nt, oi.outputs["Random"], 0, 1, 0.5 - w["vary"] * 0.08, 0.5 + w["vary"] * 0.08), hsv.inputs["Hue"])
+        nt.links.new(col, hsv.inputs["Color"])
+        col = hsv.outputs["Color"]
+    if w.get("grime"):   # cavities, corners and where props touch the ground
+        ao = nt.nodes.new("ShaderNodeAmbientOcclusion")
+        ao.inputs["Distance"].default_value = 0.02
+        ao.samples = 8
+        cav = _ramp(nt, ao.outputs["AO"], 0.35, 0.95, 1.0, 0.0)
+        brk = _ramp(nt, _noise(nt, (1 / 0.02,) * 3, 6.0, 0.7), 0.35, 0.65, 0.5, 1.0)
+        mm = nt.nodes.new("ShaderNodeMath"); mm.operation = "MULTIPLY"; mm.use_clamp = True
+        nt.links.new(cav, mm.inputs[0]); nt.links.new(brk, mm.inputs[1])
+        fac = _ramp(nt, mm.outputs[0], 0, 1, 0, w["grime"])
+        col = _mix(nt, "MULTIPLY", fac, col, (0.10, 0.08, 0.06, 1.0))
+    if w.get("streaks"):   # vertical faces only: noise stretched along Z reads as run-off stains
+        side = _ramp(nt, up, 0.35, 0.05, 0.0, 1.0)
+        sx = 1 / max(tile * 0.06, 0.0015)
+        st = _ramp(nt, _noise(nt, (sx, sx, sx * 0.04), 3.0, 0.55), 0.45, 0.70, 0.0, 1.0)
+        mm = nt.nodes.new("ShaderNodeMath"); mm.operation = "MULTIPLY"; mm.use_clamp = True
+        nt.links.new(side, mm.inputs[0]); nt.links.new(st, mm.inputs[1])
+        fac = _ramp(nt, mm.outputs[0], 0, 1, 0, w["streaks"])
+        col = _mix(nt, "MULTIPLY", fac, col, (0.22, 0.20, 0.17, 1.0))
+    if w.get("moss"):   # damp upward faces, patchy
+        top = _ramp(nt, up, 0.55, 0.9, 0.0, 1.0)
+        pat = _ramp(nt, _noise(nt, (1 / 0.035,) * 3, 5.0, 0.65), 0.48, 0.62, 0.0, 1.0)
+        mm = nt.nodes.new("ShaderNodeMath"); mm.operation = "MULTIPLY"; mm.use_clamp = True
+        nt.links.new(top, mm.inputs[0]); nt.links.new(pat, mm.inputs[1])
+        fac = _ramp(nt, mm.outputs[0], 0, 1, 0, w["moss"])
+        col = _mix(nt, "MIX", fac, col, (0.05, 0.12, 0.03, 1.0))
+    return col
+
+
 def apply_surface_texture(m, filename, tile, bump):
     path = first_texture(filename)
     if not path:
@@ -238,6 +337,20 @@ def apply_surface_texture(m, filename, tile, bump):
         mp = nt.nodes.new("ShaderNodeMapping")
         mp.inputs["Scale"].default_value = (1 / tile, 1 / tile, 1 / tile)
         nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
+        if m.name in WEATHER:   # anti-tiling: every object samples the texture at its own offset + spin
+            oi = nt.nodes.new("ShaderNodeObjectInfo")
+            off = nt.nodes.new("ShaderNodeVectorMath")
+            off.operation = "SCALE"
+            off.inputs[0].default_value = (7.31, 3.17, 5.73)
+            nt.links.new(oi.outputs["Random"], off.inputs["Scale"])
+            nt.links.new(off.outputs["Vector"], mp.inputs["Location"])
+            rot = nt.nodes.new("ShaderNodeCombineXYZ")
+            spin = nt.nodes.new("ShaderNodeMath")
+            spin.operation = "MULTIPLY"
+            spin.inputs[1].default_value = math.tau
+            nt.links.new(oi.outputs["Random"], spin.inputs[0])
+            nt.links.new(spin.outputs[0], rot.inputs["Z"])
+            nt.links.new(rot.outputs["Vector"], mp.inputs["Rotation"])
         nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
         tex.projection = "BOX"
         tex.projection_blend = 0.2
@@ -258,6 +371,8 @@ def apply_surface_texture(m, filename, tile, bump):
         hsv.inputs["Value"].default_value = SURFACE_TINT[m.name]
         nt.links.new(col_out, hsv.inputs["Color"])
         col_out = hsv.outputs["Color"]
+    if m.name in WEATHER and tile:
+        col_out = add_weathering(nt, bsdf, col_out, tile, WEATHER[m.name])
     nt.links.new(col_out, bsdf.inputs["Base Color"])
     if bsdf.inputs["Emission Strength"].default_value > 0:
         nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
