@@ -177,7 +177,7 @@
       "type": "animation",
       "description": "Slow-motion: Rin falls from the tower, reaching up; the empty tower swings above. Timer 00:00.",
       "start_seconds": 32.0,
-      "end_seconds": 35.0,
+      "end_seconds": 34.5,
       "shot_language": {
         "shot_size": "medium_wide",
         "camera_movement": "crane_down",
@@ -193,8 +193,8 @@
       "id": "S12_impact",
       "type": "animation",
       "description": "She slams onto the wet roof in a splash; zombies lunge.",
-      "start_seconds": 35.0,
-      "end_seconds": 36.0,
+      "start_seconds": 34.5,
+      "end_seconds": 35.5,
       "shot_language": {
         "shot_size": "close_up",
         "camera_movement": "handheld",
@@ -207,11 +207,62 @@
       "overlay_notes": "Blender camera CAM_S12_impact"
     },
     {
+      "id": "S12b_surrounded",
+      "type": "animation",
+      "description": "Frame-by-frame: zombie legs and hands close in from every side; Rin scoots back on her hands, bumps into the cop zombie's legs and looks up over her shoulder.",
+      "start_seconds": 35.5,
+      "end_seconds": 36.5,
+      "shot_language": {
+        "shot_size": "close_up",
+        "camera_movement": "dolly_in",
+        "lens_mm": 35,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S12b_surrounded"
+    },
+    {
+      "id": "S12c_grabbed",
+      "type": "animation",
+      "description": "Frame-by-frame: the mechanic zombie grabs her bare left ankle and drags her down; the cop zombie grabs her hood and rolls her face down into the puddle. No blood.",
+      "start_seconds": 36.5,
+      "end_seconds": 38.0,
+      "shot_language": {
+        "shot_size": "close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S12c_grabbed"
+    },
+    {
+      "id": "S12d_pressed",
+      "type": "animation",
+      "description": "Frame-by-frame, same framing as S13a: she tries to push up, all four zombies pile on and press her cheek to the tiles; last frame matches S13a frame 1.",
+      "start_seconds": 38.0,
+      "end_seconds": 39.0,
+      "shot_language": {
+        "shot_size": "close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S12d_pressed"
+    },
+    {
       "id": "S13a_pinned",
       "type": "animation",
       "description": "Pinned (ref image 3): cop pulls her hoodie, mechanic grips her hair, tourist pins her arm, tentacles bind arm and ankle. Frame-by-frame struggle loop: push up gritting teeth, cry out as hair is yanked, twist and kick, eyes dart up to the empty tower. Injuries, no blood.",
-      "start_seconds": 36.0,
-      "end_seconds": 39.0,
+      "start_seconds": 39.0,
+      "end_seconds": 41.0,
       "shot_language": {
         "shot_size": "extreme_close_up",
         "camera_movement": "handheld",
@@ -227,8 +278,8 @@
       "id": "S13b_pinned_face",
       "type": "animation",
       "description": "Face ECU, expressions from the user's three pinned images: gritted teeth eyes shut -> eyes snap up to the tower -> desperate cry with tears -> defiant glare (holds on last frame).",
-      "start_seconds": 39.0,
-      "end_seconds": 41.0,
+      "start_seconds": 41.0,
+      "end_seconds": 43.0,
       "shot_language": {
         "shot_size": "extreme_close_up",
         "camera_movement": "handheld",
@@ -244,8 +295,8 @@
       "id": "S14_pullback",
       "type": "animation",
       "description": "Pull back and up (ref images 2 then 1): the horde swallows her, the empty tower still dangles in the claw above.",
-      "start_seconds": 41.0,
-      "end_seconds": 45.0,
+      "start_seconds": 43.0,
+      "end_seconds": 46.0,
       "shot_language": {
         "shot_size": "wide",
         "camera_movement": "crane_up",
@@ -261,7 +312,7 @@
       "id": "S15_glass_reveal",
       "type": "animation",
       "description": "One-take pull-out through the glass: rain stops, LED 00:00, the claw drops the empty tower in the prize chute (wrong prize), standee bases, lost boots, Nova at the joystick.",
-      "start_seconds": 45.0,
+      "start_seconds": 46.0,
       "end_seconds": 51.0,
       "shot_language": {
         "shot_size": "extreme_wide",
