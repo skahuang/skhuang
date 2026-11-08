@@ -1518,13 +1518,137 @@ def build_city_details(dio, M, buildings):
     return lit
 
 
+def build_stairwell(dio, M, hero, roof_tiles):
+    """Hollow stair shed + a real stairwell behind the rooftop door (1:60): the door frame opens onto a
+    landing, a flight drops away from the door, turns at a half-landing and keeps going into the dark.
+    Barricade boards the horde smashed through, a flickering caged lamp, pipes, fuse box, clutter."""
+    rnd = random.Random(SEED + 41)
+    sx, sy = SHED_XY[0], SHED_XY[1] + 0.005            # shed centre
+    W, D, H, T = 0.08, 0.06, 0.05, 0.003                # outer size + wall thickness
+    x0, x1, y0, y1 = sx - W / 2, sx + W / 2, sy - D / 2, sy + D / 2
+    dx0, dx1, dz = DOOR_XY[0] - 0.0125, DOOR_XY[0] + 0.0125, 0.039   # door opening
+    wall = M["parapet"]
+    # shell: back, sides, front split around the doorway
+    box("stair_shed_back", (W, T, H), (sx, y1 - T / 2, ROOF_Z + H / 2), wall, dio)
+    box("stair_shed_west", (T, D, H), (x0 + T / 2, sy, ROOF_Z + H / 2), wall, dio)
+    box("stair_shed_east", (T, D, H), (x1 - T / 2, sy, ROOF_Z + H / 2), wall, dio)
+    box("stair_shed_front_l", (dx0 - x0, T, H), ((x0 + dx0) / 2, y0 + T / 2, ROOF_Z + H / 2), wall, dio)
+    box("stair_shed_front_r", (x1 - dx1, T, H), ((x1 + dx1) / 2, y0 + T / 2, ROOF_Z + H / 2), wall, dio)
+    box("stair_shed_lintel", (dx1 - dx0, T, H - dz), ((dx0 + dx1) / 2, y0 + T / 2, ROOF_Z + dz + (H - dz) / 2), wall, dio)
+    box("stair_shed_ceiling", (W - 2 * T, D - 2 * T, 0.002), (sx, sy, ROOF_Z + H - 0.001), M["concrete"], dio)
+    # cut the shaft through the roof slab and the hero block
+    DEPTH = 0.085
+    ix0, ix1, iy0, iy1 = x0 + T, x1 - T, y0 + T, y1 - T
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(sx, (iy0 + iy1) / 2 + 0.003, ROOF_Z - DEPTH / 2 + 0.002))
+    cutter = bpy.context.active_object
+    cutter.name = "stairwell_cutter"
+    cutter.scale = (ix1 - ix0, iy1 - iy0 - 0.006 + 0.0001, DEPTH + 0.004)
+    for target in (hero, roof_tiles):
+        md = target.modifiers.new("stairwell_hole", "BOOLEAN")
+        md.operation, md.object = "DIFFERENCE", cutter
+        try:
+            md.solver = "EXACT"
+        except TypeError:
+            pass
+        bpy.context.view_layer.objects.active = target
+        bpy.ops.object.modifier_apply(modifier=md.name)
+    bpy.data.objects.remove(cutter, do_unlink=True)
+    sh_y0 = iy0 + 0.006                                  # shaft starts just behind the threshold landing
+    shaft = M["concrete"]
+    box("shaft_wall_back", (ix1 - ix0, 0.001, DEPTH), (sx, iy1 - 0.0005, ROOF_Z - DEPTH / 2), shaft, dio)
+    box("shaft_wall_front", (ix1 - ix0, 0.001, DEPTH), (sx, sh_y0 + 0.0005, ROOF_Z - DEPTH / 2), shaft, dio)
+    box("shaft_wall_west", (0.001, iy1 - sh_y0, DEPTH), (ix0 + 0.0005, (sh_y0 + iy1) / 2, ROOF_Z - DEPTH / 2), shaft, dio)
+    box("shaft_wall_east", (0.001, iy1 - sh_y0, DEPTH), (ix1 - 0.0005, (sh_y0 + iy1) / 2, ROOF_Z - DEPTH / 2), shaft, dio)
+    box("shaft_floor", (ix1 - ix0, iy1 - sh_y0, 0.001), (sx, (sh_y0 + iy1) / 2, ROOF_Z - DEPTH), M["black"], dio)
+    # threshold landing (door level) + first flight down, away from the door
+    box("stair_landing_top", (dx1 - dx0 + 0.004, sh_y0 - iy0 + 0.0005, 0.002), ((dx0 + dx1) / 2, (iy0 + sh_y0) / 2, ROOF_Z + 0.001), M["concrete"], dio)
+    rise, run, n1 = 0.0042, 0.0046, 8
+    fx0, fx1 = dx0 + 0.001, dx1 - 0.001
+    for k in range(n1):
+        z = ROOF_Z - (k + 1) * rise
+        y = sh_y0 + k * run
+        box(f"stair_a_{k}", (fx1 - fx0, run, 0.0016), ((fx0 + fx1) / 2, y + run / 2, z + 0.0008), M["concrete"], dio)
+        box(f"stair_a_{k}_nose", (fx1 - fx0, 0.0006, 0.0006), ((fx0 + fx1) / 2, y + 0.0003, z + 0.0016), M["metal_dull"], dio)
+        box(f"stair_a_{k}_riser", (fx1 - fx0, 0.0006, rise), ((fx0 + fx1) / 2, y, z + rise / 2 + 0.0016), M["concrete"], dio)
+    zl = ROOF_Z - n1 * rise
+    yl = sh_y0 + n1 * run
+    box("stair_half_landing", (ix1 - ix0 - 0.002, iy1 - yl - 0.001, 0.002), (sx, (yl + iy1) / 2, zl + 0.001), M["concrete"], dio)
+    # second flight turns back toward the door on the west side and drops into the dark
+    gx0, gx1 = ix0 + 0.001, dx0 - 0.001
+    for k in range(n1 + 2):
+        z = zl - (k + 1) * rise
+        y = yl - (k + 1) * run
+        if y < sh_y0:
+            break
+        box(f"stair_b_{k}", (gx1 - gx0, run, 0.0016), ((gx0 + gx1) / 2, y + run / 2, z + 0.0008), M["concrete"], dio)
+    # handrails: tube along the open side of each flight + newel posts
+    tube("stair_rail_a", [(fx1 + 0.0004, sh_y0, ROOF_Z + 0.008), (fx1 + 0.0004, yl, zl + 0.008)], 0.00035, M["rust"], dio)
+    tube("stair_rail_b", [(gx1 + 0.0004, yl, zl + 0.008), (gx1 + 0.0004, sh_y0 + 0.004, zl - 0.03)], 0.00035, M["rust"], dio)
+    for k, (px, py, pz) in enumerate([(fx1 + 0.0004, sh_y0, ROOF_Z), (fx1 + 0.0004, yl, zl), (gx1 + 0.0004, yl, zl)]):
+        cyl(f"stair_newel_{k}", 0.0005, 0.009, (px, py, pz + 0.0045), M["rust"], dio, verts=6)
+    # smashed barricade: boards still nailed on one side of the frame, the rest thrown on the landing
+    for k in range(3):
+        box(f"barricade_board_hang_{k}", (0.014, 0.0008, 0.0025), (dx0 + 0.006, iy0 + 0.001, ROOF_Z + 0.012 + k * 0.009), M["wood"], dio,
+            rot=(0, rnd.uniform(-0.6, -0.2), 0))
+        cyl(f"barricade_nail_{k}", 0.0002, 0.001, (dx0 + 0.0015, iy0 + 0.0005, ROOF_Z + 0.012 + k * 0.009), M["metal_dull"], dio, verts=4, rot=(math.pi / 2, 0, 0))
+    for k in range(2):   # thrown aside against the east wall, so the view down the stairs stays open
+        box(f"barricade_board_floor_{k}", (0.014, 0.0026, 0.0008), (dx1 + 0.006, iy0 + 0.006 + k * 0.004, ROOF_Z + 0.0025 + k * 0.001),
+            M["wood"], dio, rot=(rnd.uniform(-0.2, 0.2), rnd.uniform(-0.2, 0.2), 1.3 + rnd.uniform(-0.2, 0.2)))
+    # lighting: flickering caged lamp on the back wall, bare bulb hanging over the stairs, glow from below
+    wall_lamp("stair_lamp", (sx + 0.012, iy1 - 0.0004, ROOF_Z + 0.036), (0, -1), M, dio, glow="stair_lamp_flicker", light=None)
+    sl = point_light("L_stair_lamp", (sx + 0.012, iy1 - 0.008, ROOF_Z + 0.033), 0.05, (0.45, 1.0, 0.55), dio, 0.002)
+    r = random.Random(sum(map(ord, "stair_lamp")))
+    fr = 1
+    while fr < 60 * FPS:
+        for e, d in ((0.05, r.randint(30, 90)), (0.004, r.randint(2, 5)), (0.05, r.randint(2, 4)), (0.0, r.randint(3, 8))):   # same stutter as the lamp glass
+            sl.data.energy = e
+            sl.data.keyframe_insert("energy", frame=fr)
+            fr += d
+    for fc in fcurves_of(sl.data):
+        for kp in fc.keyframe_points:
+            kp.interpolation = "CONSTANT"
+    cyl("stair_bulb_cord", 0.00012, 0.012, (DOOR_XY[0], (sh_y0 + yl) / 2, ROOF_Z + H - 0.008), M["cable"], dio, verts=4)
+    sphere("stair_bulb", 0.0012, (DOOR_XY[0], (sh_y0 + yl) / 2, ROOF_Z + H - 0.0155), M["bulb_warm"], dio, segs=10, scale=(1, 1, 1.3))
+    point_light("L_stair_bulb", (DOOR_XY[0], (sh_y0 + yl) / 2, ROOF_Z + H - 0.019), 0.03, (1.0, 0.7, 0.4), dio, 0.002)
+    point_light("L_stair_below", (sx - 0.02, sh_y0 + 0.01, ROOF_Z - 0.06), 0.12, (0.3, 0.9, 0.5), dio, 0.01)
+    # services on the inside walls: riser pipes, conduit, an open fuse box, a fire extinguisher on its side
+    for k, px in enumerate((ix0 + 0.0022, ix0 + 0.0048)):
+        cyl(f"stair_riser_pipe_{k}", 0.0009 - k * 0.0002, H + DEPTH - 0.01, (px, iy1 - 0.0025, ROOF_Z + (H - DEPTH) / 2), M["rust"], dio, verts=8)
+    tube("stair_conduit", [(ix1 - 0.0008, iy1 - 0.004, ROOF_Z + H - 0.004), (ix1 - 0.0008, iy0 + 0.008, ROOF_Z + H - 0.004),
+                           (ix1 - 0.0008, iy0 + 0.008, ROOF_Z + 0.026)], 0.0003, M["metal_dull"], dio)
+    box("stair_fusebox", (0.0018, 0.010, 0.013), (ix1 - 0.001, iy0 + 0.009, ROOF_Z + 0.019), M["metal_dull"], dio)
+    box("stair_fusebox_door", (0.010, 0.0006, 0.013), (ix1 - 0.006, iy0 + 0.0035, ROOF_Z + 0.019), M["metal_dull"], dio, rot=(0, 0, 0.5))
+    for k in range(3):
+        box(f"stair_fuse_{k}", (0.0006, 0.0015, 0.0025), (ix1 - 0.0021, iy0 + 0.006 + k * 0.003, ROOF_Z + 0.020), M["black"], dio)
+    cyl("stair_extinguisher", 0.0016, 0.0085, (dx1 + 0.004, iy0 + 0.006, ROOF_Z + 0.0016), M["hazard_red"], dio, verts=12, rot=(math.pi / 2, 0, 0.7))
+    # debris: paper, a shoe, scattered bricks on the steps
+    for k in range(10):
+        on_a = k % 2 == 0
+        y = sh_y0 + rnd.uniform(0, n1 * run - 0.002)
+        steps = int((y - sh_y0) / run)
+        z = (ROOF_Z - (steps + 1) * rise + 0.0017) if on_a else ROOF_Z + 0.0021
+        x = rnd.uniform(fx0 + 0.002, fx1 - 0.002) if on_a else rnd.uniform(dx0, dx1)
+        if not on_a:
+            y = rnd.uniform(iy0 + 0.001, sh_y0)
+        box(f"stair_debris_{k}", (0.004, 0.003, 0.0003) if k % 3 else (0.0032, 0.0016, 0.0011), (x, y, z),
+            M["paper"] if k % 3 else M["brick"], dio, rot=(0, 0, rnd.uniform(0, 3)))
+    box("stair_lost_shoe", (0.0028, 0.0055, 0.0025), (fx0 + 0.004, sh_y0 + 3.5 * run, ROOF_Z - 4 * rise + 0.0029), M["black"], dio, rot=(0, 0, 0.6))
+    # scrawls on the inside walls (decal atlases, skipped if missing)
+    for k, (kind, cell, size, loc, nrm) in enumerate([
+            ("graffiti", 3, (0.012, 0.012), (ix0 + 0.0002, sy + 0.004, ROOF_Z + 0.030), (1, 0, 0)),
+            ("graffiti", 9, (0.010, 0.010), (sx - 0.014, iy1 - 0.0002, ROOF_Z + 0.022), (0, -1, 0)),
+            ("signs", 13, (0.006, 0.006), (ix1 - 0.0002, sy + 0.012, ROOF_Z + 0.032), (-1, 0, 0)),
+            ("stains", 4, (0.012, 0.012), (sx - 0.01, yl + 0.006, zl + 0.0022), (0, 0, 1))]):
+        decal(f"stair_decal_{k}", kind, cell, size, loc, nrm, dio)
+
+
 def build_diorama(C, M):
     dio = coll("DIORAMA", C["root"])
     rnd = random.Random(SEED)
     box("bed", (0.90, 0.90, 0.01), (0, 0, BED_Z), M["street"], dio)
     # ---- hero building: 3 storeys (3 m each at 1:60), shed back-left, tower back-right
     HB, HC = 0.36, (0, 0.05)
-    box("hero_building", (HB, HB, ROOF_Z - BED_Z), (HC[0], HC[1], (ROOF_Z + BED_Z) / 2), M["facade"], dio)
+    hero = box("hero_building", (HB, HB, ROOF_Z - BED_Z), (HC[0], HC[1], (ROOF_Z + BED_Z) / 2), M["facade"], dio)
     build_facade(dio, M, rnd, HC[0], HC[1], HB, HB, BED_Z + 0.005, 3, 0.05, "hb")
     # ground-floor roller shutter + green emergency lamps (reference: green light spilling on the wet street)
     sy = HC[1] - HB / 2 - 0.0008
@@ -1542,7 +1666,7 @@ def build_diorama(C, M):
             box(f"hb_drain_clamp_{k}_{j}", (0.0032, 0.0032, 0.0008), (px, py, BED_Z + 0.02 + j * 0.03), M["metal_dull"], dio)
     fire_escape("hb_fe", HC[0], HC[0] + HB / 2, HC[1] - 0.07, HC[1] + 0.03, BED_Z + 0.005, 3, 0.05, M, dio)
     vertical_signboard("hb_signboard", (HC[0] - HB / 2 - 0.007, HC[1] - HB / 2 + 0.012, BED_Z + 0.085), math.pi, 0.010, 0.040, M, dio)
-    box("roof_tiles", (0.35, 0.35, 0.002), (0, 0.05, ROOF_Z + 0.001), M["roof_wet"], dio)
+    roof_tiles = box("roof_tiles", (0.35, 0.35, 0.002), (0, 0.05, ROOF_Z + 0.001), M["roof_wet"], dio)
     # thick parapet (1.1 m) with a pipe railing on top
     PH, PT = 0.018, 0.008
     for name, size, loc in [
@@ -1566,7 +1690,7 @@ def build_diorama(C, M):
     for i, (x, y) in enumerate([(0.03, 0.20), (-0.02, 0.19)]):
         cyl(f"vent_pipe_{i}", 0.0025, 0.014, (x, y, ROOF_Z + 0.007), M["rust"], dio, verts=10)
     # stair shed + door (door hinge animated: bang in S01, burst open S02)
-    box("stair_shed", (0.08, 0.06, 0.05), (SHED_XY[0], SHED_XY[1] + 0.005, ROOF_Z + 0.025), M["parapet"], dio)
+    build_stairwell(dio, M, hero, roof_tiles)
     box("stair_shed_roof", (0.088, 0.068, 0.004), (SHED_XY[0], SHED_XY[1] + 0.005, ROOF_Z + 0.052), M["parapet"], dio)
     for x in (-0.0135, 0.0135):
         box(f"door_frame_{x:+.3f}", (0.003, 0.003, 0.041), (DOOR_XY[0] + x, DOOR_XY[1] - 0.0005, ROOF_Z + 0.0205), M["metal_dull"], dio)
@@ -2657,12 +2781,13 @@ def build_materials():
         "capsule_green": mat("capsule_green", (0.15, 0.75, 0.30), 0.25),
         "hazard_yellow": mat("hazard_yellow", (0.95, 0.75, 0.05), 0.45),
         "hazard_red":    mat("hazard_red", (0.65, 0.05, 0.04), 0.5, 0.2),
+        "stair_lamp_flicker": mat("stair_lamp_flicker", (0.2, 1, 0.4), 0.5, 0, emit=(0.3, 1, 0.45), strength=4),
         "racing_screen": mat("racing_screen", (0.2, 0.4, 0.9), 0.2, 0, emit=(0.3, 0.5, 1.0), strength=4),
         "wall_tv":       mat("wall_tv", (0.3, 0.2, 0.6), 0.2, 0, emit=(0.5, 0.3, 0.9), strength=3),
         "gacha_card":    mat("gacha_card", (0.9, 0.6, 0.8), 0.6, 0, emit=(0.9, 0.6, 0.8), strength=0.4),
         "prize_box":     mat("prize_box", (0.6, 0.5, 0.8), 0.6),
     }
-    for key, period, on_frac, hi in (("amber_blink", FPS, 0.5, 12.0), ("street_lamp_flicker", None, 0, 20.0)):
+    for key, period, on_frac, hi in (("amber_blink", FPS, 0.5, 12.0), ("street_lamp_flicker", None, 0, 20.0), ("stair_lamp_flicker", None, 0, 4.0)):
         em = node_of_type(M[key].node_tree, "BSDF_PRINCIPLED").inputs["Emission Strength"]
         if period:
             for k in range(0, 60 * FPS, period):
@@ -2671,7 +2796,7 @@ def build_materials():
                 em.default_value = 0.0
                 em.keyframe_insert("default_value", frame=k + 1 + int(period * on_frac))
         else:   # same stutter pattern as the light in street_lamp(... "flicker")
-            r = random.Random(sum(map(ord, "street_lamp_5")))
+            r = random.Random(sum(map(ord, "street_lamp_5" if key == "street_lamp_flicker" else "stair_lamp")))
             fr = 1
             while fr < 60 * FPS:
                 for e, d in ((hi, r.randint(30, 90)), (hi * 0.08, r.randint(2, 5)), (hi, r.randint(2, 4)), (0.0, r.randint(3, 8))):
