@@ -2739,7 +2739,7 @@ def build_materials():
         "plush_card":    mat("plush_card", (0.9, 0.6, 0.8), 0.7, 0, emit=(0.9, 0.6, 0.8), strength=0.6),
         "machine_pink":  mat("machine_pink", (0.95, 0.8, 0.9), 0.4, 0.1),
         "machine_yellow":mat("machine_yellow", (0.95, 0.7, 0.1), 0.4, 0.1),
-        "ceiling":       mat("ceiling", (0.02, 0.02, 0.025), 0.8, 0, emit=(0.02, 0.02, 0.025), strength=0.25),   # all lights point down: faint self-glow so the V7 ceiling art reads
+        "ceiling":       mat("ceiling", (0.02, 0.02, 0.025), 0.8, 0, emit=(0.02, 0.02, 0.025), strength=0.4),    # all lights point down: faint self-glow so the V7 ceiling art reads
         "lamp_shade":    mat("lamp_shade", (0.05, 0.05, 0.05), 0.4, 0.8),
         "wood":          mat("wood", (0.22, 0.15, 0.09), 0.85),
         "wood_old":      mat("wood_old", (0.10, 0.075, 0.05), 0.9),
