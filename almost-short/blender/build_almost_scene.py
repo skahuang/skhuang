@@ -1689,7 +1689,7 @@ def build_stairwell(dio, M, hero, roof_tiles):
     # straight flight that drops AWAY from the door (+Y), so the treads line up in the doorway view,
     # ending on a bottom landing along the back wall that turns west into the dark
     box("stair_landing_top", (dx1 - dx0 + 0.004, sh_y0 - iy0 + 0.0005, 0.002), ((dx0 + dx1) / 2, (iy0 + sh_y0) / 2, ROOF_Z + 0.001), M["concrete"], dio)
-    rise, run = 0.0040, 0.0045
+    rise, run = 0.0028, 0.0065                          # shallower than the eye line from the door, so no tread hides behind the lip
     fx0, fx1 = dx0 - 0.002, dx1 + 0.002                 # flight as wide as the door + a little
     yl0 = iy1 - 0.013                                   # bottom landing starts here
     n1 = int((yl0 - sh_y0) / run)
