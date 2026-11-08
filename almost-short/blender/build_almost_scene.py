@@ -217,6 +217,11 @@ SURFACE_TEX = {
     "window_warm":    ("tex_window_lit_interior_warm.png",                     None, 0.00),
     "grating":        ("tex_metal_grating.png",                                0.012, 0.20),
     "awning":         ("tex_awning_torn.png",                                  0.06, 0.10),
+    # V6 (TEXTURES_V6.md): arcade props outside the machine
+    "racing_screen":  (["tex_racing_screen.png", "tex_arcade_screen.png"],     None, 0.00),
+    "gacha_card":     ("tex_gashapon_card.png",                                None, 0.00),
+    "prize_box":      ("tex_prize_boxes.png",                                  None, 0.00),
+    "wall_tv":        (["tex_wall_tv_promo.png", "tex_arcade_screen.png"],     None, 0.00),
 }
 
 
@@ -2057,6 +2062,201 @@ def arcade_cabinet(ar, M, name, loc, rotz):
     return root
 
 
+# --------------------------------------------------------------------------
+# Arcade detail pass: real fixtures, more machines, props (outside the claw machine, real-world metres)
+# --------------------------------------------------------------------------
+def linear_light(name, loc, length, M, ar, rz=0.0, color=(0.85, 0.92, 1.0), energy=40):
+    """Suspended LED batten: aluminium housing on two drop wires, glowing diffuser underneath."""
+    root = prop_root(name, loc, rz, ar)
+    parts = [box(f"{name}_housing", (length, 0.09, 0.05), (0, 0, 0), M["cab_trim"], ar),
+             box(f"{name}_diffuser", (length - 0.03, 0.07, 0.012), (0, 0, -0.03), M["led_cool"], ar)]
+    for s in (-1, 1):
+        parts.append(cyl(f"{name}_wire_{s}", 0.002, 3.4 - loc[2], (s * length * 0.4, 0, (3.4 - loc[2]) / 2 + 0.025), M["black"], ar, verts=4))
+    parented(parts, root)
+    L = bpy.data.lights.new(f"L_{name}", "AREA")
+    L.shape, L.size, L.size_y = "RECTANGLE", length, 0.07
+    L.energy, L.color = energy, color
+    lo = bpy.data.objects.new(L.name, L)
+    lo.location = (loc[0], loc[1], loc[2] - 0.04)
+    lo.rotation_euler = (0, 0, rz)
+    ar.objects.link(lo)
+    return root
+
+
+def track_light(name, loc, aim, M, ar, energy=25, color=(1.0, 0.85, 0.65)):
+    """Ceiling track spot: stem, yoke and cylindrical can aimed at `aim`, with a spot light inside."""
+    from mathutils import Vector
+    d = (Vector(aim) - Vector(loc)).normalized()
+    rot = d.to_track_quat("-Z", "Y").to_euler()
+    cyl(f"{name}_stem", 0.008, 0.08, (loc[0], loc[1], loc[2] + 0.06), M["black"], ar, verts=8)
+    can = cyl(f"{name}_can", 0.035, 0.11, loc, M["black"], ar, verts=16, rot=tuple(rot))
+    lens_pos = Vector(loc) + d * 0.056
+    cyl(f"{name}_lens", 0.028, 0.004, tuple(lens_pos), M["led_warm"], ar, verts=16, rot=tuple(rot))
+    L = bpy.data.lights.new(f"L_{name}", "SPOT")
+    L.energy, L.color, L.spot_size, L.spot_blend = energy, color, math.radians(35), 0.4
+    lo = bpy.data.objects.new(L.name, L)
+    lo.location = tuple(lens_pos + d * 0.01)
+    lo.rotation_euler = rot
+    ar.objects.link(lo)
+    return can
+
+
+def exit_sign(name, loc, rz, M, ar):
+    """Green emergency-exit lightbox: frame, glowing face, white pictogram bars (no text)."""
+    root = prop_root(name, loc, rz, ar)
+    parts = [box(f"{name}_case", (0.36, 0.06, 0.16), (0, 0, 0), M["plastic_white"], ar),
+             box(f"{name}_face", (0.33, 0.062, 0.13), (0, 0, 0), M["exit_green"], ar),
+             box(f"{name}_arrow", (0.10, 0.064, 0.022), (0.08, 0, 0), M["plastic_white"], ar),
+             box(f"{name}_door", (0.05, 0.064, 0.09), (-0.10, 0, 0), M["plastic_white"], ar),
+             box(f"{name}_runner", (0.02, 0.066, 0.06), (-0.03, 0, 0.0), M["exit_green"], ar, rot=(0, 0.4, 0)),
+             cyl(f"{name}_rod", 0.004, 0.25, (0, 0, 0.205), M["metal_dull"], ar, verts=6)]
+    parented(parts, root)
+
+
+def dome_camera(name, loc, M, ar):
+    cyl(f"{name}_base", 0.07, 0.02, (loc[0], loc[1], loc[2]), M["plastic_white"], ar, verts=20)
+    sphere(f"{name}_dome", 0.055, (loc[0], loc[1], loc[2] - 0.02), M["glass_smoke"], ar, segs=16, scale=(1, 1, 0.8))
+    sphere(f"{name}_led", 0.006, (loc[0] + 0.03, loc[1], loc[2] - 0.05), M["red_led"], ar, segs=6)
+
+
+def gashapon(name, loc, rz, M, ar, rnd):
+    """Capsule-toy vending machine: base box with crank and chute, clear globe full of coloured capsules."""
+    root = prop_root(name, loc, rz, ar)
+    parts = [box(f"{name}_base", (0.34, 0.32, 0.55), (0, 0, 0.275), M[rnd.choice(["machine_pink", "machine_yellow", "cab_body"])], ar),
+             cyl(f"{name}_crank_plate", 0.07, 0.01, (0, -0.165, 0.38), M["chrome"], ar, verts=20, rot=(math.pi / 2, 0, 0)),
+             box(f"{name}_crank", (0.10, 0.02, 0.025), (0, -0.18, 0.38), M["chrome"], ar),
+             box(f"{name}_chute", (0.10, 0.03, 0.08), (0, -0.17, 0.16), M["black"], ar),
+             box(f"{name}_card", (0.24, 0.005, 0.12), (0, -0.162, 0.48), M["gacha_card"], ar),
+             sphere(f"{name}_globe", 0.17, (0, 0, 0.72), M["glass"], ar, segs=20),
+             cyl(f"{name}_cap", 0.06, 0.04, (0, 0, 0.89), M["chrome"], ar, verts=16)]
+    for k in range(26):
+        a, r = rnd.uniform(0, math.tau), rnd.uniform(0, 0.12)
+        z = 0.62 + rnd.uniform(0, 0.12) - r * 0.3
+        parts.append(sphere(f"{name}_capsule_{k}", 0.026, (math.cos(a) * r, math.sin(a) * r, z),
+                            M[rnd.choice(["capsule_red", "capsule_blue", "capsule_yellow", "capsule_green", "plastic_white"])], ar, segs=10))
+    parented(parts, root)
+    return root
+
+
+def racing_cabinet(name, loc, rz, M, ar):
+    """Sit-down driving game: bucket seat on rails, big tilted screen, wheel and pedals, lit header."""
+    root = prop_root(name, loc, rz, ar)
+    parts = [box(f"{name}_base", (0.75, 1.5, 0.12), (0, 0.2, 0.06), M["black"], ar),
+             box(f"{name}_tower", (0.75, 0.55, 1.45), (0, -0.30, 0.79), M["cab_body"], ar),
+             box(f"{name}_screen", (0.62, 0.03, 0.48), (0, -0.03, 1.12), M["racing_screen"], ar, rot=(math.radians(-12), 0, 0)),
+             box(f"{name}_header", (0.75, 0.10, 0.22), (0, -0.05, 1.62), M["neon_cyan"], ar),
+             box(f"{name}_dash", (0.70, 0.30, 0.10), (0, 0.10, 0.80), M["black"], ar, rot=(math.radians(-20), 0, 0)),
+             box(f"{name}_seat", (0.48, 0.48, 0.10), (0, 0.80, 0.42), M["black"], ar),
+             box(f"{name}_seat_back", (0.48, 0.10, 0.62), (0, 1.03, 0.72), M["black"], ar, rot=(math.radians(15), 0, 0)),
+             box(f"{name}_seat_post", (0.12, 0.12, 0.30), (0, 0.80, 0.22), M["metal_dull"], ar),
+             box(f"{name}_pedals", (0.30, 0.10, 0.05), (0, 0.32, 0.17), M["metal_dull"], ar, rot=(math.radians(30), 0, 0))]
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.14, minor_radius=0.018, location=(0, 0.22, 0.92), rotation=(math.radians(70), 0, 0))
+    wheel = bpy.context.active_object
+    wheel.name = f"{name}_wheel"
+    wheel.data.materials.append(M["rubber"])
+    link(wheel, ar)
+    parts.append(wheel)
+    for s in (-1, 1):
+        parts.append(box(f"{name}_trim_{s}", (0.012, 0.56, 1.40), (s * 0.38, -0.30, 0.78), M["neon_pink"], ar))
+    parented(parts, root)
+    return root
+
+
+def stool(name, loc, M, ar):
+    cyl(f"{name}_seat", 0.17, 0.06, (loc[0], loc[1], 0.66), M["rubber"], ar, verts=20)
+    cyl(f"{name}_post", 0.025, 0.62, (loc[0], loc[1], 0.32), M["chrome"], ar, verts=10)
+    cyl(f"{name}_foot_ring", 0.16, 0.012, (loc[0], loc[1], 0.25), M["chrome"], ar, verts=20)
+    cyl(f"{name}_base", 0.20, 0.02, (loc[0], loc[1], 0.01), M["chrome"], ar, verts=20)
+
+
+def wet_floor_sign(name, loc, rz, M, ar):
+    root = prop_root(name, loc, rz, ar)
+    parts = [box(f"{name}_a", (0.30, 0.012, 0.62), (0, -0.09, 0.30), M["hazard_yellow"], ar, rot=(math.radians(-16), 0, 0)),
+             box(f"{name}_b", (0.30, 0.012, 0.62), (0, 0.09, 0.30), M["hazard_yellow"], ar, rot=(math.radians(16), 0, 0)),
+             box(f"{name}_icon", (0.12, 0.014, 0.12), (0, -0.098, 0.33), M["black"], ar, rot=(math.radians(-16), 0.785, 0))]
+    parented(parts, root)
+
+
+def build_arcade_details(ar, M):
+    rnd = random.Random(SEED + 31)
+    n0 = len(bpy.data.objects)
+    # ---- ceiling: cable trays, sprinkler line, LED battens, track spots, exit sign, dome cameras, bunting
+    for k, x in enumerate((-1.9, 1.0)):
+        box(f"cable_tray_{k}", (0.30, 9.0, 0.06), (x, 1.5, 3.05), M["grating"], ar)
+        for j in range(8):
+            cyl(f"cable_tray_{k}_rod_{j}", 0.006, 0.33, (x, -2.5 + j * 1.15, 3.24), M["metal_dull"], ar, verts=4)
+        for c in range(3):
+            tube(f"cable_tray_{k}_run_{c}", [(x - 0.08 + c * 0.08, -3.0, 3.09), (x - 0.08 + c * 0.08, 6.0, 3.09)], 0.012, M["cable"], ar)
+    tube("sprinkler_pipe", [(-2.4, -2.5, 3.28), (-2.4, 5.3, 3.28), (2.8, 5.3, 3.28)], 0.025, M["hazard_red"], ar)
+    for j in range(7):
+        cyl(f"sprinkler_head_{j}", 0.012, 0.05, (-2.4, -2.0 + j * 1.1, 3.24), M["chrome"], ar, verts=8)
+    for k, (x, y, rz) in enumerate([(-1.6, -0.6, 0.0), (-1.6, 1.8, 0.0), (2.0, -0.4, math.pi / 2), (2.0, 2.0, math.pi / 2), (-0.6, 3.6, 0.0)]):
+        linear_light(f"led_batten_{k}", (x, y, 2.95), 1.2, M, ar, rz=rz, energy=35)
+    for k, (x, y, aim) in enumerate([(-0.5, -1.6, (0.0, -0.4, 1.2)), (0.6, -1.6, (0.1, -0.4, 1.0)),
+                                     (2.1, 1.4, (2.6, 1.9, 1.0)), (2.1, 3.4, (2.6, 3.9, 1.0)), (-1.4, 1.0, (-1.45, 0.0, 1.3))]):
+        track_light(f"track_spot_{k}", (x, y, 3.05), aim, M, ar, energy=30)
+    box("track_rail_0", (1.3, 0.04, 0.03), (0.05, -1.6, 3.12), M["black"], ar)
+    exit_sign("exit_sign", (-2.2, 2.6, 2.55), 0.0, M, ar)
+    for k, loc in enumerate([(-2.0, -1.8, 3.37), (2.3, 4.8, 3.37)]):
+        dome_camera(f"dome_cam_{k}", loc, M, ar)
+    for k, (a, b) in enumerate([((-2.55, -1.0, 2.95), (2.5, -0.2, 2.95)), ((-2.55, 2.0, 2.9), (2.5, 3.2, 2.9))]):
+        pts = sag(a, b, 0.35, 24)
+        tube(f"bunting_{k}_line", pts, 0.004, M["black"], ar)
+        for j in range(1, 24):
+            p = pts[j]
+            bpy.ops.mesh.primitive_cone_add(radius1=0.07, radius2=0.0, depth=0.16, vertices=3, location=(p[0], p[1], p[2] - 0.08),
+                                            rotation=(math.pi, 0, rnd.uniform(-0.3, 0.3)))
+            fl = bpy.context.active_object
+            fl.name = f"bunting_{k}_flag_{j}"
+            fl.scale = (1, 0.12, 1)
+            fl.data.materials.append(M[("neon_pink", "capsule_yellow", "neon_cyan", "plastic_white")[j % 4]])
+            link(fl, ar)
+    # ---- walls: neon art, wall screens, prize shelves + counter
+    tube("neon_wave_back", [(-1.8 + k * 0.15, 5.44, 2.15 + 0.12 * math.sin(k * 0.9)) for k in range(25)], 0.012, M["neon_cyan"], ar)
+    tube("neon_star_left", [(-2.565, 1.9 + 0.35 * math.cos(a) * (1 if k % 2 == 0 else 0.45), 2.35 + 0.35 * math.sin(a) * (1 if k % 2 == 0 else 0.45))
+                            for k, a in enumerate(math.pi / 2 + i * math.pi / 5 for i in range(10))], 0.012, M["neon_pink"], ar, cyclic=True)
+    tube("neon_bolt_left", [(-2.565, -0.9, 2.6), (-2.565, -0.65, 2.25), (-2.565, -0.8, 2.25), (-2.565, -0.55, 1.85)], 0.012, M["neon_purple"], ar)
+    for k, y in enumerate((0.0, 3.2)):
+        box(f"wall_tv_{k}", (0.04, 0.85, 0.50), (-2.56, y, 2.15), M["black"], ar)
+        box(f"wall_tv_{k}_screen", (0.045, 0.78, 0.44), (-2.56, y, 2.15), M["wall_tv"], ar)
+        box(f"wall_tv_{k}_mount", (0.06, 0.12, 0.12), (-2.57, y, 2.15), M["metal_dull"], ar)
+    for s in range(3):   # prize shelves behind the counter, packed with plush and boxed toys
+        z = 1.05 + s * 0.42
+        box(f"prize_shelf_{s}", (1.8, 0.35, 0.03), (2.0, 5.28, z), M["plastic_white"], ar)
+        for j in range(9):
+            if rnd.random() < 0.55:
+                sphere(f"prize_plush_{s}_{j}", 0.10, (1.2 + j * 0.2, 5.28, z + 0.11), M[rnd.choice(["capsule_red", "capsule_blue", "capsule_yellow", "machine_pink", "plastic_white"])], ar, segs=10, scale=(1, 0.9, 1.05))
+            else:
+                box(f"prize_box_{s}_{j}", (0.16, 0.14, 0.24), (1.2 + j * 0.2, 5.28, z + 0.135), M[rnd.choice(["prize_box", "prize_box", "machine_yellow"])], ar)
+    box("prize_counter", (2.0, 0.6, 1.0), (2.0, 4.75, 0.5), M["cab_body"], ar)
+    box("prize_counter_top", (2.06, 0.66, 0.04), (2.0, 4.75, 1.02), M["cab_trim"], ar)
+    box("prize_counter_glow", (1.96, 0.02, 0.03), (2.0, 4.44, 0.95), M["neon_cyan"], ar)
+    box("prize_counter_glass", (1.9, 0.5, 0.35), (2.0, 4.75, 1.22), M["glass"], ar)
+    box("token_machine", (0.45, 0.40, 1.55), (-1.33, 0.75, 0.775), M["cab_trim"], ar)
+    box("token_machine_screen", (0.30, 0.02, 0.22), (-1.33, 0.54, 1.20), M["arcade_screen"], ar)
+    box("token_machine_slot", (0.16, 0.03, 0.06), (-1.33, 0.54, 0.95), M["black"], ar)
+    box("token_machine_tray", (0.22, 0.08, 0.05), (-1.33, 0.53, 0.55), M["chrome"], ar)
+    # ---- floor: more machines, stools, a wet-floor sign, bins, a cable cover
+    for k, (x, y) in enumerate([(-1.75, 1.75), (-1.35, 1.75), (-1.55, 2.15)]):
+        gashapon(f"gashapon_{k}", (x, y, 0), 0.0 if k < 2 else math.pi, M, ar, rnd)
+    for k, x in enumerate((-1.95, -1.15)):
+        racing_cabinet(f"racing_cab_{k}", (x, 3.1, 0), 0.0, M, ar)
+    arcade_cabinet(ar, M, "arcade_cab_extra_0", (1.35, 4.0, 0), 0)
+    for k, (x, y) in enumerate([(0.0, 3.75), (0.7, 3.75), (1.4, 3.45)]):
+        stool(f"stool_{k}", (x, y), M, ar)
+    wet_floor_sign("wet_floor_sign", (-0.55, 1.55, 0), 0.6, M, ar)
+    cyl("mop_bucket", 0.16, 0.30, (-0.35, 1.85, 0.15), M["hazard_yellow"], ar, verts=20)
+    cyl("mop_handle", 0.012, 1.3, (-0.33, 1.9, 0.75), M["plastic_white"], ar, verts=6, rot=(0.15, -0.1, 0))
+    for k, (x, y) in enumerate([(1.45, -0.05), (-2.3, 0.9)]):
+        cyl(f"trash_bin_{k}", 0.17, 0.62, (x, y, 0.31), M["metal_dull"], ar, verts=20)
+        cyl(f"trash_bin_{k}_lid", 0.18, 0.04, (x, y, 0.64), M["black"], ar, verts=20)
+    box("cable_cover", (0.18, 3.0, 0.015), (-0.9, 2.2, 0.0075), M["hazard_yellow"], ar)
+    tube("floor_power_cable", [(-0.9, 3.7, 0.02), (-1.1, 3.9, 0.02), (-1.6, 3.95, 0.02), (-1.9, 3.7, 0.02)], 0.012, M["cable"], ar)
+    # LED floor-edge strips under the lane of machines on the right
+    box("lane_floor_led", (0.03, 4.0, 0.012), (2.2, 2.4, 0.006), M["neon_cyan"], ar)
+    return len(bpy.data.objects) - n0
+
+
 def build_arcade_room(C, M):
     """Night arcade after the reference: polished wet-look tiles, concrete pillars with hazard guards,
     neighbour claw machines and a lane of cabinets receding to the right, pendant lamps and ducts above."""
@@ -2447,6 +2647,19 @@ def build_materials():
         "billboard":     mat("billboard", (0.42, 0.40, 0.36), 0.8),
         "grating":       mat("grating", (0.22, 0.22, 0.23), 0.55, 0.7),
         "awning":        mat("awning", (0.35, 0.08, 0.08), 0.8),
+        "led_cool":      mat("led_cool", (0.9, 0.95, 1.0), 0.3, 0, emit=(0.85, 0.92, 1.0), strength=8),
+        "exit_green":    mat("exit_green", (0.1, 0.6, 0.25), 0.3, 0, emit=(0.15, 1.0, 0.4), strength=6),
+        "glass_smoke":   mat("glass_smoke", (0.02, 0.02, 0.025), 0.05, 0.0),
+        "capsule_red":   mat("capsule_red", (0.85, 0.08, 0.10), 0.25),
+        "capsule_blue":  mat("capsule_blue", (0.10, 0.30, 0.90), 0.25),
+        "capsule_yellow":mat("capsule_yellow", (0.95, 0.80, 0.10), 0.25),
+        "capsule_green": mat("capsule_green", (0.15, 0.75, 0.30), 0.25),
+        "hazard_yellow": mat("hazard_yellow", (0.95, 0.75, 0.05), 0.45),
+        "hazard_red":    mat("hazard_red", (0.65, 0.05, 0.04), 0.5, 0.2),
+        "racing_screen": mat("racing_screen", (0.2, 0.4, 0.9), 0.2, 0, emit=(0.3, 0.5, 1.0), strength=4),
+        "wall_tv":       mat("wall_tv", (0.3, 0.2, 0.6), 0.2, 0, emit=(0.5, 0.3, 0.9), strength=3),
+        "gacha_card":    mat("gacha_card", (0.9, 0.6, 0.8), 0.6, 0, emit=(0.9, 0.6, 0.8), strength=0.4),
+        "prize_box":     mat("prize_box", (0.6, 0.5, 0.8), 0.6),
     }
     for key, period, on_frac, hi in (("amber_blink", FPS, 0.5, 12.0), ("street_lamp_flicker", None, 0, 20.0)):
         em = node_of_type(M[key].node_tree, "BSDF_PRINCIPLED").inputs["Emission Strength"]
@@ -2517,6 +2730,7 @@ def main():
     build_characters(C, M, face, tower)
     crowd = build_crowd(C, M, face)
     build_arcade_room(C, M)
+    print("arcade detail objects:", build_arcade_details(bpy.data.collections["ARCADE_ROOM"], M))
     # S17a coin close-up: the chrome coin plate only mirrors the dark room, so give it a soft key light
     # of its own, switched on for that shot only so it never spills into the wider arcade shots
     from mathutils import Vector
