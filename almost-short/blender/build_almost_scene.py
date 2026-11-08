@@ -2123,10 +2123,10 @@ def gashapon(name, loc, rz, M, ar, rnd):
     """Capsule-toy vending machine: base box with crank and chute, clear globe full of coloured capsules."""
     root = prop_root(name, loc, rz, ar)
     parts = [box(f"{name}_base", (0.34, 0.32, 0.55), (0, 0, 0.275), M[rnd.choice(["machine_pink", "machine_yellow", "cab_body"])], ar),
-             cyl(f"{name}_crank_plate", 0.07, 0.01, (0, -0.165, 0.38), M["chrome"], ar, verts=20, rot=(math.pi / 2, 0, 0)),
-             box(f"{name}_crank", (0.10, 0.02, 0.025), (0, -0.18, 0.38), M["chrome"], ar),
-             box(f"{name}_chute", (0.10, 0.03, 0.08), (0, -0.17, 0.16), M["black"], ar),
-             box(f"{name}_card", (0.24, 0.005, 0.12), (0, -0.162, 0.48), M["gacha_card"], ar),
+             cyl(f"{name}_crank_plate", 0.06, 0.01, (0, -0.165, 0.30), M["chrome"], ar, verts=20, rot=(math.pi / 2, 0, 0)),
+             box(f"{name}_crank", (0.09, 0.02, 0.022), (0, -0.18, 0.30), M["chrome"], ar),
+             box(f"{name}_chute", (0.10, 0.03, 0.07), (0, -0.17, 0.12), M["black"], ar),
+             box(f"{name}_card", (0.26, 0.005, 0.13), (0, -0.162, 0.465), M["gacha_card"], ar),
              sphere(f"{name}_globe", 0.17, (0, 0, 0.72), M["glass"], ar, segs=20),
              cyl(f"{name}_cap", 0.06, 0.04, (0, 0, 0.89), M["chrome"], ar, verts=16)]
     for k in range(26):
@@ -2239,6 +2239,7 @@ def build_arcade_details(ar, M):
     # ---- floor: more machines, stools, a wet-floor sign, bins, a cable cover
     for k, (x, y) in enumerate([(-1.75, 1.75), (-1.35, 1.75), (-1.55, 2.15)]):
         gashapon(f"gashapon_{k}", (x, y, 0), 0.0 if k < 2 else math.pi, M, ar, rnd)
+    track_light("track_spot_gashapon", (-1.55, 1.0, 3.05), (-1.55, 1.75, 0.6), M, ar, energy=45)   # lift the dark gashapon corner
     for k, x in enumerate((-1.95, -1.15)):
         racing_cabinet(f"racing_cab_{k}", (x, 3.1, 0), 0.0, M, ar)
     arcade_cabinet(ar, M, "arcade_cab_extra_0", (1.35, 4.0, 0), 0)
