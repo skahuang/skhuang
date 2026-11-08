@@ -237,7 +237,7 @@ SURFACE_TEX = {
 }
 
 
-SURFACE_TINT = {"facade": 0.3, "parapet": 0.45, "concrete": 0.6, "pillar": 0.7, "cab_body": 1.8}   # brightness multipliers
+SURFACE_TINT = {"facade": 0.3, "parapet": 0.45, "concrete": 0.6, "pillar": 0.7, "cab_body": 1.8, "arcade_side": 1.4}   # brightness multipliers
 
 
 def first_texture(names):
@@ -261,7 +261,7 @@ WEATHER = {
     "concrete_dark": {"grime": 0.45, "streaks": 0.50, "vary": 0.30},
     "rust":          {"grime": 0.40, "streaks": 0.35, "rust": 0.50, "vary": 0.15},
     "tank_metal":    {"grime": 0.45, "streaks": 0.60, "moss": 0.20, "rust": 0.70, "vary": 0.05},
-    "metal_dull":    {"grime": 0.40, "chip": 0.30, "rust": 0.40, "vary": 0.10},
+    "metal_dull":    {"grime": 0.40, "chip": 0.12, "rust": 0.40, "vary": 0.10},
     "door_green":    {"grime": 0.40, "streaks": 0.30, "chip": 0.45, "rust": 0.50},
     "cab_body":      {"grime": 0.25},          # the hero machine is kept clean: dirt in the seams only
     "pillar":        {"grime": 0.40, "streaks": 0.20, "chip": 0.25, "vary": 0.10},
