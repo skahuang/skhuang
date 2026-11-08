@@ -493,15 +493,17 @@ def key_rot(o, frame, rot):
 
 def key_visible(o, visible_ranges):
     """visible_ranges: list of (start_frame, end_frame) inclusive. Hidden elsewhere."""
-    o.hide_render = True
-    o.hide_viewport = False  # keep selectable in viewport; render visibility drives output
-    o.keyframe_insert("hide_render", frame=1)
-    for a, b in visible_ranges:
-        o.hide_render = False
-        o.keyframe_insert("hide_render", frame=a)
-        o.hide_render = True
-        o.keyframe_insert("hide_render", frame=b + 1)
-    set_interp(o, "CONSTANT", "hide_render")
+    # key the viewport too, so the Blender viewport preview matches the render shot by shot
+    for prop in ("hide_render", "hide_viewport"):
+        setattr(o, prop, True)
+        o.keyframe_insert(prop, frame=1)
+        for a, b in visible_ranges:
+            setattr(o, prop, False)
+            o.keyframe_insert(prop, frame=a)
+            setattr(o, prop, True)
+            o.keyframe_insert(prop, frame=b + 1)
+        set_interp(o, "CONSTANT", prop)
+    o.hide_viewport = False
 
 
 # --------------------------------------------------------------------------
