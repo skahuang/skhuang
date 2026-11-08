@@ -55,7 +55,7 @@ ZOMBIE_H = 0.026
 NOVA_XY = (0.25, -0.85)
 NOVA_H = 1.62
 PIN_XY = (0.02, 0.0)       # where Rin lands and gets pinned
-CHUTE_XY = (-0.33, -0.33)  # prize chute
+CHUTE_XY = (0.30, -0.30)   # prize chute (front-right, above the outside pickup door)
 RESET_S = 57.0
 TIMER_START = 32           # overlay countdown hits 00:00 at 32 s, the moment her grip fails
 
@@ -122,8 +122,8 @@ SHOTS = [
     ("S14_pullback",     41.0, 45.0, 24, (0.034, -0.034, 1.105), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.08, 0.10, 1.47)),
     # ---- Act 4: reveal + loop (45-60 s)
     ("S15_glass_reveal", 45.0, 51.0, 35, (0.14, -0.44, 1.37),    (-0.45, -2.30, 1.78),   (0.08, 0.10, 1.47),   (0.05, -0.30, 1.20)),
-    ("S16_nova_almost",  51.0, 55.0, 85, (0.62, -1.30, 1.56),    (0.60, -1.25, 1.55),    (0.25, -0.85, 1.50),  (0.25, -0.85, 1.50)),
-    ("S17a_coin",        55.0, 57.0, 50, (0.58, -0.86, 0.98),    (0.55, -0.80, 0.95),    (0.36, -0.52, 0.86),  (0.36, -0.52, 0.86)),
+    ("S16_nova_almost",  51.0, 55.0, 50, (1.02, -1.78, 1.36),    (0.98, -1.72, 1.35),    (0.25, -0.85, 1.30),  (0.25, -0.85, 1.30)),
+    ("S17a_coin",        55.0, 57.0, 50, (0.44, -0.86, 0.98),    (0.41, -0.80, 0.95),    (0.22, -0.52, 0.84),  (0.22, -0.52, 0.84)),
     ("S17b_reset_loop",  57.0, 60.0, 35, (0.02, -0.04, 1.30),    (-0.085, -0.03, 1.114), (0.0, -0.01, 1.10),   (-0.11, 0.11, 1.124)),
 ]
 
@@ -195,15 +195,25 @@ SURFACE_TEX = {
     "window_broken":  ("tex_window_broken.png",                                None, 0.10),
     "window_boarded": ("tex_window_boarded.png",                               None, 0.20),
     "shutter":        ("tex_shutter_rolling.png",                              None, 0.20),
-    "cab_body":       ("tex_cabinet_body.png",                                 0.50, 0.05),
+    "cab_body":       ("tex_cab_body_bluesteel.png",                           0.50, 0.05),
+    "cab_trim":       (["tex_steel_brushed.png", "tex_chrome_scratched.png"],  0.20, 0.03),
+    "vent_grille":    ("tex_vent_grille.png",                                  None, 0.30),
+    "louver":         ("tex_louver_vent.png",                                  None, 0.30),
+    "coin_mech":      ("tex_coin_mech.png",                                    None, 0.20),
+    "pillar":         (["tex_concrete_pillar.png", "tex_concrete_peel.png"],   0.80, 0.10),
+    "hazard":         ("tex_hazard_stripes.png",                               0.25, 0.05),
+    "poster":         ("tex_poster_arcade.png",                                None, 0.00),
+    "arcade_screen":  ("tex_arcade_screen.png",                                None, 0.00),
+    "plush_card":     ("tex_plush_pile.png",                                   None, 0.00),
+    "machine_pink":   ("tex_claw_machine_pink.png",                            None, 0.05),
     "marquee":        ("tex_marquee_logo.png",                                 None, 0.00),
-    "floor":          ("tex_arcade_carpet.png",                                1.00, 0.05),
+    "floor":          ("tex_arcade_floor_tiles.png",                           1.20, 0.08),
     "wall":           ("tex_arcade_wall.png",                                  2.00, 0.05),
     "glass":          ("tex_glass_smudge.png",                                 None, 0.00),
 }
 
 
-SURFACE_TINT = {"facade": 0.3, "parapet": 0.45, "concrete": 0.6}   # brightness multipliers
+SURFACE_TINT = {"facade": 0.3, "parapet": 0.45, "concrete": 0.6, "pillar": 0.7}   # brightness multipliers
 
 
 def first_texture(names):
@@ -597,6 +607,17 @@ def reset_scene():
     scn.frame_start = 1
     scn.frame_end = f(DURATION_S) - 1   # 1440
     scn.unit_settings.system = "METRIC"
+    try:
+        scn.eevee.use_raytracing = True      # mirror-like reflections on the polished arcade floor
+    except AttributeError:
+        pass
+    # the cabinet fog is a small box: tight froxels stop it smearing over the whole frame in wide shots
+    for attr, val in (("volumetric_start", 0.01), ("volumetric_end", 6.0), ("volumetric_tile_size", "4"),
+                      ("volumetric_samples", 96)):
+        try:
+            setattr(scn.eevee, attr, val)
+        except (AttributeError, TypeError):
+            pass
     for eng in ("BLENDER_EEVEE_NEXT", "BLENDER_EEVEE"):
         try:
             scn.render.engine = eng
@@ -620,26 +641,70 @@ def reset_scene():
 
 
 def build_cabinet(C, M):
+    """The ALMOST claw machine, after the five-view sheet: dark blue steel body, brushed frame with
+    cyan neon on every vertical edge, magenta belt at the glass line, glass top, warm LED bars."""
     cab = coll("CABINET", C["root"])
-    # lower body
-    box("cab_body", (1.0, 1.0, BED_Z), (0, 0, BED_Z / 2), M["cab_body"], cab)
-    # four corner pillars + roof
+    H = 1.95
+    # lower body + bolted panel seams
+    box("cab_body", (1.0, 1.0, BED_Z - 0.03), (0, 0, (BED_Z - 0.03) / 2 + 0.03), M["cab_body"], cab)
+    box("cab_plinth", (0.98, 0.98, 0.03), (0, 0, 0.015), M["black"], cab)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            box(f"cab_pillar_{sx}{sy}", (0.05, 0.05, 0.92), (sx * 0.475, sy * 0.475, BED_Z + 0.46), M["cab_trim"], cab)
-    box("cab_roof", (1.0, 1.0, 0.06), (0, 0, 1.90), M["cab_body"], cab)
-    box("cab_marquee", (1.0, 0.10, 0.18), (0, -0.46, 2.02), M["marquee"], cab)
-    # glass: front / left / right / back(back is opaque printed backdrop)
-    box("glass_front", (0.90, 0.004, 0.90), (0, -0.475, BED_Z + 0.45), M["glass"], cab)
-    box("glass_left", (0.004, 0.90, 0.90), (-0.475, 0, BED_Z + 0.45), M["glass"], cab)
-    box("glass_right", (0.004, 0.90, 0.90), (0.475, 0, BED_Z + 0.45), M["glass"], cab)
-    # neon edge strips (pink left, cyan right) — panel 07/08 look
-    box("neon_left", (0.012, 0.012, 0.92), (-0.50, -0.50, BED_Z + 0.46), M["neon_pink"], cab)
-    box("neon_right", (0.012, 0.012, 0.92), (0.50, -0.50, BED_Z + 0.46), M["neon_cyan"], cab)
-    # printed sky/city backdrop on the inside back wall
+            cyl(f"cab_foot_{sx}{sy}", 0.025, 0.012, (sx * 0.44, sy * 0.44, 0.006), M["cab_trim"], cab, verts=16)
+    box("cab_panel_seam_front", (0.90, 0.003, 0.004), (0, -0.5015, 0.68), M["cab_trim"], cab)
+    for sx in (-1, 1):
+        for z in (0.08, 0.62, 0.74, 0.88):
+            cyl(f"cab_bolt_{sx}_{z:.2f}", 0.006, 0.004, (sx * 0.44, -0.502, z), M["cab_trim"], cab, verts=10, rot=(math.pi / 2, 0, 0))
+    # back: opaque panel full height (back view), louvers + service hatch
+    box("cab_back_panel", (0.96, 0.012, H - BED_Z - 0.06), (0, 0.494, BED_Z + (H - BED_Z) / 2), M["cab_body"], cab)
+    box("cab_back_hatch", (0.70, 0.004, 0.45), (0, 0.5025, 0.42), M["cab_body"], cab)
+    for x in (-0.24, 0.24):
+        box(f"cab_back_louver_{x:+.2f}", (0.14, 0.003, 0.11), (x, 0.505, 0.22), M["louver"], cab)
+    for sx in (-1, 1):   # side louvers, rear-low
+        box(f"cab_side_louver_{sx}", (0.003, 0.15, 0.10), (sx * 0.5015, 0.28, 0.20), M["louver"], cab)
+    # frame: corner posts, top ring, glass top
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            box(f"cab_pillar_{sx}{sy}", (0.045, 0.045, H), (sx * 0.4775, sy * 0.4775, H / 2), M["cab_trim"], cab)
+            # cyan neon on the outward diagonal face of every post (front two face the viewer)
+            box(f"neon_post_{sx}{sy}", (0.012, 0.012, H - 0.06), (sx * 0.497, sy * 0.497, H / 2), M["neon_cyan"], cab)
+    for name, size, loc in [("cab_top_front", (1.0, 0.045, 0.045), (0, -0.4775, H - 0.0225)),
+                            ("cab_top_back", (1.0, 0.045, 0.045), (0, 0.4775, H - 0.0225)),
+                            ("cab_top_left", (0.045, 1.0, 0.045), (-0.4775, 0, H - 0.0225)),
+                            ("cab_top_right", (0.045, 1.0, 0.045), (0.4775, 0, H - 0.0225))]:
+        box(name, size, loc, M["cab_trim"], cab)
+    box("neon_top_front", (0.92, 0.012, 0.012), (0, -0.497, H - 0.06), M["neon_cyan"], cab)
+    box("glass_top", (0.91, 0.91, 0.004), (0, 0, H - 0.004), M["glass"], cab)
+    # magenta belt at the glass line, all four sides
+    for name, size, loc in [("belt_front", (1.004, 0.012, 0.055), (0, -0.502, BED_Z - 0.005)),
+                            ("belt_back", (1.004, 0.012, 0.055), (0, 0.502, BED_Z - 0.005)),
+                            ("belt_left", (0.012, 1.004, 0.055), (-0.502, 0, BED_Z - 0.005)),
+                            ("belt_right", (0.012, 1.004, 0.055), (0.502, 0, BED_Z - 0.005))]:
+        box(name, size, loc, M["belt"], cab)
+    # glass: front / left / right (back is the printed backdrop)
+    box("glass_front", (0.91, 0.004, H - BED_Z - 0.05), (0, -0.476, (BED_Z + H - 0.05) / 2 + 0.01), M["glass"], cab)
+    box("glass_left", (0.004, 0.91, H - BED_Z - 0.05), (-0.476, 0, (BED_Z + H - 0.05) / 2 + 0.01), M["glass"], cab)
+    box("glass_right", (0.004, 0.91, H - BED_Z - 0.05), (0.476, 0, (BED_Z + H - 0.05) / 2 + 0.01), M["glass"], cab)
+    # warm LED bars under the top (front view)
+    for x in (-0.22, 0.22):
+        box(f"led_bar_{x:+.2f}", (0.20, 0.018, 0.008), (x, -0.40, H - 0.07), M["led_warm"], cab)
+    L = bpy.data.lights.new("L_cab_led_bars", "AREA")
+    L.energy, L.color, L.size = 12.0, (1.0, 0.85, 0.65), 0.6
+    lo = bpy.data.objects.new(L.name, L)
+    lo.location = (0, -0.38, H - 0.08)
+    cab.objects.link(lo)
+    # printed ruins backdrop on the inside back wall
     bd_file = "tex_backdrop_ruins_fog.png" if first_texture("tex_backdrop_ruins_fog.png") else "tex_backdrop_city_sky.png"
     img, _ = load_image("../textures/" + bd_file, (0.10, 0.14, 0.30), "card", 512, 512)
-    bd = sprite_material("M_backdrop", img, emission=0.6)
+    bd = sprite_material("M_backdrop", img, emission=1.0)
+    bb = node_of_type(bd.node_tree, "BSDF_PRINCIPLED")   # matte print: no sheen picking up the arcade neon
+    bb.inputs["Specular IOR Level"].default_value = 0.0
+    bb.inputs["Roughness"].default_value = 1.0
+    for l in list(bd.node_tree.links):           # backlit print: emission only, so room neon can't tint it
+        if l.to_socket == bb.inputs["Base Color"]:
+            bd.node_tree.links.remove(l)
+    bb.inputs["Base Color"].default_value = (0, 0, 0, 1)
+    bb.inputs["Emission Strength"].default_value = 1.1
     me = sprite_mesh("ME_backdrop", 0.90, 1.0)
     me.materials.append(bd)
     back = bpy.data.objects.new("backdrop_print", me)
@@ -648,24 +713,34 @@ def build_cabinet(C, M):
     cab.objects.link(back)
     # the "moon": actually the cabinet ceiling lamp (clue in S06 / S09)
     moon = cyl("ceiling_lamp_MOON", 0.035, 0.006, (0.16, 0.30, 1.865), M["moon_lamp"], cab, verts=48)
-    # control panel, joystick, button, coin slot, LED timer, prize chute
-    box("ctrl_panel", (0.90, 0.22, 0.08), (0, -0.58, 0.86), M["cab_trim"], cab, rot=(math.radians(-12), 0, 0))
-    cyl("joystick_shaft", 0.008, 0.08, (-0.12, -0.60, 0.94), M["chrome"], cab, verts=12)
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.022, location=(-0.12, -0.60, 0.985))
+    # control box (front-left, under the belt): ball-top joystick + glowing magenta button
+    box("ctrl_box", (0.34, 0.16, 0.13), (-0.17, -0.575, 0.835), M["cab_trim"], cab)
+    box("ctrl_box_top", (0.32, 0.14, 0.004), (-0.17, -0.575, 0.902), M["black"], cab)
+    box("joystick_plate", (0.07, 0.07, 0.004), (-0.25, -0.58, 0.905), M["black"], cab)
+    cyl("joystick_shaft", 0.007, 0.07, (-0.25, -0.58, 0.94), M["chrome"], cab, verts=12)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.022, location=(-0.25, -0.58, 0.98))
     ball = bpy.context.active_object
     ball.name = "joystick_ball"
     ball.data.materials.append(M["red_glossy"])
     link(ball, cab)
-    cyl("button_grab", 0.03, 0.02, (0.08, -0.60, 0.91), M["neon_pink"], cab)
-    box("coin_slot_plate", (0.08, 0.01, 0.12), (0.36, -0.52, 0.86), M["chrome"], cab)
-    box("coin_slot", (0.004, 0.012, 0.05), (0.36, -0.527, 0.87), M["black"], cab)
-    box("led_timer", (0.16, 0.01, 0.05), (0.0, -0.505, 1.88), M["led_red"], cab)
-    box("prize_chute_bin", (0.16, 0.16, 0.14), (-0.33, -0.33, BED_Z + 0.07), M["glass"], cab)
-    box("prize_tray", (0.20, 0.10, 0.04), (-0.33, -0.53, 0.55), M["cab_trim"], cab)
+    cyl("button_bezel", 0.036, 0.012, (-0.08, -0.58, 0.908), M["cab_trim"], cab, verts=32)
+    cyl("button_grab", 0.028, 0.016, (-0.08, -0.58, 0.914), M["neon_pink"], cab, verts=32)
+    # coin mechanism (right of the control box)
+    box("coin_slot_plate", (0.10, 0.012, 0.16), (0.22, -0.506, 0.84), M["coin_mech"], cab)
+    box("coin_slot", (0.004, 0.012, 0.05), (0.22, -0.513, 0.87), M["black"], cab)
+    box("coin_return", (0.04, 0.012, 0.025), (0.22, -0.513, 0.79), M["black"], cab)
+    box("led_timer", (0.16, 0.01, 0.05), (0.0, -0.505, H - 0.12), M["led_red"], cab)
+    # lower front: speaker grille (left) and the prize pickup door (right)
+    box("vent_grille_front", (0.17, 0.006, 0.17), (-0.30, -0.503, 0.24), M["vent_grille"], cab)
+    box("vent_grille_frame", (0.19, 0.004, 0.19), (-0.30, -0.5005, 0.24), M["cab_trim"], cab)
+    box("prize_door_frame", (0.21, 0.006, 0.17), (CHUTE_XY[0], -0.503, 0.24), M["cab_trim"], cab)
+    box("prize_door_hole", (0.17, 0.010, 0.13), (CHUTE_XY[0], -0.505, 0.24), M["black"], cab)
+    box("prize_chute_bin", (0.16, 0.16, 0.14), (CHUTE_XY[0], CHUTE_XY[1], BED_Z + 0.07), M["glass"], cab)
+    box("prize_tray", (0.16, 0.10, 0.02), (CHUTE_XY[0], -0.46, 0.175), M["cab_trim"], cab)
     # tiny single boots in the prize tray: earlier failed rounds (dark-humour clue)
     for i in range(5):
         box(f"lost_boot_{i}", (0.006, 0.010, 0.007),
-            (-0.39 + i * 0.028, -0.53 + (i % 2) * 0.012, 0.575), M["boot"], cab, rot=(0, 0, i * 0.7))
+            (CHUTE_XY[0] - 0.06 + i * 0.028, -0.47 + (i % 2) * 0.012, 0.19), M["boot"], cab, rot=(0, 0, i * 0.7))
     return moon
 
 
@@ -759,7 +834,7 @@ def build_diorama(C, M):
         y = rnd.uniform(-0.43, 0.43)
         if abs(x) < 0.23 and -0.17 < y < 0.27:
             continue
-        if x < -0.22 and y < -0.22:  # keep prize chute corner clear
+        if x > 0.20 and y < -0.20:   # keep prize chute corner clear
             continue
         h = rnd.uniform(0.04, 0.17) * (0.7 if y > 0.2 else 1.0)
         w = rnd.uniform(0.04, 0.09)
@@ -1121,7 +1196,7 @@ def build_characters(C, M, face, tower_root):
     nova_defs = [
         ("nova_back_joystick", "nova_back_joystick.png", ["S15_glass_reveal"], (NOVA_XY[0], NOVA_XY[1], 0.0), NOVA_H),
         ("nova_profile_almost","nova_profile_almost.png",["S16_nova_almost"],  (NOVA_XY[0], NOVA_XY[1], 0.87), 0.75),  # waist-up art
-        ("nova_hand_coin",     "nova_hand_coin.png",     ["S17a_coin"],        (0.40, -0.56, 0.80), 0.16),
+        ("nova_hand_coin",     "nova_hand_coin.png",     ["S17a_coin"],        (0.26, -0.56, 0.78), 0.16),
     ]
     for name, fn, shots, loc, h in nova_defs:
         o = sprite(name, fn, h, loc, ch, face, NOVA, shape="hand" if "hand" in name else "figure")
@@ -1187,26 +1262,108 @@ def build_crowd(C, M, face):
     return root
 
 
+def prop_root(name, loc, rotz, collection):
+    e = bpy.data.objects.new(name, None)
+    e.location = loc
+    e.rotation_euler = (0, 0, rotz)
+    collection.objects.link(e)
+    return e
+
+
+def parented(objs, parent):
+    for o in objs:
+        o.parent = parent
+    return objs
+
+
+def neighbour_claw_machine(ar, M, name, loc, rotz, body, accent, rnd):
+    """Generic plush claw machine for the background (pink/white stars or yellow)."""
+    root = prop_root(name, loc, rotz, ar)
+    parts = [
+        box(f"{name}_body", (0.9, 0.85, 0.9), (0, 0, 0.45), M[body], ar),
+        box(f"{name}_belt", (0.92, 0.87, 0.04), (0, 0, 0.92), M[accent], ar),
+        box(f"{name}_glass", (0.86, 0.81, 0.85), (0, 0, 1.36), M["glass"], ar),
+        box(f"{name}_top", (0.92, 0.87, 0.10), (0, 0, 1.84), M[body], ar),
+        box(f"{name}_sign", (0.80, 0.02, 0.07), (0, -0.44, 1.84), M[accent], ar),
+        box(f"{name}_plush_card", (0.82, 0.004, 0.42), (0, 0.38, 1.15), M["plush_card"], ar),
+        box(f"{name}_ctrl", (0.30, 0.12, 0.08), (-0.15, -0.48, 0.82), M["cab_trim"], ar),
+        box(f"{name}_coin", (0.08, 0.01, 0.12), (0.2, -0.43, 0.78), M["coin_mech"], ar),
+        box(f"{name}_door", (0.18, 0.01, 0.14), (0.2, -0.43, 0.22), M["black"], ar),
+    ]
+    for sx in (-1, 1):
+        parts.append(box(f"{name}_neon_{sx}", (0.012, 0.012, 1.8), (sx * 0.455, -0.43, 0.95), M[accent], ar))
+    for k in range(14):
+        bpy.ops.mesh.primitive_uv_sphere_add(radius=rnd.uniform(0.05, 0.08), segments=12, ring_count=8,
+                                             location=(rnd.uniform(-0.33, 0.33), rnd.uniform(-0.25, 0.3), 0.98 + rnd.uniform(0, 0.12)))
+        b = bpy.context.active_object
+        b.name = f"{name}_plush_{k}"
+        b.data.materials.append(M["plush_card"])
+        parts.append(link(b, ar))
+    parented(parts, root)
+    return root
+
+
+def arcade_cabinet(ar, M, name, loc, rotz):
+    root = prop_root(name, loc, rotz, ar)
+    parts = [
+        box(f"{name}_body", (0.6, 0.7, 1.75), (0, 0, 0.875), M["black"], ar),
+        box(f"{name}_screen", (0.48, 0.02, 0.40), (0, -0.33, 1.30), M["arcade_screen"], ar, rot=(math.radians(-15), 0, 0)),
+        box(f"{name}_marquee", (0.58, 0.04, 0.16), (0, -0.33, 1.68), M["neon_pink"], ar),
+        box(f"{name}_deck", (0.6, 0.25, 0.06), (0, -0.45, 0.98), M["cab_trim"], ar, rot=(math.radians(-10), 0, 0)),
+    ]
+    parented(parts, root)
+    return root
+
+
 def build_arcade_room(C, M):
+    """Night arcade after the reference: polished wet-look tiles, concrete pillars with hazard guards,
+    neighbour claw machines and a lane of cabinets receding to the right, pendant lamps and ducts above."""
     ar = coll("ARCADE_ROOM", C["root"])
-    box("floor", (8, 8, 0.01), (0, -1.5, -0.005), M["floor"], ar)
-    box("wall_back_far", (8, 0.05, 4), (0, 2.5, 2), M["wall"], ar)
-    img, _ = load_image("../textures/tex_arcade_bokeh_plate.png", (0.45, 0.10, 0.45), "card", 512, 512)
-    me = sprite_mesh("ME_bokeh", 3.2, 0.5625 * 2)
-    me.materials.append(sprite_material("M_bokeh", img, emission=1.5))
-    pl = bpy.data.objects.new("bokeh_plate_side", me)
-    pl.location = (2.2, -0.4, 0)
-    pl.rotation_euler = (0, 0, math.radians(-70))
-    ar.objects.link(pl)
-    for i, x in enumerate((-1.3, 1.4, 2.4)):
-        box(f"other_cabinet_{i}", (0.9, 0.9, 1.9), (x, 0.2 + i * 0.3, 0.95), M["cab_body"], ar)
-        box(f"other_cabinet_glow_{i}", (0.8, 0.01, 0.8), (x, 0.2 + i * 0.3 - 0.46, 1.4), M["neon_pink" if i % 2 else "neon_cyan"], ar)
+    rnd = random.Random(SEED + 3)
+    box("floor", (12, 12, 0.01), (0.5, 1.5, -0.005), M["floor"], ar)
+    box("ceiling", (12, 12, 0.05), (0.5, 1.5, 3.4), M["ceiling"], ar)
+    box("wall_back_far", (12, 0.05, 3.4), (0.5, 5.5, 1.7), M["wall"], ar)
+    box("wall_left", (0.05, 12, 3.4), (-2.6, 1.5, 1.7), M["wall"], ar)
+    box("wall_back_neon", (6.0, 0.03, 0.05), (0.8, 5.47, 2.6), M["neon_pink"], ar)
+    # ceiling services: ducts, a cassette AC
+    for k, x in enumerate((-1.2, 0.6, 2.2)):
+        box(f"duct_{k}", (0.25, 9.0, 0.25), (x, 1.5, 3.2), M["metal_dull"], ar)
+    box("ceiling_ac", (0.7, 0.7, 0.08), (1.6, 2.2, 3.33), M["cab_trim"], ar)
+    # pendant lamps (warm pools on the floor)
+    for k, (x, y) in enumerate([(-0.9, -1.2), (1.2, -0.8), (1.4, 1.2), (1.5, 3.0), (-0.2, 2.4), (0.6, 4.4)]):
+        cyl(f"pendant_cord_{k}", 0.004, 0.5, (x, y, 3.15), M["black"], ar, verts=6)
+        bpy.ops.mesh.primitive_cone_add(radius1=0.22, radius2=0.05, depth=0.14, vertices=24, location=(x, y, 2.85))
+        sh = bpy.context.active_object
+        sh.name = f"pendant_shade_{k}"
+        sh.data.materials.append(M["lamp_shade"])
+        link(sh, ar)
+        cyl(f"pendant_bulb_{k}", 0.15, 0.01, (x, y, 2.78), M["led_warm"], ar, verts=24)
+        L = bpy.data.lights.new(f"L_pendant_{k}", "SPOT")
+        L.energy, L.color, L.spot_size, L.spot_blend = 60, (1.0, 0.78, 0.5), math.radians(80), 0.6
+        lo = bpy.data.objects.new(L.name, L)
+        lo.location = (x, y, 2.76)
+        ar.objects.link(lo)
+    # concrete pillars with yellow/black hazard corner guards and a poster
+    for k, (x, y) in enumerate([(-0.85, 0.55), (0.95, 2.4)]):
+        box(f"pillar_{k}", (0.5, 0.5, 3.4), (x, y, 1.7), M["pillar"], ar)
+        box(f"pillar_guard_{k}", (0.12, 0.12, 0.9), (x + 0.22, y - 0.22, 0.45), M["hazard"], ar)
+        box(f"pillar_poster_{k}", (0.36, 0.006, 0.52), (x, y - 0.253, 1.75), M["poster"], ar)
+    # neighbours: pink/white star machine to the left, a lane of yellow + pink machines to the right
+    neighbour_claw_machine(ar, M, "machine_left", (-1.45, 0.0, 0), 0, "machine_pink", "neon_pink", rnd)
+    for k, y in enumerate((0.9, 1.9, 2.9, 3.9)):
+        body = "machine_yellow" if k % 2 == 0 else "machine_pink"
+        neighbour_claw_machine(ar, M, f"machine_lane_{k}", (2.6, y, 0), math.pi / 2, body, "neon_pink", rnd)
+    for k, x in enumerate((0.0, 0.7)):
+        arcade_cabinet(ar, M, f"arcade_cab_{k}", (x, 4.3, 0), 0)
+    box("vending_machine", (0.9, 0.8, 1.9), (-1.0, 4.6, 0.95), M["machine_pink"], ar)
+    box("vending_front", (0.7, 0.01, 1.3), (-1.0, 4.195, 1.15), M["arcade_screen"], ar)
     for name, col, loc, energy in [
         ("L_neon_pink", (1.0, 0.2, 0.7), (-0.9, -1.2, 1.8), 120),
         ("L_neon_cyan", (0.2, 0.8, 1.0), (1.0, -1.0, 1.6), 120),
     ]:
         L = bpy.data.lights.new(name, "AREA")
         L.energy, L.color, L.size = energy, col, 0.8
+        L.specular_factor = 0.1    # fill only: keep the big pink/cyan softboxes out of the cabinet glass
         o = bpy.data.objects.new(name, L)
         o.location = loc
         o.rotation_euler = (math.radians(70), 0, math.atan2(-loc[0], 1.0))
@@ -1305,15 +1462,29 @@ def build_cameras(C):
 
 def build_materials():
     M = {
-        "cab_body":      mat("cab_body", (0.06, 0.07, 0.10), 0.35, 0.2),
-        "cab_trim":      mat("cab_trim", (0.55, 0.58, 0.65), 0.25, 0.8),
+        "cab_body":      mat("cab_body", (0.11, 0.15, 0.25), 0.42, 0.45),     # dark blue painted steel
+        "cab_trim":      mat("cab_trim", (0.62, 0.64, 0.68), 0.28, 0.9),      # brushed steel frame
+        "belt":          mat("belt", (0.65, 0.05, 0.55), 0.25, 0.3, emit=(0.85, 0.08, 0.7), strength=0.6),
+        "led_warm":      mat("led_warm", (1.0, 0.85, 0.6), 0.3, 0, emit=(1.0, 0.82, 0.55), strength=15),
+        "vent_grille":   mat("vent_grille", (0.04, 0.05, 0.07), 0.5, 0.6),
+        "louver":        mat("louver", (0.06, 0.08, 0.13), 0.5, 0.4),
+        "coin_mech":     mat("coin_mech", (0.55, 0.57, 0.6), 0.3, 0.9),
+        "pillar":        mat("pillar", (0.28, 0.28, 0.29), 0.85),
+        "hazard":        mat("hazard", (0.8, 0.65, 0.05), 0.6),
+        "poster":        mat("poster", (0.5, 0.3, 0.6), 0.6, 0, emit=(0.5, 0.3, 0.6), strength=0.3),
+        "arcade_screen": mat("arcade_screen", (0.2, 0.4, 0.9), 0.2, 0, emit=(0.3, 0.5, 1.0), strength=4),
+        "plush_card":    mat("plush_card", (0.9, 0.6, 0.8), 0.7, 0, emit=(0.9, 0.6, 0.8), strength=0.6),
+        "machine_pink":  mat("machine_pink", (0.95, 0.8, 0.9), 0.4, 0.1),
+        "machine_yellow":mat("machine_yellow", (0.95, 0.7, 0.1), 0.4, 0.1),
+        "ceiling":       mat("ceiling", (0.02, 0.02, 0.025), 0.8),
+        "lamp_shade":    mat("lamp_shade", (0.05, 0.05, 0.05), 0.4, 0.8),
         "chrome":        mat("chrome", (0.85, 0.85, 0.9), 0.12, 1.0),
         "black":         mat("black", (0.01, 0.01, 0.01), 0.5),
-        "glass":         mat("glass", (0.75, 0.85, 1.0), 0.02, 0.0, alpha=0.10),
+        "glass":         mat("glass", (0.75, 0.85, 1.0), 0.02, 0.0, alpha=0.04),
         "acrylic":       mat("acrylic_base", (0.9, 0.95, 1.0), 0.05, 0.0, alpha=0.25),
         "marquee":       mat("marquee", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=6),
-        "neon_pink":     mat("neon_pink", (1.0, 0.2, 0.7), 0.3, 0, emit=(1.0, 0.2, 0.7), strength=12),
-        "neon_cyan":     mat("neon_cyan", (0.2, 0.8, 1.0), 0.3, 0, emit=(0.2, 0.8, 1.0), strength=12),
+        "neon_pink":     mat("neon_pink", (1.0, 0.2, 0.7), 0.3, 0, emit=(1.0, 0.2, 0.7), strength=5),
+        "neon_cyan":     mat("neon_cyan", (0.1, 0.85, 1.0), 0.3, 0, emit=(0.05, 0.8, 1.0), strength=5),
         "led_red":       mat("led_red", (0.2, 0.0, 0.0), 0.4, 0, emit=(1.0, 0.05, 0.05), strength=8),
         "moon_lamp":     mat("moon_lamp", (0.9, 0.95, 1.0), 0.2, 0, emit=(0.85, 0.92, 1.0), strength=25),
         "red_glossy":    mat("red_glossy", (0.8, 0.02, 0.05), 0.1),
@@ -1328,7 +1499,7 @@ def build_materials():
         "door_green":    mat("door_green", (0.10, 0.35, 0.18), 0.5, 0.3),
         "green_glow":    mat("green_glow", (0.2, 1, 0.4), 0.5, 0, emit=(0.2, 1, 0.4), strength=4),
         "fire":          mat("fire", (1, 0.4, 0.1), 0.5, 0, emit=(1, 0.42, 0.1), strength=30),
-        "floor":         mat("floor", (0.05, 0.04, 0.07), 0.15, 0.1),
+        "floor":         mat("floor", (0.07, 0.07, 0.08), 0.12, 0.1),   # wet-looking polished tiles
         "wall":          mat("wall", (0.03, 0.02, 0.05), 0.6),
         "facade":        mat("facade", (0.33, 0.34, 0.34), 0.85),
         "parapet":       mat("parapet", (0.30, 0.31, 0.30), 0.85),
@@ -1342,6 +1513,8 @@ def build_materials():
     }
     found = [k for k, (fn, tile, bump) in SURFACE_TEX.items() if apply_surface_texture(M[k], fn, tile, bump)]
     add_puddles(M["roof_wet"])
+    # thin, clean cabinet glass: keep raytraced reflections from turning it into a pink mirror
+    node_of_type(M["glass"].node_tree, "BSDF_PRINCIPLED").inputs["Specular IOR Level"].default_value = 0.06
     print(f"surface textures: {len(found)}/{len(SURFACE_TEX)} found", found)
     return M
 
