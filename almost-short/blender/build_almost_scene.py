@@ -273,7 +273,7 @@ def add_puddles(m):
     tex.projection = "BOX"
     tc = nt.nodes.new("ShaderNodeTexCoord")
     mp = nt.nodes.new("ShaderNodeMapping")
-    mp.inputs["Scale"].default_value = (1 / 0.12, 1 / 0.12, 1 / 0.12)
+    mp.inputs["Scale"].default_value = (1 / 0.25, 1 / 0.25, 1 / 0.25)   # one puddle layout per 25 cm: hides the repeat
     nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
     nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
     mr = nt.nodes.new("ShaderNodeMapRange")
