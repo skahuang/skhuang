@@ -210,6 +210,13 @@ SURFACE_TEX = {
     "floor":          (["tex_arcade_floor_tiles.png", "tex_arcade_carpet.png"], 1.20, 0.08),
     "wall":           ("tex_arcade_wall.png",                                  2.00, 0.05),
     "glass":          ("tex_glass_smudge.png",                                 None, 0.00),
+    # V5 (TEXTURES_V5.md): lamp/sign pass; all optional, plain materials until the art arrives
+    "billboard":      ("tex_billboard_ad.png",                                 None, 0.05),
+    "sign_panel":     ("tex_signboard_vertical.png",                           None, 0.00),
+    "window_lit":     ("tex_window_lit_interior.png",                          None, 0.00),
+    "window_warm":    ("tex_window_lit_interior_warm.png",                     None, 0.00),
+    "grating":        ("tex_metal_grating.png",                                0.012, 0.20),
+    "awning":         ("tex_awning_torn.png",                                  0.06, 0.10),
 }
 
 
@@ -1102,6 +1109,10 @@ def build_roof_details(dio, M, rnd):
     dio.objects.link(lo)
     cyl("water_bucket", 0.0030, 0.0055, (0.072, -0.046, Z + 0.00275), M["metal_dull"], dio, verts=16)
     box("crate_seat", (0.007, 0.007, 0.006), (0.100, -0.022, Z + 0.003), M["wood"], dio, rot=(0, 0, 0.4))
+    # festoon of warm bulbs strung over the camp between two scavenged poles
+    for k, (px, py) in enumerate([(0.078, -0.088), (0.152, -0.026)]):
+        cyl(f"festoon_pole_{k}", 0.0005, 0.028, (px, py, Z + 0.014), M["rust"], dio, verts=6)
+    string_lights("camp_festoon", (0.078, -0.088, Z + 0.027), (0.152, -0.026, Z + 0.027), 0.007, 8, M, dio)
     # clothesline on the west side (inside the S02 frame) with a few hanging clothes
     for k, y in enumerate((-0.040, 0.050)):
         cyl(f"line_pole_{k}", 0.0005, 0.026, (-0.135, y, Z + 0.013), M["rust"], dio, verts=6)
@@ -1191,6 +1202,317 @@ def build_roof_details(dio, M, rnd):
         box(f"leaf_{k:02d}", (0.0018, 0.0011, 0.0001), (x, y, Z + 0.0001), M["leaf"], dio, rot=(0, 0, rnd.uniform(0, 3)))
 
 
+# --------------------------------------------------------------------------
+# Light fixtures with real shapes + city detail (1:60 miniature)
+# --------------------------------------------------------------------------
+def sphere(name, r, loc, material, collection, segs=12, scale=(1, 1, 1), rot=(0, 0, 0)):
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=r, segments=segs, ring_count=max(6, segs // 2), location=loc, rotation=rot)
+    o = bpy.context.active_object
+    o.name = name
+    o.scale = scale
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    o.data.materials.append(material)
+    return link(o, collection)
+
+
+def cone(name, r1, r2, depth, loc, material, collection, verts=16, rot=(0, 0, 0)):
+    bpy.ops.mesh.primitive_cone_add(radius1=r1, radius2=r2, depth=depth, vertices=verts, location=loc, rotation=rot)
+    o = bpy.context.active_object
+    o.name = name
+    o.data.materials.append(material)
+    return link(o, collection)
+
+
+def tube(name, pts, radius, material, collection, cyclic=False, res=6):
+    """Bevelled poly/bezier curve through world-space points: neon tubes, cables, railings."""
+    cu = bpy.data.curves.new(name, "CURVE")
+    cu.dimensions = "3D"
+    cu.bevel_depth, cu.bevel_resolution = radius, 2
+    sp = cu.splines.new("POLY")
+    sp.points.add(len(pts) - 1)
+    for p, c in zip(sp.points, pts):
+        p.co = (*c, 1.0)
+    sp.use_cyclic_u = cyclic
+    o = bpy.data.objects.new(name, cu)
+    o.data.materials.append(material)
+    collection.objects.link(o)
+    return o
+
+
+def sag(a, b, drop, n=10):
+    """Points of a hanging cable from a to b sagging by `drop` in the middle."""
+    return [tuple(a[i] + (b[i] - a[i]) * t for i in range(2)) + (a[2] + (b[2] - a[2]) * t - drop * 4 * t * (1 - t),)
+            for t in (k / n for k in range(n + 1))]
+
+
+def point_light(name, loc, energy, color, collection, radius=0.003):
+    L = bpy.data.lights.new(name, "POINT")
+    L.energy, L.color, L.shadow_soft_size = energy, color, radius
+    lo = bpy.data.objects.new(name, L)
+    lo.location = loc
+    collection.objects.link(lo)
+    return lo
+
+
+def wall_lamp(name, loc, normal, M, coll, glow="green_glow", light=(0.08, (0.35, 1.0, 0.45))):
+    """Caged bulkhead lamp: back plate, glowing half-dome glass, two cage bars, conduit up the wall."""
+    nx, ny = normal
+    rz = math.atan2(nx, -ny)      # local -Y faces out along the normal
+    root = prop_root(name, loc, rz, coll)
+    parts = [box(f"{name}_plate", (0.0075, 0.0008, 0.0055), (0, 0, 0), M["metal_dull"], coll),
+             sphere(f"{name}_dome", 0.0026, (0, -0.0004, 0), M[glow], coll, segs=14, scale=(1.15, 0.75, 0.85)),
+             box(f"{name}_bar_a", (0.0004, 0.0024, 0.0050), (-0.0012, -0.0012, 0), M["black"], coll),
+             box(f"{name}_bar_b", (0.0004, 0.0024, 0.0050), (0.0012, -0.0012, 0), M["black"], coll),
+             box(f"{name}_bar_c", (0.0062, 0.0024, 0.0004), (0, -0.0012, 0), M["black"], coll),
+             cyl(f"{name}_conduit", 0.00035, 0.014, (0.0028, 0.0003, 0.0095), M["metal_dull"], coll, verts=6)]
+    parented(parts, root)
+    if light:
+        point_light(f"L_{name}", (loc[0] + nx * 0.008, loc[1] + ny * 0.008, loc[2] - 0.002), light[0], light[1], coll)
+    return root
+
+
+def street_lamp(name, x, y, M, coll, state="on", lean=0.0, facing=0.0):
+    """Cobra-head street light: base, tapered pole, curved arm, flat housing, glowing lens underneath.
+    state: on / off (broken) / flicker."""
+    root = prop_root(name, (x, y, BED_Z), facing, coll)
+    root.rotation_euler = (lean, 0, facing)
+    H = 0.068
+    lens_mat = M["street_lamp"] if state == "on" else (M["lamp_off"] if state == "off" else M["street_lamp_flicker"])
+    parts = [cyl(f"{name}_base", 0.0016, 0.003, (0, 0, 0.0015), M["metal_dull"], coll, verts=10),
+             cone(f"{name}_pole", 0.0010, 0.0006, H, (0, 0, H / 2), M["metal_dull"], coll, verts=8)]
+    arm = [(0, 0, H - 0.004), (0.002, 0, H + 0.0015), (0.006, 0, H + 0.003), (0.011, 0, H + 0.0028)]
+    parts.append(tube(f"{name}_arm", arm, 0.00045, M["metal_dull"], coll))
+    parts.append(sphere(f"{name}_head", 0.0032, (0.0135, 0, H + 0.0024), M["metal_dull"], coll, segs=12, scale=(1.5, 0.75, 0.42)))
+    parts.append(sphere(f"{name}_lens", 0.0026, (0.0138, 0, H + 0.0016), lens_mat, coll, segs=12, scale=(1.4, 0.7, 0.25)))
+    parted = parented(parts, root)
+    if state != "off":
+        import mathutils
+        mw = mathutils.Matrix.LocRotScale(root.location, root.rotation_euler.to_quaternion(), None)
+        p = mw @ mathutils.Vector((0.0138, 0, H - 0.002))
+        lo = point_light(f"L_{name}", tuple(p), 0.12, (0.35, 1.0, 0.45), coll, 0.004)
+        if state == "flicker":
+            L = lo.data
+            r = random.Random(sum(map(ord, name)))
+            fr = 1
+            while fr < f(60):
+                for e, d in ((0.12, r.randint(30, 90)), (0.01, r.randint(2, 5)), (0.12, r.randint(2, 4)), (0.0, r.randint(3, 8))):
+                    L.energy = e
+                    L.keyframe_insert("energy", frame=fr)
+                    fr += d
+            for fc in fcurves_of(L):
+                for kp in fc.keyframe_points:
+                    kp.interpolation = "CONSTANT"
+    return root
+
+
+def traffic_light(name, x, y, rz, M, coll):
+    """Dead traffic signal on an L-arm: housing with three hooded lenses, only the amber one blinking."""
+    root = prop_root(name, (x, y, BED_Z), rz, coll)
+    parts = [cyl(f"{name}_pole", 0.0009, 0.060, (0, 0, 0.030), M["metal_dull"], coll, verts=8),
+             cyl(f"{name}_arm", 0.0006, 0.030, (0.015, 0, 0.058), M["metal_dull"], coll, verts=8, rot=(0, math.pi / 2, 0)),
+             box(f"{name}_housing", (0.0042, 0.0034, 0.0115), (0.026, 0, 0.051), M["black"], coll)]
+    for k, (mname, z) in enumerate((("lamp_off", 0.0548), ("amber_blink", 0.0510), ("lamp_off", 0.0472))):
+        parts.append(cyl(f"{name}_lens_{k}", 0.0012, 0.0005, (0.026, -0.0019, z), M[mname], coll, verts=12, rot=(math.pi / 2, 0, 0)))
+        parts.append(cyl(f"{name}_hood_{k}", 0.0014, 0.0016, (0.026, -0.0026, z + 0.0003), M["black"], coll, verts=12, rot=(math.pi / 2, 0, 0)))
+    parented(parts, root)
+    return root
+
+
+def flames(name, loc, size, M, coll, rnd):
+    """Small fire: ember bed + a cluster of glowing flame cones + a warm point light."""
+    x, y, z = loc
+    cyl(f"{name}_embers", size * 0.5, size * 0.08, (x, y, z + size * 0.04), M["ember"], coll, verts=12)
+    for k in range(5):
+        h = size * rnd.uniform(0.6, 1.3)
+        cone(f"{name}_flame_{k}", size * rnd.uniform(0.12, 0.22), 0.0, h,
+             (x + rnd.uniform(-0.3, 0.3) * size, y + rnd.uniform(-0.3, 0.3) * size, z + h / 2 + size * 0.05),
+             M["fire"], coll, verts=6, rot=(rnd.uniform(-0.25, 0.25), rnd.uniform(-0.25, 0.25), 0))
+    point_light(f"L_{name}", (x, y, z + size * 1.5), 0.4, (1.0, 0.45, 0.12), coll, 0.01)
+
+
+def string_lights(name, a, b, drop, n, M, coll):
+    """Festoon of warm bulbs on a sagging wire."""
+    pts = sag(a, b, drop, 16)
+    tube(f"{name}_wire", pts, 0.00012, M["cable"], coll)
+    for k in range(n):
+        t = (k + 0.5) / n
+        p = sag(a, b, drop, 1000)[int(t * 1000)]
+        cyl(f"{name}_cap_{k}", 0.00035, 0.0008, (p[0], p[1], p[2] - 0.0005), M["black"], coll, verts=6)
+        sphere(f"{name}_bulb_{k}", 0.00065, (p[0], p[1], p[2] - 0.0013), M["bulb_warm"], coll, segs=8, scale=(1, 1, 1.25))
+    mid = sag(a, b, drop, 2)[1]
+    point_light(f"L_{name}", (mid[0], mid[1], mid[2] - 0.004), 0.05, (1.0, 0.75, 0.45), coll, 0.02)
+
+
+def neon_sign(name, loc, normal, w, h, shape, color_mat, M, coll):
+    """Wall-mounted neon: dark backing board on stand-offs + glowing tube shapes."""
+    nx, ny = normal
+    rz = math.atan2(nx, -ny)
+    root = prop_root(name, loc, rz, coll)
+    parts = [box(f"{name}_board", (w, 0.0008, h), (0, -0.0010, 0), M["black"], coll)]
+    for sx in (-1, 1):
+        for sz in (-1, 1):
+            parts.append(cyl(f"{name}_standoff_{sx}{sz}", 0.0003, 0.0012, (sx * w * 0.42, -0.0004, sz * h * 0.42), M["metal_dull"], coll, verts=6, rot=(math.pi / 2, 0, 0)))
+    y = -0.0018
+    if shape == "arrow":
+        pts = [(-w * 0.4, y, -h * 0.1), (w * 0.1, y, -h * 0.1), (w * 0.1, y, -h * 0.3), (w * 0.4, y, 0), (w * 0.1, y, h * 0.3), (w * 0.1, y, h * 0.1), (-w * 0.4, y, h * 0.1)]
+        cyc = True
+    elif shape == "ring":
+        pts = [(math.cos(a) * w * 0.38, y, math.sin(a) * h * 0.38) for a in (k / 20 * math.tau for k in range(20))]
+        cyc = True
+    else:   # zig-zag "open" squiggle
+        pts = [(-w * 0.42 + k * w * 0.12, y, (h * 0.25 if k % 2 else -h * 0.25)) for k in range(8)]
+        cyc = False
+    t = tube(f"{name}_tube", pts, 0.00045, color_mat, coll, cyclic=cyc)
+    parts.append(t)
+    parented(parts, root)
+    return root
+
+
+def vertical_signboard(name, loc, rz, w, h, M, coll):
+    """Shop sign sticking out from a building corner: metal frame, glowing double-sided panel, neon edge."""
+    root = prop_root(name, loc, rz, coll)
+    parts = [box(f"{name}_frame", (w + 0.0016, 0.0030, h + 0.0016), (0, 0, 0), M["metal_dull"], coll),
+             box(f"{name}_panel", (w, 0.0034, h), (0, 0, 0), M["sign_panel"], coll),
+             box(f"{name}_bracket_t", (0.008, 0.0008, 0.0008), (-w / 2 - 0.004, 0, h * 0.4), M["metal_dull"], coll),
+             box(f"{name}_bracket_b", (0.008, 0.0008, 0.0008), (-w / 2 - 0.004, 0, -h * 0.4), M["metal_dull"], coll)]
+    for s in (-1, 1):
+        edge = [(-w / 2, s * 0.0021, -h / 2), (w / 2, s * 0.0021, -h / 2), (w / 2, s * 0.0021, h / 2), (-w / 2, s * 0.0021, h / 2)]
+        parts.append(tube(f"{name}_neon_{s}", edge, 0.0004, M["neon_cyan"], coll, cyclic=True))
+    for k in range(4):   # dark divider bars: reads as stacked characters without real text
+        parts.append(box(f"{name}_div_{k}", (w * 0.7, 0.0036, 0.0006), (0, 0, -h / 2 + h * (k + 1) / 5), M["black"], coll))
+    parented(parts, root)
+    return root
+
+
+def billboard(name, loc, rz, w, h, M, coll):
+    """Rooftop billboard: steel legs + catwalk, blank weathered panel, two gooseneck lamps lighting it."""
+    root = prop_root(name, loc, rz, coll)
+    parts = []
+    for sx in (-1, 1):
+        parts.append(box(f"{name}_leg_{sx}", (0.0012, 0.0012, 0.020), (sx * w * 0.38, 0.002, 0.010), M["rust"], coll))
+        parts.append(box(f"{name}_brace_{sx}", (0.0008, 0.0008, 0.020), (sx * w * 0.38, 0.006, 0.010), M["rust"], coll, rot=(0.5, 0, 0)))
+    parts.append(box(f"{name}_panel", (w, 0.0012, h), (0, 0, 0.020 + h / 2), M["billboard"], coll))
+    parts.append(box(f"{name}_catwalk", (w, 0.004, 0.0006), (0, -0.0028, 0.0195), M["metal_dull"], coll))
+    for k, sx in enumerate((-0.25, 0.25)):
+        neck = [(sx * w, -0.0028, 0.0195), (sx * w, -0.006, 0.0215), (sx * w, -0.008, 0.024)]
+        parts.append(tube(f"{name}_neck_{k}", neck, 0.0003, M["metal_dull"], coll))
+        parts.append(cone(f"{name}_shade_{k}", 0.0016, 0.0005, 0.0018, (sx * w, -0.0082, 0.0248), M["metal_dull"], coll, verts=12, rot=(-2.3, 0, 0)))
+        parts.append(cyl(f"{name}_bulb_{k}", 0.0012, 0.0003, (sx * w, -0.0076, 0.0242), M["bulb_warm"], coll, verts=12, rot=(-2.3, 0, 0)))
+    parented(parts, root)
+    import mathutils
+    mw = mathutils.Matrix.LocRotScale(root.location, root.rotation_euler.to_quaternion(), None)
+    for k, sx in enumerate((-0.25, 0.25)):
+        point_light(f"L_{name}_{k}", tuple(mw @ mathutils.Vector((sx * w, -0.010, 0.026))), 0.05, (1.0, 0.8, 0.55), coll, 0.004)
+    return root
+
+
+def water_tank_small(name, loc, M, coll):
+    x, y, z = loc
+    for sx in (-1, 1):
+        for sy in (-1, 1):
+            box(f"{name}_leg_{sx}{sy}", (0.0006, 0.0006, 0.007), (x + sx * 0.0035, y + sy * 0.0035, z + 0.0035), M["rust"], coll)
+    cyl(f"{name}_drum", 0.0055, 0.009, (x, y, z + 0.0115), M["tank_metal"], coll, verts=16)
+    cone(f"{name}_lid", 0.0058, 0.0008, 0.003, (x, y, z + 0.0175), M["tank_metal"], coll, verts=16)
+
+
+def fire_escape(prefix, cx, face_x, y0, y1, z0, floors, floor_h, M, coll):
+    """Zig-zag steel fire escape on an east/west face: landings, railings, stairs between floors."""
+    s = 1 if face_x > cx else -1
+    x = face_x + s * 0.004
+    for fl in range(1, floors):
+        z = z0 + fl * floor_h
+        box(f"{prefix}_landing_{fl}", (0.008, y1 - y0, 0.0006), (x, (y0 + y1) / 2, z), M["grating"], coll)
+        tube(f"{prefix}_rail_{fl}", [(face_x, y0, z + 0.006), (x + s * 0.004, y0, z + 0.006), (x + s * 0.004, y1, z + 0.006), (face_x, y1, z + 0.006)], 0.00025, M["rust"], coll)
+        for k in range(6):
+            yy = y0 + (y1 - y0) * k / 5
+            box(f"{prefix}_post_{fl}_{k}", (0.0004, 0.0004, 0.006), (x + s * 0.004, yy, z + 0.003), M["rust"], coll)
+        # stair flight down to the floor below (alternating direction)
+        ya, yb = (y0 + 0.004, y1 - 0.004) if fl % 2 else (y1 - 0.004, y0 + 0.004)
+        zb = z - floor_h if fl > 1 else z - floor_h * 0.6
+        ang = math.atan2(z - zb, abs(yb - ya))
+        L = math.hypot(z - zb, yb - ya)
+        box(f"{prefix}_stair_{fl}", (0.0045, L, 0.0006), (x, (ya + yb) / 2, (z + zb) / 2), M["grating"], coll,
+            rot=(ang if yb > ya else -ang, 0, 0))
+        tube(f"{prefix}_stair_rail_{fl}", [(x + s * 0.0024, ya, z + 0.005), (x + s * 0.0024, yb, zb + 0.005)], 0.0002, M["rust"], coll)
+
+
+def in_block(buildings, x, y, pad=0.003):
+    return any(abs(x - bx) < bw / 2 + pad and abs(y - by) < bd / 2 + pad for bx, by, bw, bd, _ in buildings)
+
+
+def street_spot(buildings, x, y):
+    """Nudge a street-furniture spot toward the hero block until it is out of every ruined building."""
+    for _ in range(20):
+        if not in_block(buildings, x, y, 0.006):
+            return x, y
+        nx, ny = x * 0.94, 0.05 + (y - 0.05) * 0.94
+        if abs(nx) < 0.188 and -0.138 < ny < 0.238:   # would walk into the hero building
+            break
+        x, y = nx, ny
+    return x, y
+
+
+def build_city_details(dio, M, buildings):
+    """Second detail pass for the miniature city: ledges, lit windows, roof clutter, signs, cables, cars."""
+    rnd = random.Random(SEED + 21)
+    lit = 0
+    for i, (x, y, w, d, h) in enumerate(buildings):
+        # floor ledges every ~3 m (5 cm at 1:60), broken off at random
+        for fl in range(1, int(h / 0.05) + 1):
+            z = BED_Z + fl * 0.05 - 0.002
+            if z < BED_Z + h - 0.006 and rnd.random() < 0.85:
+                box(f"city_{i:02d}_ledge_{fl}", (w + 0.003, d + 0.003, 0.0018), (x, y, z), M["concrete_dark"], dio)
+        # a few windows still lit on the faces that look at the hero block
+        fx = -1 if x > 0 else 1
+        fy = -1 if y > 0 else 1
+        for k in range(rnd.randint(0, 3)):
+            zc = BED_Z + rnd.uniform(0.02, max(0.025, h - 0.02))
+            if rnd.random() < 0.5:
+                pos, rot, sz = (x + fx * (w / 2 + 0.0004), y + rnd.uniform(-d, d) * 0.35, zc), (0, 0, math.pi / 2), (0.009, 0.0006, 0.007)
+            else:
+                pos, rot, sz = (x + rnd.uniform(-w, w) * 0.35, y + fy * (d / 2 + 0.0004), zc), (0, 0, 0), (0.009, 0.0006, 0.007)
+            box(f"city_{i:02d}_litwin_{k}", sz, pos, M["window_lit" if rnd.random() < 0.7 else "window_warm"], dio, rot=rot)
+            lit += 1
+        # roof clutter
+        r = rnd.random()
+        top = BED_Z + h
+        if r < 0.25:
+            water_tank_small(f"city_{i:02d}_tank", (x + rnd.uniform(-w, w) * 0.2, y + rnd.uniform(-d, d) * 0.2, top), M, dio)
+        elif r < 0.45:
+            ah = rnd.uniform(0.012, 0.03)
+            cyl(f"city_{i:02d}_antenna", 0.0004, ah, (x, y, top + ah / 2), M["metal_dull"], dio, verts=6)
+            for k in range(3):
+                box(f"city_{i:02d}_antenna_bar_{k}", (0.006 - k * 0.0015, 0.0004, 0.0004), (x, y, top + ah * (0.5 + k * 0.18)), M["metal_dull"], dio)
+            sphere(f"city_{i:02d}_antenna_led", 0.0007, (x, y, top + ah + 0.0006), M["red_led"], dio, segs=8)
+        elif r < 0.6:
+            box(f"city_{i:02d}_roof_ac", (0.010, 0.008, 0.006), (x + rnd.uniform(-w, w) * 0.25, y, top + 0.003), M["metal_dull"], dio)
+    # neon on the street-facing walls of the nearest blocks
+    near = sorted(buildings, key=lambda b: math.hypot(b[0], b[1] - 0.05))[:6]
+    shapes = [("arrow", "neon_pink"), ("ring", "neon_cyan"), ("zig", "neon_pink"), ("ring", "neon_purple"), ("arrow", "neon_cyan"), ("zig", "neon_cyan")]
+    for k, ((x, y, w, d, h), (shape, cm)) in enumerate(zip(near, shapes)):
+        dx, dy = -x, 0.05 - y          # face the side of the building that looks at the hero block
+        if abs(dx) / (w / 2) > abs(dy) / (d / 2):
+            nrm = (1 if dx > 0 else -1, 0)
+            pos = (x + nrm[0] * (w / 2 + 0.0002), y, BED_Z + min(h - 0.01, 0.035 + k * 0.006))
+        else:
+            nrm = (0, 1 if dy > 0 else -1)
+            pos = (x, y + nrm[1] * (d / 2 + 0.0002), BED_Z + min(h - 0.01, 0.035 + k * 0.006))
+        if in_block([b for b in buildings if b[:2] != (x, y)], pos[0] + nrm[0] * 0.004, pos[1] + nrm[1] * 0.004, 0.0):
+            continue                   # that face is buried against a neighbour
+        neon_sign(f"neon_sign_{k}", pos, nrm, 0.016, 0.010, shape, M[cm], M, dio)
+    # rooftop billboard on the tallest block behind the hero building
+    back = [b for b in buildings if b[1] > 0.25] or buildings
+    bx, by, bw, bd, bh = max(back, key=lambda b: b[4])
+    billboard("billboard_back", (bx, by, BED_Z + bh), 0.0, min(bw * 0.9, 0.05), 0.022, M, dio)
+    # sagging power / phone cables between the hero roof and neighbours
+    for k, (x, y, w, d, h) in enumerate(near[:4]):
+        a = (0.17 if x > 0 else -0.17, max(-0.12, min(0.22, y)), ROOF_Z + 0.012)
+        b = (x - math.copysign(w / 2, x), y, BED_Z + h - 0.004)
+        for j in range(2):
+            tube(f"cable_{k}_{j}", sag((a[0], a[1] + j * 0.004, a[2]), (b[0], b[1] + j * 0.004, b[2]), 0.012 + j * 0.004), 0.00018, M["cable"], dio)
+    return lit
+
+
 def build_diorama(C, M):
     dio = coll("DIORAMA", C["root"])
     rnd = random.Random(SEED)
@@ -1204,12 +1526,17 @@ def build_diorama(C, M):
     box("hb_shutter", (0.09, 0.0015, 0.036), (0, sy, BED_Z + 0.023), M["shutter"], dio)
     box("hb_shutter_box", (0.096, 0.006, 0.006), (0, sy - 0.002, BED_Z + 0.044), M["metal_dull"], dio)
     for x in (-0.06, 0.06):
-        box(f"hb_lamp_{x:+.2f}", (0.006, 0.003, 0.003), (x, sy - 0.002, BED_Z + 0.046), M["green_glow"], dio)
-        L = bpy.data.lights.new(f"L_hb_green_{x:+.2f}", "POINT")
-        L.energy, L.color, L.shadow_soft_size = 0.08, (0.35, 1.0, 0.45), 0.003
-        lo = bpy.data.objects.new(L.name, L)
-        lo.location = (x, sy - 0.01, BED_Z + 0.042)
-        dio.objects.link(lo)
+        wall_lamp(f"hb_lamp_{x:+.2f}", (x, sy - 0.0004, BED_Z + 0.047), (0, -1), M, dio)
+    # torn awning over the shutter, drainpipes on the corners, a fire escape up the east face
+    box("hb_awning", (0.104, 0.014, 0.0008), (0, sy - 0.007, BED_Z + 0.052), M["awning"], dio, rot=(-0.35, 0, 0))
+    box("hb_awning_flap", (0.03, 0.0008, 0.010), (0.035, sy - 0.0135, BED_Z + 0.046), M["awning"], dio, rot=(0.25, 0.15, 0))
+    for k, (dx, dy) in enumerate([(-1, -1), (1, -1), (-1, 1), (1, 1)]):
+        px, py = HC[0] + dx * (HB / 2 + 0.0012), HC[1] + dy * (HB / 2 + 0.0012)
+        cyl(f"hb_drainpipe_{k}", 0.0011, ROOF_Z - BED_Z, (px, py, (ROOF_Z + BED_Z) / 2), M["rust"], dio, verts=8)
+        for j in range(5):
+            box(f"hb_drain_clamp_{k}_{j}", (0.0032, 0.0032, 0.0008), (px, py, BED_Z + 0.02 + j * 0.03), M["metal_dull"], dio)
+    fire_escape("hb_fe", HC[0], HC[0] + HB / 2, HC[1] - 0.07, HC[1] + 0.03, BED_Z + 0.005, 3, 0.05, M, dio)
+    vertical_signboard("hb_signboard", (HC[0] - HB / 2 - 0.007, HC[1] - HB / 2 + 0.012, BED_Z + 0.085), math.pi, 0.010, 0.040, M, dio)
     box("roof_tiles", (0.35, 0.35, 0.002), (0, 0.05, ROOF_Z + 0.001), M["roof_wet"], dio)
     # thick parapet (1.1 m) with a pipe railing on top
     PH, PT = 0.018, 0.008
@@ -1242,12 +1569,13 @@ def build_diorama(C, M):
     hinge = empty("door_hinge", (DOOR_XY[0] - 0.012, DOOR_XY[1] - 0.001, ROOF_Z), dio)
     door = box("shed_door", (0.024, 0.002, 0.038), (0.012, 0, 0.019), M["door_green"], dio)
     door.parent = hinge
-    box("door_lamp", (0.010, 0.004, 0.003), (DOOR_XY[0], DOOR_XY[1] - 0.002, ROOF_Z + 0.044), M["green_glow"], dio)
+    wall_lamp("door_lamp", (DOOR_XY[0], DOOR_XY[1] - 0.0004, ROOF_Z + 0.0455), (0, -1), M, dio, light=None)   # lit by L_door_green
     for i, (x, y) in enumerate([(0.05, 0.17), (0.05, -0.10), (0.15, 0.0)]):
         box(f"ac_unit_{i}", (0.022, 0.016, 0.016), (x, y, ROOF_Z + 0.008), M["metal_dull"], dio)
         box(f"ac_fan_{i}", (0.012, 0.012, 0.001), (x, y, ROOF_Z + 0.0165), M["black"], dio)
     build_roof_details(dio, M, rnd)
     # ---- ruined city (forced perspective: lower toward the back); fog-blue, a few green lights, rare fires
+    buildings = []
     for i in range(60):
         x = rnd.uniform(-0.43, 0.43)
         y = rnd.uniform(-0.43, 0.43)
@@ -1259,6 +1587,7 @@ def build_diorama(C, M):
         w = rnd.uniform(0.04, 0.09)
         dd = w * rnd.uniform(0.8, 1.3)
         box(f"city_{i:02d}", (w, dd, h), (x, y, BED_Z + h / 2), M["concrete_dark"], dio)
+        buildings.append((x, y, w, dd, h))
         # collapsed top: a few tilted slabs and stubs of columns
         if rnd.random() < 0.55:
             for k in range(rnd.randint(1, 3)):
@@ -1271,22 +1600,16 @@ def build_diorama(C, M):
                 box(f"city_{i:02d}_col_{k}", (0.003, 0.003, ch),
                     (x + rnd.uniform(-w, w) * 0.4, y + rnd.uniform(-dd, dd) * 0.4, BED_Z + h + ch / 2), M["concrete_dark"], dio)
         if rnd.random() < 0.08:  # rare distant fire
-            box(f"fire_{i:02d}", (w * 0.4, w * 0.4, 0.004), (x, y, BED_Z + h + 0.002), M["fire"], dio)
-            L = bpy.data.lights.new(f"L_fire_{i:02d}", "POINT")
-            L.energy, L.color, L.shadow_soft_size = 0.4, (1.0, 0.45, 0.12), 0.01
-            lo = bpy.data.objects.new(L.name, L)
-            lo.location = (x, y, BED_Z + h + 0.02)
-            dio.objects.link(lo)
+            flames(f"fire_{i:02d}", (x, y, BED_Z + h), w * 0.25, M, dio, rnd)
     # green street lamps along the streets around the hero block
     for i, (x, y) in enumerate([(-0.24, -0.16), (0.24, -0.16), (-0.24, 0.12), (0.24, 0.12), (0.0, -0.2),
                                 (-0.12, -0.2), (0.12, -0.2), (0.3, -0.32), (-0.05, 0.3)]):
-        cyl(f"street_pole_{i}", 0.0008, 0.07, (x, y, BED_Z + 0.035), M["metal_dull"], dio, verts=6)
-        box(f"street_lamp_{i}", (0.006, 0.003, 0.002), (x, y, BED_Z + 0.071), M["street_lamp"], dio)
-        L = bpy.data.lights.new(f"L_street_{i}", "POINT")
-        L.energy, L.color, L.shadow_soft_size = 0.12, (0.35, 1.0, 0.45), 0.004
-        lo = bpy.data.objects.new(L.name, L)
-        lo.location = (x, y, BED_Z + 0.068)
-        dio.objects.link(lo)
+        state = {2: "off", 5: "flicker", 8: "off"}.get(i, "on")
+        x, y = street_spot(buildings, x, y)
+        facing = math.atan2(0.05 - y, -x)          # arm reaches toward the hero block / street centre
+        street_lamp(f"street_lamp_{i}", x, y, M, dio, state, lean=0.18 if i == 8 else 0.0, facing=facing)
+    traffic_light("traffic_light_0", *street_spot(buildings, -0.20, -0.215), 0.0, M, dio)
+    print("city detail: lit windows", build_city_details(dio, M, buildings))
     # a wrecked car on the street in front (reference 6/7/11)
     box("car_wreck_body", (0.024, 0.011, 0.006), (0.07, -0.2, BED_Z + 0.008), M["metal_dull"], dio, rot=(0, 0, 0.25))
     box("car_wreck_cab", (0.013, 0.010, 0.005), (0.068, -0.2, BED_Z + 0.0135), M["window_broken"], dio, rot=(0, 0, 0.25))
@@ -2115,7 +2438,33 @@ def build_materials():
         "cable":         mat("cable", (0.01, 0.01, 0.012), 0.45),
         "neon_purple":   mat("neon_purple", (0.6, 0.2, 1.0), 0.3, 0, emit=(0.6, 0.25, 1.0), strength=10),
         "street_lamp":   mat("street_lamp", (0.3, 1.0, 0.45), 0.4, 0, emit=(0.35, 1.0, 0.45), strength=20),
+        "street_lamp_flicker": mat("street_lamp_flicker", (0.3, 1.0, 0.45), 0.4, 0, emit=(0.35, 1.0, 0.45), strength=20),
+        "lamp_off":      mat("lamp_off", (0.04, 0.05, 0.05), 0.15, 0.0),
+        "amber_blink":   mat("amber_blink", (0.4, 0.2, 0.0), 0.3, 0, emit=(1.0, 0.55, 0.05), strength=12),
+        "bulb_warm":     mat("bulb_warm", (1.0, 0.8, 0.5), 0.3, 0, emit=(1.0, 0.72, 0.4), strength=14),
+        "window_warm":   mat("window_warm", (0.3, 0.2, 0.1), 0.4, 0, emit=(1.0, 0.65, 0.3), strength=2.5),
+        "sign_panel":    mat("sign_panel", (0.6, 0.2, 0.4), 0.4, 0, emit=(1.0, 0.3, 0.6), strength=2.0),
+        "billboard":     mat("billboard", (0.42, 0.40, 0.36), 0.8),
+        "grating":       mat("grating", (0.22, 0.22, 0.23), 0.55, 0.7),
+        "awning":        mat("awning", (0.35, 0.08, 0.08), 0.8),
     }
+    for key, period, on_frac, hi in (("amber_blink", FPS, 0.5, 12.0), ("street_lamp_flicker", None, 0, 20.0)):
+        em = node_of_type(M[key].node_tree, "BSDF_PRINCIPLED").inputs["Emission Strength"]
+        if period:
+            for k in range(0, 60 * FPS, period):
+                em.default_value = hi
+                em.keyframe_insert("default_value", frame=k + 1)
+                em.default_value = 0.0
+                em.keyframe_insert("default_value", frame=k + 1 + int(period * on_frac))
+        else:   # same stutter pattern as the light in street_lamp(... "flicker")
+            r = random.Random(sum(map(ord, "street_lamp_5")))
+            fr = 1
+            while fr < 60 * FPS:
+                for e, d in ((hi, r.randint(30, 90)), (hi * 0.08, r.randint(2, 5)), (hi, r.randint(2, 4)), (0.0, r.randint(3, 8))):
+                    em.default_value = e
+                    em.keyframe_insert("default_value", frame=fr)
+                    fr += d
+        set_interp(M[key].node_tree, "CONSTANT")
     found = [k for k, (fn, tile, bump) in SURFACE_TEX.items() if apply_surface_texture(M[k], fn, tile, bump)]
     add_puddles(M["roof_wet"])
     for k, s in PRINT_MATS.items():
