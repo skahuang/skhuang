@@ -234,6 +234,13 @@ SURFACE_TEX = {
     "sleeping_bag":   ("tex_sleeping_bag.png",                                 None, 0.25),
     "ac_fan":         ("tex_ac_fan_top.png",                                   None, 0.30),
     "crate":          ("tex_crate_side.png",                                   None, 0.25),
+    # V8 (TEXTURES_V8.md): laundry; until it arrives the line borrows fabric pictures we already have
+    "cloth_shirt":    (["tex_cloth_shirt.png", "tex_awning_torn.png"],         None, 0.20),
+    "cloth_shirt_b":  (["tex_cloth_shirt_b.png", "tex_tarp_patched.png"],      None, 0.20),
+    "cloth_pants":    (["tex_cloth_pants.png", "tex_tarp_patched.png"],        None, 0.25),
+    "cloth_towel":    (["tex_cloth_towel.png", "tex_sleeping_bag.png"],        None, 0.25),
+    "cloth_blanket":  (["tex_cloth_blanket.png", "tex_sleeping_bag.png"],      None, 0.25),
+    "cloth_blanket_b":(["tex_cloth_blanket_b.png", "tex_tarp_patched.png"],    None, 0.25),
 }
 
 
@@ -1130,13 +1137,67 @@ def build_roof_details(dio, M, rnd):
     for k, (px, py) in enumerate([(0.078, -0.088), (0.152, -0.026)]):
         cyl(f"festoon_pole_{k}", 0.0005, 0.028, (px, py, Z + 0.014), M["rust"], dio, verts=6)
     string_lights("camp_festoon", (0.078, -0.088, Z + 0.027), (0.152, -0.026, Z + 0.027), 0.007, 8, M, dio)
-    # clothesline on the west side (inside the S02 frame) with a few hanging clothes
-    for k, y in enumerate((-0.040, 0.050)):
-        cyl(f"line_pole_{k}", 0.0005, 0.026, (-0.135, y, Z + 0.013), M["rust"], dio, verts=6)
-    cyl("clothesline", 0.00015, 0.090, (-0.135, 0.005, Z + 0.025), M["black"], dio, verts=4, rot=(math.pi / 2, 0, 0))
-    for k, (y, m_) in enumerate([(-0.028, "cloth_a"), (-0.010, "cloth_b"), (0.014, "cloth_a"), (0.036, "tarp")]):
-        box(f"cloth_{k}", (0.0006, rnd.uniform(0.008, 0.012), rnd.uniform(0.008, 0.013)), (-0.135, y, Z + 0.019), M[m_], dio,
-            rot=(rnd.uniform(-0.15, 0.15), 0, 0))
+    # clothesline on the west side (inside the S02 frame): T-poles, two sagging lines, laundry that sways
+    LX, Y0, Y1, LZ, DROP = -0.135, -0.046, 0.056, Z + 0.026, 0.0025
+    for k, y in enumerate((Y0, Y1)):
+        cyl(f"line_pole_{k}", 0.0005, 0.028, (LX, y, Z + 0.014), M["rust"], dio, verts=6)
+        box(f"line_pole_{k}_cross", (0.011, 0.0007, 0.0007), (LX, y, LZ + 0.0004), M["rust"], dio)
+        box(f"line_pole_{k}_foot", (0.004, 0.004, 0.0012), (LX, y, Z + 0.0006), M["concrete"], dio)   # cinder-block foot
+        for j, sx_ in enumerate((-1, 1)):   # guy-wire brace
+            tube(f"line_pole_{k}_brace_{j}", [(LX, y, Z + 0.016), (LX + sx_ * 0.008, y, Z + 0.0005)], 0.00012, M["rust"], dio)
+    def line_z(y, drop=DROP):
+        t = (y - Y0) / (Y1 - Y0)
+        return LZ - drop * 4 * t * (1 - t)
+    for j, ox in enumerate((-0.004, 0.004)):
+        tube(f"clothesline_{j}", sag((LX + ox, Y0, LZ), (LX + ox, Y1, LZ), DROP + j * 0.0006), 0.00013, M["cable"], dio)
+    laundry = [   # (line, y centre, kind, material)
+        (0, -0.036, "shirt",   "cloth_shirt"),
+        (0, -0.022, "towel",   "cloth_towel"),
+        (0, -0.006, "pants",   "cloth_pants"),
+        (0, 0.012,  "shirt",   "cloth_shirt_b"),
+        (0, 0.030,  "socks",   "cloth_towel"),
+        (0, 0.044,  "towel",   "cloth_shirt"),
+        (1, -0.028, "blanket", "cloth_blanket"),
+        (1, 0.000,  "shirt",   "cloth_shirt_b"),
+        (1, 0.024,  "blanket", "cloth_blanket_b"),
+    ]
+    wind = random.Random(SEED + 77)
+    for k, (li, yc, kind, mn) in enumerate(laundry):
+        ox = (-0.004, 0.004)[li]
+        piv = prop_root(f"cloth_{k}", (LX + ox, yc, line_z(yc, DROP + li * 0.0006) - 0.0001), 0.0, dio)
+        cm, parts = M[mn], []
+        if kind == "shirt":
+            parts += [box(f"cloth_{k}_body", (0.0005, 0.009, 0.010), (0, 0, -0.0052), cm, dio)]
+            for sgn in (-1, 1):
+                parts.append(box(f"cloth_{k}_sleeve_{sgn}", (0.0005, 0.0035, 0.004), (0, sgn * 0.0053, -0.0022), cm, dio, rot=(sgn * 0.55, 0, 0)))
+        elif kind == "pants":
+            parts += [box(f"cloth_{k}_waist", (0.0006, 0.008, 0.0016), (0, 0, -0.0008), cm, dio)]
+            for sgn in (-1, 1):
+                parts.append(box(f"cloth_{k}_leg_{sgn}", (0.0006, 0.0036, 0.013), (0, sgn * 0.0021, -0.0078), cm, dio, rot=(-sgn * 0.05, 0, 0)))
+        elif kind == "towel":
+            parts += [box(f"cloth_{k}_towel", (0.0005, 0.008, 0.012), (0, 0, -0.006), cm, dio)]
+        elif kind == "socks":
+            for j in range(2):
+                parts.append(box(f"cloth_{k}_sock_{j}", (0.0006, 0.0018, 0.0055), (0, -0.0016 + j * 0.0032, -0.0028), cm, dio, rot=(0.1 - j * 0.2, 0, 0)))
+        elif kind == "blanket":   # thrown over the line, hanging down both sides
+            for sgn in (-1, 1):
+                parts.append(box(f"cloth_{k}_side_{sgn}", (0.0006, 0.016, 0.011), (sgn * 0.0012, 0, -0.0055), cm, dio, rot=(0, -sgn * 0.20, 0)))
+        if kind != "blanket":   # clothes pegs
+            span = {"shirt": 0.0035, "pants": 0.0035, "towel": 0.0035, "socks": 0.0016}[kind]
+            for sgn in (-1, 1):
+                parts.append(box(f"cloth_{k}_peg_{sgn}", (0.0007, 0.0004, 0.0013), (0, sgn * span, 0.0001), M[("capsule_blue", "capsule_red", "wood_old")[(k + sgn) % 3]], dio))
+        parented(parts, piv)
+        piv.rotation_euler = (wind.uniform(-0.04, 0.04), wind.uniform(-0.1, 0.1), 0)
+        piv.keyframe_insert("rotation_euler", frame=1)
+        for fc in fcurves_of(piv):   # breeze: slow swing about the line, a little twist
+            if fc.array_index in (0, 1):
+                nz = fc.modifiers.new("NOISE")
+                nz.scale = wind.uniform(18, 30)
+                nz.strength = (0.10, 0.25)[fc.array_index] * (0.5 if kind == "blanket" else 1.0)
+                nz.phase = wind.uniform(0, 100)
+    # laundry basket under the line with a folded sheet
+    box("laundry_basket", (0.010, 0.007, 0.005), (LX + 0.010, 0.020, Z + 0.0025), M["capsule_blue"], dio, rot=(0, 0, 0.3))
+    box("laundry_basket_sheet", (0.009, 0.006, 0.0012), (LX + 0.010, 0.020, Z + 0.0052), M["cloth_towel"], dio, rot=(0.05, 0, 0.35))
     # ---------- 3. roof services ----------
     for k, (y0, y1, x) in enumerate([(0.212, 0.212, None)]):
         pass
@@ -1490,19 +1551,70 @@ def build_city_details(dio, M, buildings):
                 pos, rot, sz = (x + rnd.uniform(-w, w) * 0.35, y + fy * (d / 2 + 0.0004), zc), (0, 0, 0), (0.009, 0.0006, 0.007)
             box(f"city_{i:02d}_litwin_{k}", sz, pos, M["window_lit" if rnd.random() < 0.7 else "window_warm"], dio, rot=rot)
             lit += 1
-        # roof clutter
-        r = rnd.random()
+        # roof: wet slab over the window texture, a broken parapet, then 2-4 pieces of rooftop life
         top = BED_Z + h
-        if r < 0.25:
-            water_tank_small(f"city_{i:02d}_tank", (x + rnd.uniform(-w, w) * 0.2, y + rnd.uniform(-d, d) * 0.2, top), M, dio)
-        elif r < 0.45:
-            ah = rnd.uniform(0.012, 0.03)
-            cyl(f"city_{i:02d}_antenna", 0.0004, ah, (x, y, top + ah / 2), M["metal_dull"], dio, verts=6)
-            for k in range(3):
-                box(f"city_{i:02d}_antenna_bar_{k}", (0.006 - k * 0.0015, 0.0004, 0.0004), (x, y, top + ah * (0.5 + k * 0.18)), M["metal_dull"], dio)
-            sphere(f"city_{i:02d}_antenna_led", 0.0007, (x, y, top + ah + 0.0006), M["red_led"], dio, segs=8)
-        elif r < 0.6:
-            box(f"city_{i:02d}_roof_ac", (0.010, 0.008, 0.006), (x + rnd.uniform(-w, w) * 0.25, y, top + 0.003), M["metal_dull"], dio)
+        box(f"city_{i:02d}_roofcap", (w - 0.001, d - 0.001, 0.0008), (x, y, top + 0.0003), M["roof_wet"], dio)
+        PT, PH = 0.0016, rnd.uniform(0.003, 0.006)
+        for side, (px, py, sx_, sy_) in enumerate([(x, y - d / 2 + PT / 2, w, PT), (x, y + d / 2 - PT / 2, w, PT),
+                                                   (x - w / 2 + PT / 2, y, PT, d), (x + w / 2 - PT / 2, y, PT, d)]):
+            if rnd.random() < 0.2:
+                continue                                   # that side has fallen away
+            box(f"city_{i:02d}_parapet_{side}", (sx_, sy_, PH), (px, py, top + PH / 2), M["parapet"], dio)
+        def spot(margin=0.006):
+            return (x + rnd.uniform(-1, 1) * max(0.0, w / 2 - margin), y + rnd.uniform(-1, 1) * max(0.0, d / 2 - margin))
+        pool = ["tank", "antenna", "ac", "shed", "dish", "vents", "junk", "garden", "hatch", "solar"]
+        for k, kind in enumerate(rnd.sample(pool, rnd.randint(2, 4))):
+            px, py = spot()
+            tag = f"city_{i:02d}_{kind}"
+            if kind == "tank":
+                water_tank_small(tag, (px, py, top), M, dio)
+            elif kind == "antenna":
+                ah = rnd.uniform(0.012, 0.03)
+                cyl(f"{tag}_mast", 0.0004, ah, (px, py, top + ah / 2), M["metal_dull"], dio, verts=6)
+                for j in range(3):
+                    box(f"{tag}_bar_{j}", (0.006 - j * 0.0015, 0.0004, 0.0004), (px, py, top + ah * (0.5 + j * 0.18)), M["metal_dull"], dio)
+                sphere(f"{tag}_led", 0.0007, (px, py, top + ah + 0.0006), M["red_led"], dio, segs=8)
+            elif kind == "ac":
+                for j in range(rnd.randint(1, 3)):
+                    ax, ay = px + j * 0.0115, py
+                    if abs(ax - x) > w / 2 - 0.006:
+                        break
+                    box(f"{tag}_{j}", (0.010, 0.008, 0.006), (ax, ay, top + 0.003), M["metal_dull"], dio)
+                    box(f"{tag}_{j}_fan", (0.006, 0.006, 0.0004), (ax, ay, top + 0.0062), M["ac_fan"], dio)
+            elif kind == "shed":
+                sw = min(0.014, w * 0.35)
+                sh = box(f"{tag}", (sw, 0.010, 0.010), (px, py, top + 0.005), M["concrete"], dio, rot=(0, 0, rnd.choice((0, math.pi / 2))))
+                box(f"{tag}_roof", (sw + 0.002, 0.012, 0.0008), (px, py, top + 0.0104), M["metal_dull"], dio, rot=sh.rotation_euler)
+                c, sn = math.cos(sh.rotation_euler.z), math.sin(sh.rotation_euler.z)
+                box(f"{tag}_door", (0.005, 0.0005, 0.0075), (px + 0.00525 * sn, py - 0.00525 * c, top + 0.00375), M["door_green"], dio, rot=sh.rotation_euler)
+            elif kind == "dish":
+                cyl(f"{tag}_post", 0.0003, 0.004, (px, py, top + 0.002), M["metal_dull"], dio, verts=6)
+                cone(f"{tag}_bowl", 0.0035, 0.0008, 0.0012, (px, py, top + 0.0045), M["plastic_white"], dio, verts=16,
+                     rot=(rnd.uniform(0.6, 1.0), 0, rnd.uniform(0, math.tau)))
+            elif kind == "vents":
+                for j in range(rnd.randint(2, 4)):
+                    vh = rnd.uniform(0.003, 0.008)
+                    vx, vy = px + rnd.uniform(-0.005, 0.005), py + rnd.uniform(-0.005, 0.005)
+                    cyl(f"{tag}_{j}", 0.0008, vh, (vx, vy, top + vh / 2), M["rust"], dio, verts=8)
+                    cone(f"{tag}_{j}_cap", 0.0013, 0.0002, 0.0008, (vx, vy, top + vh + 0.0004), M["metal_dull"], dio, verts=8)
+            elif kind == "junk":
+                box(f"{tag}_pile", (0.010, 0.008, 0.003), (px, py, top + 0.0015), M["concrete_dark"], dio, rot=(0, 0, rnd.uniform(0, 3)))
+                box(f"{tag}_tarp", (0.011, 0.009, 0.0006), (px, py, top + 0.0033), M["tarp"], dio,
+                    rot=(rnd.uniform(-0.2, 0.2), rnd.uniform(-0.2, 0.2), rnd.uniform(0, 3)))
+                box(f"{tag}_crate", (0.004, 0.004, 0.0035), (px + 0.007, py, top + 0.00175), M["crate"], dio, rot=(0, 0, rnd.uniform(0, 3)))
+                cyl(f"{tag}_barrel", 0.0018, 0.005, (px - 0.007, py + 0.002, top + 0.0025), M["rust"], dio, verts=12)
+            elif kind == "garden":
+                for j in range(rnd.randint(3, 5)):
+                    gx, gy = px + rnd.uniform(-0.006, 0.006), py + rnd.uniform(-0.004, 0.004)
+                    cyl(f"{tag}_pot_{j}", 0.0013, 0.002, (gx, gy, top + 0.001), M["brick"], dio, verts=10)
+                    sphere(f"{tag}_plant_{j}", 0.0016, (gx, gy, top + 0.0027), M["grass"], dio, segs=8, scale=(1, 1, 0.8))
+            elif kind == "hatch":
+                box(f"{tag}_curb", (0.007, 0.007, 0.0015), (px, py, top + 0.00075), M["concrete"], dio)
+                box(f"{tag}_lid", (0.0065, 0.0065, 0.0004), (px, py + 0.002, top + 0.0032), M["metal_dull"], dio, rot=(0.9, 0, 0))
+            elif kind == "solar":
+                for j in range(2):
+                    box(f"{tag}_{j}", (0.010, 0.006, 0.0005), (px, py + j * 0.007, top + 0.003), M["window_broken"], dio, rot=(0.5, 0, 0))
+                    box(f"{tag}_{j}_leg", (0.0005, 0.0005, 0.003), (px, py + j * 0.007 + 0.002, top + 0.0015), M["rust"], dio)
     # neon on the street-facing walls of the nearest blocks
     near = sorted(buildings, key=lambda b: math.hypot(b[0], b[1] - 0.05))[:6]
     shapes = [("arrow", "neon_pink"), ("ring", "neon_cyan"), ("zig", "neon_pink"), ("ring", "neon_purple"), ("arrow", "neon_cyan"), ("zig", "neon_cyan")]
@@ -1565,7 +1677,7 @@ def build_stairwell(dio, M, hero, roof_tiles):
         bpy.context.view_layer.objects.active = target
         bpy.ops.object.modifier_apply(modifier=md.name)
     bpy.data.objects.remove(cutter, do_unlink=True)
-    sh_y0 = iy0 + 0.006                                  # shaft starts just behind the threshold landing
+    sh_y0 = iy0 + 0.0035                                 # narrow threshold so the first steps show from the doorway
     shaft = M["concrete"]
     box("shaft_wall_back", (ix1 - ix0, 0.001, DEPTH), (sx, iy1 - 0.0005, ROOF_Z - DEPTH / 2), shaft, dio)
     box("shaft_wall_front", (ix1 - ix0, 0.001, DEPTH), (sx, sh_y0 + 0.0005, ROOF_Z - DEPTH / 2), shaft, dio)
@@ -1630,7 +1742,7 @@ def build_stairwell(dio, M, hero, roof_tiles):
     bx, by = (xa + xl) / 2, (ya0 + ya1) / 2        # bare bulb hangs over flight A so the steps catch light
     cyl("stair_bulb_cord", 0.00012, 0.016, (bx, by, ROOF_Z + H - 0.010), M["cable"], dio, verts=4)
     sphere("stair_bulb", 0.0012, (bx, by, ROOF_Z + H - 0.0195), M["bulb_warm"], dio, segs=10, scale=(1, 1, 1.3))
-    point_light("L_stair_bulb", (bx, by, ROOF_Z + H - 0.023), 0.10, (1.0, 0.7, 0.4), dio, 0.002)
+    point_light("L_stair_bulb", (bx, by, ROOF_Z + H - 0.023), 0.16, (1.0, 0.7, 0.4), dio, 0.002)
     point_light("L_stair_below", (sx - 0.02, sh_y0 + 0.01, ROOF_Z - 0.06), 0.12, (0.3, 0.9, 0.5), dio, 0.01)
     # services on the inside walls: riser pipes, conduit, an open fuse box, a fire extinguisher on its side
     for k, px in enumerate((ix0 + 0.0022, ix0 + 0.0048)):
@@ -2173,28 +2285,81 @@ def parented(objs, parent):
 
 
 def neighbour_claw_machine(ar, M, name, loc, rotz, body, accent, rnd):
-    """Generic plush claw machine for the background (pink/white stars or yellow)."""
+    """Background plush claw machine: printed body, chrome-posted glass box with gantry + claw,
+    prize chute, LED strips, lit marquee, joystick/button deck and a pile of 3D plushies."""
     root = prop_root(name, loc, rotz, ar)
     parts = [
         box(f"{name}_body", (0.9, 0.85, 0.9), (0, 0, 0.45), M[body], ar),
         box(f"{name}_belt", (0.92, 0.87, 0.04), (0, 0, 0.92), M[accent], ar),
-        box(f"{name}_glass", (0.86, 0.81, 0.85), (0, 0, 1.36), M["glass"], ar),
+        box(f"{name}_glass", (0.86, 0.81, 0.85), (0, 0, 1.365), M["glass"], ar),
         box(f"{name}_top", (0.92, 0.87, 0.10), (0, 0, 1.84), M[body], ar),
-        box(f"{name}_sign", (0.80, 0.02, 0.07), (0, -0.44, 1.84), M[accent], ar),
+        box(f"{name}_marquee", (0.78, 0.02, 0.085), (0, -0.445, 1.84), M["marquee"], ar),
         box(f"{name}_plush_card", (0.82, 0.004, 0.42), (0, 0.38, 1.15), M["plush_card"], ar),
-        box(f"{name}_ctrl", (0.30, 0.12, 0.08), (-0.15, -0.48, 0.82), M["cab_trim"], ar),
-        box(f"{name}_coin", (0.08, 0.01, 0.12), (0.2, -0.43, 0.78), M["coin_mech"], ar),
-        box(f"{name}_door", (0.18, 0.01, 0.14), (0.2, -0.43, 0.22), M["black"], ar),
+        box(f"{name}_ctrl", (0.42, 0.14, 0.08), (-0.15, -0.49, 0.84), M["cab_trim"], ar),
+        box(f"{name}_coin", (0.08, 0.01, 0.12), (0.2, -0.43, 0.70), M["coin_mech"], ar),
+        box(f"{name}_door", (0.20, 0.01, 0.16), (0.2, -0.43, 0.24), M["black"], ar),
+        box(f"{name}_door_frame", (0.23, 0.008, 0.19), (0.2, -0.427, 0.24), M["chrome"], ar),
+        box(f"{name}_kick", (0.90, 0.012, 0.08), (0, -0.43, 0.04), M["metal_dull"], ar),
+        box(f"{name}_price", (0.09, 0.004, 0.06), (-0.33, -0.428, 0.72), M["hazard_yellow"], ar),
+        # deck: joystick + grab button
+        cyl(f"{name}_stick", 0.008, 0.06, (-0.25, -0.50, 0.91), M["black"], ar, verts=8),
+        sphere(f"{name}_stick_ball", 0.022, (-0.25, -0.50, 0.945), M["red_glossy"], ar, segs=12),
+        cyl(f"{name}_button_bezel", 0.032, 0.012, (-0.06, -0.50, 0.886), M["chrome"], ar, verts=20),
+        cyl(f"{name}_button", 0.025, 0.016, (-0.06, -0.50, 0.892), M[accent], ar, verts=20),
+        # LED strips inside the roof and the neon edging round the marquee
+        box(f"{name}_led_f", (0.80, 0.03, 0.012), (0, -0.37, 1.78), M["led_cool"], ar),
+        box(f"{name}_led_b", (0.80, 0.03, 0.012), (0, 0.37, 1.78), M["led_cool"], ar),
+        box(f"{name}_marquee_neon_t", (0.82, 0.012, 0.012), (0, -0.448, 1.888), M[accent], ar),
+        box(f"{name}_marquee_neon_b", (0.82, 0.012, 0.012), (0, -0.448, 1.792), M[accent], ar),
+        # side louvres
+        box(f"{name}_louver_l", (0.006, 0.30, 0.14), (-0.452, 0.1, 0.30), M["louver"], ar),
+        box(f"{name}_louver_r", (0.006, 0.30, 0.14), (0.452, 0.1, 0.30), M["louver"], ar),
     ]
     for sx in (-1, 1):
-        parts.append(box(f"{name}_neon_{sx}", (0.012, 0.012, 1.8), (sx * 0.455, -0.43, 0.95), M[accent], ar))
-    for k in range(14):
-        bpy.ops.mesh.primitive_uv_sphere_add(radius=rnd.uniform(0.05, 0.08), segments=12, ring_count=8,
-                                             location=(rnd.uniform(-0.33, 0.33), rnd.uniform(-0.25, 0.3), 0.98 + rnd.uniform(0, 0.12)))
-        b = bpy.context.active_object
-        b.name = f"{name}_plush_{k}"
-        b.data.materials.append(M["plush_card"])
-        parts.append(link(b, ar))
+        for sy in (-1, 1):   # chrome corner posts, rubber feet
+            parts.append(cyl(f"{name}_post_{sx}{sy}", 0.016, 0.86, (sx * 0.44, sy * 0.415, 1.365), M["chrome"], ar, verts=12))
+            parts.append(cyl(f"{name}_foot_{sx}{sy}", 0.03, 0.02, (sx * 0.38, sy * 0.36, 0.0), M["rubber"], ar, verts=10))
+    # gantry: two rails, a cross bar, the carriage, cable and a three-prong claw
+    gy, gx = rnd.uniform(-0.2, 0.25), rnd.uniform(-0.25, 0.25)
+    drop = rnd.uniform(0.12, 0.35)
+    for sx in (-1, 1):
+        parts.append(box(f"{name}_rail_{sx}", (0.025, 0.78, 0.025), (sx * 0.39, 0, 1.745), M["chrome"], ar))
+    parts += [box(f"{name}_crossbar", (0.80, 0.03, 0.025), (0, gy, 1.725), M["chrome"], ar),
+              box(f"{name}_carriage", (0.08, 0.08, 0.05), (gx, gy, 1.69), M["cab_trim"], ar),
+              cyl(f"{name}_claw_cable", 0.003, drop, (gx, gy, 1.665 - drop / 2), M["black"], ar, verts=6),
+              cyl(f"{name}_claw_hub", 0.028, 0.05, (gx, gy, 1.64 - drop), M["chrome"], ar, verts=12)]
+    for j in range(3):
+        a_ = j * math.tau / 3
+        parts.append(box(f"{name}_claw_prong_{j}", (0.008, 0.008, 0.075),
+                         (gx + 0.03 * math.cos(a_), gy + 0.03 * math.sin(a_), 1.595 - drop), M["chrome"], ar,
+                         rot=(0.35 * math.sin(a_), -0.35 * math.cos(a_), 0)))
+    # prize chute (front-right): clear acrylic box with a chrome lip
+    parts.append(box(f"{name}_chute", (0.24, 0.24, 0.22), (0.30, -0.27, 1.05), M["glass"], ar))
+    for j, (cx_, cy_, sx_, sy_) in enumerate([(0.30, -0.39, 0.25, 0.012), (0.30, -0.15, 0.25, 0.012),
+                                              (0.18, -0.27, 0.012, 0.25), (0.42, -0.27, 0.012, 0.25)]):
+        parts.append(box(f"{name}_chute_lip_{j}", (sx_, sy_, 0.012), (cx_, cy_, 1.165), M["chrome"], ar))
+    # a heap of 3D plushies (body + head + ears), kept off the chute
+    pm = ["plush_pink", "plush_blue", "plush_cream", "plush_mint"]
+    for k in range(12):
+        while True:
+            px, py = rnd.uniform(-0.36, 0.34), rnd.uniform(-0.33, 0.32)
+            if not (px > 0.14 and py < -0.11):
+                break
+        pz = 0.97 + rnd.uniform(0, 0.10)
+        r = rnd.uniform(0.045, 0.065)
+        m_ = M[rnd.choice(pm)]
+        rz = rnd.uniform(0, math.tau)
+        hx, hy = px + 0.25 * r * math.cos(rz), py + 0.25 * r * math.sin(rz)
+        parts.append(sphere(f"{name}_plush_{k}_body", r, (px, py, pz + r * 0.6), m_, ar, segs=16, scale=(1, 0.9, 0.75)))
+        parts.append(sphere(f"{name}_plush_{k}_head", r * 0.75, (hx, hy, pz + r * 1.2), m_, ar, segs=16))
+        for e in (-1, 1):
+            ex = hx + e * r * 0.45 * math.cos(rz + math.pi / 2)
+            ey = hy + e * r * 0.45 * math.sin(rz + math.pi / 2)
+            parts.append(sphere(f"{name}_plush_{k}_ear_{e}", r * 0.25, (ex, ey, pz + r * 1.75), m_, ar, segs=10, scale=(1, 0.6, 1.4)))
+    for o in parts:   # soft plush and round chrome: no faceting
+        if o.type == "MESH" and ("_plush_" in o.name or "_post_" in o.name or "_stick_ball" in o.name):
+            for poly in o.data.polygons:
+                poly.use_smooth = True
     parented(parts, root)
     return root
 
@@ -2736,6 +2901,10 @@ def build_materials():
         "hazard":        mat("hazard", (0.8, 0.65, 0.05), 0.6),
         "poster":        mat("poster", (0.5, 0.3, 0.6), 0.6, 0, emit=(0.5, 0.3, 0.6), strength=0.3),
         "arcade_screen": mat("arcade_screen", (0.2, 0.4, 0.9), 0.2, 0, emit=(0.3, 0.5, 1.0), strength=4),
+        "plush_pink":    mat("plush_pink", (0.95, 0.55, 0.70), 1.0),
+        "plush_blue":    mat("plush_blue", (0.45, 0.70, 0.95), 1.0),
+        "plush_cream":   mat("plush_cream", (0.95, 0.88, 0.70), 1.0),
+        "plush_mint":    mat("plush_mint", (0.55, 0.90, 0.75), 1.0),
         "plush_card":    mat("plush_card", (0.9, 0.6, 0.8), 0.7, 0, emit=(0.9, 0.6, 0.8), strength=0.6),
         "machine_pink":  mat("machine_pink", (0.95, 0.8, 0.9), 0.4, 0.1),
         "machine_yellow":mat("machine_yellow", (0.95, 0.7, 0.1), 0.4, 0.1),
@@ -2751,6 +2920,12 @@ def build_materials():
         "sleeping_bag":  mat("sleeping_bag", (0.45, 0.16, 0.05), 0.7),
         "cloth_a":       mat("cloth_a", (0.35, 0.33, 0.30), 0.9),
         "cloth_b":       mat("cloth_b", (0.30, 0.05, 0.05), 0.9),
+        "cloth_shirt":   mat("cloth_shirt", (0.35, 0.33, 0.30), 0.9),
+        "cloth_shirt_b": mat("cloth_shirt_b", (0.12, 0.18, 0.30), 0.9),
+        "cloth_pants":   mat("cloth_pants", (0.10, 0.14, 0.25), 0.9),
+        "cloth_towel":   mat("cloth_towel", (0.45, 0.30, 0.15), 0.95),
+        "cloth_blanket": mat("cloth_blanket", (0.30, 0.05, 0.05), 0.95),
+        "cloth_blanket_b": mat("cloth_blanket_b", (0.20, 0.25, 0.15), 0.95),
         "paper":         mat("paper", (0.45, 0.44, 0.40), 0.9),
         "brick":         mat("brick", (0.30, 0.10, 0.06), 0.9),
         "grass":         mat("grass", (0.08, 0.17, 0.05), 0.8),
