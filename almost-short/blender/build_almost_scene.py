@@ -1081,8 +1081,8 @@ def build_roof_details(dio, M, rnd):
         else:
             box(f"brick_{n}", (0.0036, 0.0018, 0.0012), (x, y, Z + 0.0006), M["brick"], dio, rot=rot_z())
         n += 1
-    # ---------- 2. the survivor's camp (west side, where Rin starts) ----------
-    cx, cy = -0.085, 0.000
+    # ---------- 2. the survivor's camp (east side: the west side is the S01 door close-up's sightline) ----------
+    cx, cy = 0.115, -0.055
     tent = prop_root("tarp_tent", (cx, cy, Z), 0.1, dio)
     parented([box("tarp_left", (0.028, 0.0006, 0.020), (0, -0.0065, 0.0075), M["tarp"], dio, rot=(math.radians(-38), 0, 0)),
               box("tarp_right", (0.028, 0.0006, 0.020), (0, 0.0065, 0.0075), M["tarp"], dio, rot=(math.radians(38), 0, 0)),
@@ -1092,7 +1092,7 @@ def build_roof_details(dio, M, rnd):
     bag = box("sleeping_bag", (0.020, 0.008, 0.0025), (cx + 0.002, cy, Z + 0.0013), M["sleeping_bag"], dio, rot=(0, 0, 0.1))
     cyl("sleeping_bag_roll", 0.0022, 0.008, (cx + 0.013, cy, Z + 0.0022), M["sleeping_bag"], dio, verts=12, rot=(math.pi / 2, 0, 0.1))
     # burnt-out fire barrel with a few embers + faint warm glow
-    fb = (-0.100, 0.030)
+    fb = (0.085, -0.032)
     cyl("fire_barrel", 0.0050, 0.012, (fb[0], fb[1], Z + 0.006), M["rust"], dio, verts=20)
     cyl("fire_barrel_embers", 0.0044, 0.0008, (fb[0], fb[1], Z + 0.0115), M["ember"], dio, verts=16)
     L = bpy.data.lights.new("L_fire_barrel", "POINT")
@@ -1100,8 +1100,8 @@ def build_roof_details(dio, M, rnd):
     lo = bpy.data.objects.new(L.name, L)
     lo.location = (fb[0], fb[1], Z + 0.016)
     dio.objects.link(lo)
-    cyl("water_bucket", 0.0030, 0.0055, (-0.118, 0.032, Z + 0.00275), M["metal_dull"], dio, verts=16)
-    box("crate_seat", (0.007, 0.007, 0.006), (-0.088, 0.018, Z + 0.003), M["wood"], dio, rot=(0, 0, 0.4))
+    cyl("water_bucket", 0.0030, 0.0055, (0.072, -0.046, Z + 0.00275), M["metal_dull"], dio, verts=16)
+    box("crate_seat", (0.007, 0.007, 0.006), (0.100, -0.022, Z + 0.003), M["wood"], dio, rot=(0, 0, 0.4))
     # clothesline on the west side (inside the S02 frame) with a few hanging clothes
     for k, y in enumerate((-0.040, 0.050)):
         cyl(f"line_pole_{k}", 0.0005, 0.026, (-0.135, y, Z + 0.013), M["rust"], dio, verts=6)
@@ -2168,6 +2168,22 @@ def main():
     build_characters(C, M, face, tower)
     crowd = build_crowd(C, M, face)
     build_arcade_room(C, M)
+    # S17a coin close-up: the chrome coin plate only mirrors the dark room, so give it a soft key light
+    # of its own, switched on for that shot only so it never spills into the wider arcade shots
+    from mathutils import Vector
+    L = bpy.data.lights.new("L_coin_key", "AREA")
+    L.energy, L.color, L.size = 6.0, (0.85, 0.92, 1.0), 0.25
+    lo = bpy.data.objects.new(L.name, L)
+    lo.location = (0.42, -0.78, 1.02)
+    lo.rotation_euler = (Vector((0.22, -0.52, 0.84)) - lo.location).to_track_quat("-Z", "Y").to_euler()
+    bpy.context.scene.collection.objects.link(lo)
+    s17 = [x for x in SHOTS if x[0] == "S17a_coin"][0]
+    for fr, e in ((1, 0.0), (f(s17[1]), 6.0), (f(s17[2]), 0.0)):
+        L.energy = e
+        L.keyframe_insert("energy", frame=fr)
+    for fc in fcurves_of(L):
+        for kp in fc.keyframe_points:
+            kp.interpolation = "CONSTANT"
     build_decals(C)
     build_lights(C)
     build_rin_fill(C, tower)
