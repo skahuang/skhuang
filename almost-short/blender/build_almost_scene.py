@@ -1560,40 +1560,48 @@ def build_stairwell(dio, M, hero, roof_tiles):
     box("shaft_wall_west", (0.001, iy1 - sh_y0, DEPTH), (ix0 + 0.0005, (sh_y0 + iy1) / 2, ROOF_Z - DEPTH / 2), shaft, dio)
     box("shaft_wall_east", (0.001, iy1 - sh_y0, DEPTH), (ix1 - 0.0005, (sh_y0 + iy1) / 2, ROOF_Z - DEPTH / 2), shaft, dio)
     box("shaft_floor", (ix1 - ix0, iy1 - sh_y0, 0.001), (sx, (sh_y0 + iy1) / 2, ROOF_Z - DEPTH), M["black"], dio)
-    # threshold landing (door level) + first flight down, away from the door
+    # threshold landing at door level, then a switchback seen side-on from the doorway:
+    # flight A drops away to the WEST right in front of the door, a half-landing turns it,
+    # flight B comes back EAST along the rear wall, lower, and disappears into the dark
     box("stair_landing_top", (dx1 - dx0 + 0.004, sh_y0 - iy0 + 0.0005, 0.002), ((dx0 + dx1) / 2, (iy0 + sh_y0) / 2, ROOF_Z + 0.001), M["concrete"], dio)
-    rise, run, n1 = 0.0042, 0.0046, 8
-    fx0, fx1 = dx0 + 0.001, dx1 - 0.001
+    rise, run = 0.0040, 0.0045
+    ya0, ya1 = sh_y0, sh_y0 + 0.020                     # flight A strip (front)
+    yb0, yb1 = ya1 + 0.002, iy1 - 0.001                 # flight B strip (rear)
+    xa = dx1                                            # flight A starts under the door's east jamb
+    n1 = int((xa - (ix0 + 0.016)) / run)
+    box("stair_a_head", (ix1 - xa, ya1 - ya0, 0.002), ((xa + ix1) / 2, (ya0 + ya1) / 2, ROOF_Z + 0.001), M["concrete"], dio)
     for k in range(n1):
         z = ROOF_Z - (k + 1) * rise
-        y = sh_y0 + k * run
-        box(f"stair_a_{k}", (fx1 - fx0, run, 0.0016), ((fx0 + fx1) / 2, y + run / 2, z + 0.0008), M["concrete"], dio)
-        box(f"stair_a_{k}_nose", (fx1 - fx0, 0.0006, 0.0006), ((fx0 + fx1) / 2, y + 0.0003, z + 0.0016), M["metal_dull"], dio)
-        box(f"stair_a_{k}_riser", (fx1 - fx0, 0.0006, rise), ((fx0 + fx1) / 2, y, z + rise / 2 + 0.0016), M["concrete"], dio)
+        x = xa - (k + 1) * run
+        box(f"stair_a_{k}", (run, ya1 - ya0, 0.0016), (x + run / 2, (ya0 + ya1) / 2, z + 0.0008), M["concrete"], dio)
+        box(f"stair_a_{k}_nose", (0.0008, ya1 - ya0, 0.0004), (x + run - 0.0004, (ya0 + ya1) / 2, z + 0.0017), M["hazard_yellow"], dio)   # worn safety paint so each tread reads from the door
+        box(f"stair_a_{k}_riser", (0.0006, ya1 - ya0, rise), (x + run, (ya0 + ya1) / 2, z + rise / 2 + 0.0016), M["concrete"], dio)
     zl = ROOF_Z - n1 * rise
-    yl = sh_y0 + n1 * run
-    box("stair_half_landing", (ix1 - ix0 - 0.002, iy1 - yl - 0.001, 0.002), (sx, (yl + iy1) / 2, zl + 0.001), M["concrete"], dio)
-    # second flight turns back toward the door on the west side and drops into the dark
-    gx0, gx1 = ix0 + 0.001, dx0 - 0.001
-    for k in range(n1 + 2):
+    xl = xa - n1 * run
+    box("stair_half_landing", (xl - ix0, yb1 - ya0, 0.002), ((ix0 + xl) / 2, (ya0 + yb1) / 2, zl + 0.001), M["concrete"], dio)
+    box("stair_stringer_a", (xa - xl, 0.0012, rise * 2), ((xa + xl) / 2, ya1 + 0.0006, (ROOF_Z + zl) / 2 - rise), M["concrete"], dio,
+        rot=(0, -math.atan2(ROOF_Z - zl, xa - xl), 0))
+    n2 = int((ix1 - 0.002 - xl) / run)
+    for k in range(n2):
         z = zl - (k + 1) * rise
-        y = yl - (k + 1) * run
-        if y < sh_y0:
-            break
-        box(f"stair_b_{k}", (gx1 - gx0, run, 0.0016), ((gx0 + gx1) / 2, y + run / 2, z + 0.0008), M["concrete"], dio)
-    # handrails: tube along the open side of each flight + newel posts
-    tube("stair_rail_a", [(fx1 + 0.0004, sh_y0, ROOF_Z + 0.008), (fx1 + 0.0004, yl, zl + 0.008)], 0.00035, M["rust"], dio)
-    tube("stair_rail_b", [(gx1 + 0.0004, yl, zl + 0.008), (gx1 + 0.0004, sh_y0 + 0.004, zl - 0.03)], 0.00035, M["rust"], dio)
-    for k, (px, py, pz) in enumerate([(fx1 + 0.0004, sh_y0, ROOF_Z), (fx1 + 0.0004, yl, zl), (gx1 + 0.0004, yl, zl)]):
-        cyl(f"stair_newel_{k}", 0.0005, 0.009, (px, py, pz + 0.0045), M["rust"], dio, verts=6)
+        x = xl + k * run
+        box(f"stair_b_{k}", (run, yb1 - yb0, 0.0016), (x + run / 2, (yb0 + yb1) / 2, z + 0.0008), M["concrete"], dio)
+        box(f"stair_b_{k}_nose", (0.0008, yb1 - yb0, 0.0004), (x + 0.0004, (yb0 + yb1) / 2, z + 0.0017), M["hazard_yellow"], dio)
+    # handrails along the inner edge of both flights + newel posts at the turn
+    tube("stair_rail_a", [(xa, ya1 + 0.0012, ROOF_Z + 0.009), (xl, ya1 + 0.0012, zl + 0.009)], 0.00035, M["rust"], dio)
+    tube("stair_rail_b", [(xl, ya1 + 0.0012, zl + 0.009), (xl + n2 * run, ya1 + 0.0012, zl - n2 * rise + 0.009)], 0.00035, M["rust"], dio)
+    for k, (px, pz) in enumerate([(xa, ROOF_Z), (xl, zl), (xl + n2 * run * 0.5, zl - n2 * rise * 0.5)]):
+        cyl(f"stair_newel_{k}", 0.0005, 0.009, (px, ya1 + 0.0012, pz + 0.0045), M["rust"], dio, verts=6)
+        for j in range(3):
+            cyl(f"stair_baluster_{k}_{j}", 0.00018, 0.008, (px + (j - 1) * 0.004 * (1 if k != 1 else 0), ya1 + 0.0012, pz + 0.004 - (j - 1) * 0.004 * rise / run), M["rust"], dio, verts=4)
     # smashed barricade: boards still nailed on one side of the frame, the rest thrown on the landing
     for k in range(3):
-        box(f"barricade_board_hang_{k}", (0.014, 0.0008, 0.0025), (dx0 + 0.006, iy0 + 0.001, ROOF_Z + 0.012 + k * 0.009), M["wood"], dio,
+        box(f"barricade_board_hang_{k}", (0.014, 0.0008, 0.0025), (dx0 + 0.006, iy0 + 0.001, ROOF_Z + 0.012 + k * 0.009), M["wood_old"], dio,
             rot=(0, rnd.uniform(-0.6, -0.2), 0))
         cyl(f"barricade_nail_{k}", 0.0002, 0.001, (dx0 + 0.0015, iy0 + 0.0005, ROOF_Z + 0.012 + k * 0.009), M["metal_dull"], dio, verts=4, rot=(math.pi / 2, 0, 0))
     for k in range(2):   # thrown aside against the east wall, so the view down the stairs stays open
         box(f"barricade_board_floor_{k}", (0.014, 0.0026, 0.0008), (dx1 + 0.006, iy0 + 0.006 + k * 0.004, ROOF_Z + 0.0025 + k * 0.001),
-            M["wood"], dio, rot=(rnd.uniform(-0.2, 0.2), rnd.uniform(-0.2, 0.2), 1.3 + rnd.uniform(-0.2, 0.2)))
+            M["wood_old"], dio, rot=(rnd.uniform(-0.2, 0.2), rnd.uniform(-0.2, 0.2), 1.3 + rnd.uniform(-0.2, 0.2)))
     # lighting: flickering caged lamp on the back wall, bare bulb hanging over the stairs, glow from below
     wall_lamp("stair_lamp", (sx + 0.012, iy1 - 0.0004, ROOF_Z + 0.036), (0, -1), M, dio, glow="stair_lamp_flicker", light=None)
     sl = point_light("L_stair_lamp", (sx + 0.012, iy1 - 0.008, ROOF_Z + 0.033), 0.05, (0.45, 1.0, 0.55), dio, 0.002)
@@ -1607,9 +1615,10 @@ def build_stairwell(dio, M, hero, roof_tiles):
     for fc in fcurves_of(sl.data):
         for kp in fc.keyframe_points:
             kp.interpolation = "CONSTANT"
-    cyl("stair_bulb_cord", 0.00012, 0.012, (DOOR_XY[0], (sh_y0 + yl) / 2, ROOF_Z + H - 0.008), M["cable"], dio, verts=4)
-    sphere("stair_bulb", 0.0012, (DOOR_XY[0], (sh_y0 + yl) / 2, ROOF_Z + H - 0.0155), M["bulb_warm"], dio, segs=10, scale=(1, 1, 1.3))
-    point_light("L_stair_bulb", (DOOR_XY[0], (sh_y0 + yl) / 2, ROOF_Z + H - 0.019), 0.03, (1.0, 0.7, 0.4), dio, 0.002)
+    bx, by = (xa + xl) / 2, (ya0 + ya1) / 2        # bare bulb hangs over flight A so the steps catch light
+    cyl("stair_bulb_cord", 0.00012, 0.016, (bx, by, ROOF_Z + H - 0.010), M["cable"], dio, verts=4)
+    sphere("stair_bulb", 0.0012, (bx, by, ROOF_Z + H - 0.0195), M["bulb_warm"], dio, segs=10, scale=(1, 1, 1.3))
+    point_light("L_stair_bulb", (bx, by, ROOF_Z + H - 0.023), 0.10, (1.0, 0.7, 0.4), dio, 0.002)
     point_light("L_stair_below", (sx - 0.02, sh_y0 + 0.01, ROOF_Z - 0.06), 0.12, (0.3, 0.9, 0.5), dio, 0.01)
     # services on the inside walls: riser pipes, conduit, an open fuse box, a fire extinguisher on its side
     for k, px in enumerate((ix0 + 0.0022, ix0 + 0.0048)):
@@ -1624,21 +1633,25 @@ def build_stairwell(dio, M, hero, roof_tiles):
     # debris: paper, a shoe, scattered bricks on the steps
     for k in range(10):
         on_a = k % 2 == 0
-        y = sh_y0 + rnd.uniform(0, n1 * run - 0.002)
-        steps = int((y - sh_y0) / run)
-        z = (ROOF_Z - (steps + 1) * rise + 0.0017) if on_a else ROOF_Z + 0.0021
-        x = rnd.uniform(fx0 + 0.002, fx1 - 0.002) if on_a else rnd.uniform(dx0, dx1)
-        if not on_a:
-            y = rnd.uniform(iy0 + 0.001, sh_y0)
+        if on_a:   # on flight A treads
+            step = rnd.randint(0, n1 - 1)
+            x = xa - (step + 1) * run + rnd.uniform(0.001, run - 0.001)
+            y = rnd.uniform(ya0 + 0.002, ya1 - 0.002)
+            z = ROOF_Z - (step + 1) * rise + 0.0017
+        else:      # on the threshold landing / half landing
+            if k % 4 == 1:
+                x, y, z = rnd.uniform(dx0, dx1), rnd.uniform(iy0 + 0.001, sh_y0), ROOF_Z + 0.0021
+            else:
+                x, y, z = rnd.uniform(ix0 + 0.002, xl - 0.002), rnd.uniform(ya0 + 0.002, yb1 - 0.002), zl + 0.0021
         box(f"stair_debris_{k}", (0.004, 0.003, 0.0003) if k % 3 else (0.0032, 0.0016, 0.0011), (x, y, z),
             M["paper"] if k % 3 else M["brick"], dio, rot=(0, 0, rnd.uniform(0, 3)))
-    box("stair_lost_shoe", (0.0028, 0.0055, 0.0025), (fx0 + 0.004, sh_y0 + 3.5 * run, ROOF_Z - 4 * rise + 0.0029), M["black"], dio, rot=(0, 0, 0.6))
+    box("stair_lost_shoe", (0.0055, 0.0028, 0.0025), (xa - 3.5 * run, (ya0 + ya1) / 2 + 0.003, ROOF_Z - 4 * rise + 0.0029), M["black"], dio, rot=(0, 0, 0.6))
     # scrawls on the inside walls (decal atlases, skipped if missing)
     for k, (kind, cell, size, loc, nrm) in enumerate([
             ("graffiti", 3, (0.012, 0.012), (ix0 + 0.0002, sy + 0.004, ROOF_Z + 0.030), (1, 0, 0)),
             ("graffiti", 9, (0.010, 0.010), (sx - 0.014, iy1 - 0.0002, ROOF_Z + 0.022), (0, -1, 0)),
             ("signs", 13, (0.006, 0.006), (ix1 - 0.0002, sy + 0.012, ROOF_Z + 0.032), (-1, 0, 0)),
-            ("stains", 4, (0.012, 0.012), (sx - 0.01, yl + 0.006, zl + 0.0022), (0, 0, 1))]):
+            ("stains", 4, (0.012, 0.012), (ix0 + 0.008, (ya0 + yb1) / 2, zl + 0.0022), (0, 0, 1))]):
         decal(f"stair_decal_{k}", kind, cell, size, loc, nrm, dio)
 
 
@@ -2717,6 +2730,7 @@ def build_materials():
         "ceiling":       mat("ceiling", (0.02, 0.02, 0.025), 0.8),
         "lamp_shade":    mat("lamp_shade", (0.05, 0.05, 0.05), 0.4, 0.8),
         "wood":          mat("wood", (0.22, 0.15, 0.09), 0.85),
+        "wood_old":      mat("wood_old", (0.10, 0.075, 0.05), 0.9),
         "plastic_white": mat("plastic_white", (0.55, 0.56, 0.55), 0.5),
         "rubber":        mat("rubber", (0.015, 0.015, 0.015), 0.75),
         "cardboard":     mat("cardboard", (0.30, 0.22, 0.13), 0.9),
