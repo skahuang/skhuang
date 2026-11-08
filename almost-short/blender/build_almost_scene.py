@@ -2701,7 +2701,7 @@ def build_arcade_details(ar, M):
     box("cable_cover", (0.18, 3.0, 0.015), (-0.9, 2.2, 0.0075), M["hazard_yellow"], ar)
     tube("floor_power_cable", [(-0.9, 3.7, 0.02), (-1.1, 3.9, 0.02), (-1.6, 3.95, 0.02), (-1.9, 3.7, 0.02)], 0.012, M["cable"], ar)
     # LED floor-edge strips under the lane of machines on the right
-    box("lane_floor_led", (0.03, 4.0, 0.012), (2.2, 2.4, 0.006), M["neon_cyan"], ar)
+    box("lane_floor_led", (0.03, 4.0, 0.012), (1.95, 2.4, 0.006), M["neon_cyan"], ar)
     return len(bpy.data.objects) - n0
 
 
