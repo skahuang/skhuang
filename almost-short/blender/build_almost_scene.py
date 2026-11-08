@@ -122,7 +122,7 @@ SHOTS = [
     ("S14_pullback",     41.0, 45.0, 24, (0.034, -0.034, 1.105), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.08, 0.10, 1.47)),
     # ---- Act 4: reveal + loop (45-60 s)
     ("S15_glass_reveal", 45.0, 51.0, 35, (0.14, -0.44, 1.37),    (-0.45, -2.30, 1.78),   (0.08, 0.10, 1.47),   (0.05, -0.30, 1.20)),
-    ("S16_nova_almost",  51.0, 55.0, 50, (1.02, -1.78, 1.36),    (0.98, -1.72, 1.35),    (0.25, -0.85, 1.30),  (0.25, -0.85, 1.30)),
+    ("S16_nova_almost",  51.0, 55.0, 85, (1.00, -1.74, 1.23),    (0.95, -1.67, 1.22),    (0.24, -0.86, 1.115), (0.24, -0.86, 1.12)),   # tight 3/4 close-up on her face (eyes ~1.15 m)
     ("S17a_coin",        55.0, 57.0, 50, (0.44, -0.86, 0.98),    (0.41, -0.80, 0.95),    (0.22, -0.52, 0.84),  (0.22, -0.52, 0.84)),
     ("S17b_reset_loop",  57.0, 60.0, 35, (0.02, -0.04, 1.30),    (-0.085, -0.03, 1.114), (0.0, -0.01, 1.10),   (-0.11, 0.11, 1.124)),
 ]
@@ -228,19 +228,85 @@ def first_texture(names):
 # Procedural weathering (phase 1, no extra art): which layers each tiled surface gets.
 #   grime = dark dirt in corners/contacts (AO)   streaks = rain stains running down walls
 #   moss  = green growth on damp upward faces    vary  = per-object brightness/hue drift
+#   chip  = flaking paint / spalled edges     rust = orange run-off under bolts and seams (vertical faces)
 WEATHER = {
     "roof_wet":      {"grime": 0.55, "moss": 0.25, "vary": 0.10},
-    "concrete":      {"grime": 0.60, "streaks": 0.45, "moss": 0.30, "vary": 0.15},
+    "concrete":      {"grime": 0.60, "streaks": 0.45, "moss": 0.30, "chip": 0.30, "vary": 0.15},
     "facade":        {"grime": 0.50, "streaks": 0.55, "vary": 0.25},
-    "parapet":       {"grime": 0.55, "streaks": 0.50, "moss": 0.55, "vary": 0.15},
+    "parapet":       {"grime": 0.55, "streaks": 0.50, "moss": 0.55, "chip": 0.45, "vary": 0.15},
     "concrete_dark": {"grime": 0.45, "streaks": 0.50, "vary": 0.30},
-    "rust":          {"grime": 0.40, "streaks": 0.35, "vary": 0.15},
-    "tank_metal":    {"grime": 0.45, "streaks": 0.60, "moss": 0.20, "vary": 0.05},
-    "metal_dull":    {"grime": 0.40, "vary": 0.10},
-    "pillar":        {"grime": 0.40, "streaks": 0.20, "vary": 0.10},
+    "rust":          {"grime": 0.40, "streaks": 0.35, "rust": 0.50, "vary": 0.15},
+    "tank_metal":    {"grime": 0.45, "streaks": 0.60, "moss": 0.20, "rust": 0.70, "vary": 0.05},
+    "metal_dull":    {"grime": 0.40, "chip": 0.30, "rust": 0.40, "vary": 0.10},
+    "door_green":    {"grime": 0.40, "streaks": 0.30, "chip": 0.45, "rust": 0.50},
+    "cab_body":      {"grime": 0.25},          # the hero machine is kept clean: dirt in the seams only
+    "pillar":        {"grime": 0.40, "streaks": 0.20, "chip": 0.25, "vary": 0.10},
     "floor":         {"grime": 0.50, "vary": 0.05},
     "wall":          {"grime": 0.35, "streaks": 0.15, "vary": 0.05},
 }
+
+# V4 art (optional): greyscale masks replace the procedural noise, colour overlays replace the flat tints.
+#   Missing file -> the procedural version above is used, so nothing breaks.
+MASK_TEX = {
+    "grime":   "tex_mask_grime.png",
+    "streaks": "tex_mask_streaks.png",
+    "chip":    "tex_mask_chipping.png",
+    "height":  "tex_height_concrete.png",
+    "prints":  "tex_mask_fingerprints.png",
+    "moss":    "tex_moss_patches.png",      # colour + alpha
+    "rust":    "tex_rust_streaks.png",      # colour + alpha
+}
+HEIGHT_MATS = {"concrete", "facade", "parapet", "pillar", "concrete_dark"}   # real relief, not just colour
+PRINT_MATS = {"glass": 0.25, "coin_mech": 0.35, "cab_trim": 0.20}            # fingerprint roughness on touched surfaces
+CHIP_COLOR = {"door_green": (0.30, 0.28, 0.25, 1.0), "cab_body": (0.38, 0.40, 0.44, 1.0),
+              "metal_dull": (0.42, 0.42, 0.43, 1.0)}                        # what shows under the paint
+MASK_FOUND = set()
+
+
+def _mask_image(nt, key, tile, non_color=True):
+    """Image node for a V4 mask/overlay: box-projected in object space with a per-object random offset
+    (tile = metres per repeat), or on the mesh UVs when tile is None. None if the file is missing."""
+    path = first_texture(MASK_TEX[key])
+    if not path:
+        return None
+    MASK_FOUND.add(key)
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(path, check_existing=True)
+    if non_color:
+        tex.image.colorspace_settings.name = "Non-Color"
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    if tile:
+        mp = nt.nodes.new("ShaderNodeMapping")
+        mp.inputs["Scale"].default_value = (1 / tile, 1 / tile, 1 / tile)
+        nt.links.new(tc.outputs["Object"], mp.inputs["Vector"])
+        oi = nt.nodes.new("ShaderNodeObjectInfo")
+        off = nt.nodes.new("ShaderNodeVectorMath")
+        off.operation = "SCALE"
+        off.inputs[0].default_value = (4.13, 2.71, 6.37)
+        nt.links.new(oi.outputs["Random"], off.inputs["Scale"])
+        nt.links.new(off.outputs["Vector"], mp.inputs["Location"])
+        nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
+        tex.projection = "BOX"
+        tex.projection_blend = 0.25
+    else:
+        nt.links.new(tc.outputs["UV"], tex.inputs["Vector"])
+    return tex
+
+
+def _mul(nt, a, b):
+    mm = nt.nodes.new("ShaderNodeMath")
+    mm.operation, mm.use_clamp = "MULTIPLY", True
+    nt.links.new(a, mm.inputs[0])
+    nt.links.new(b, mm.inputs[1])
+    return mm.outputs[0]
+
+
+def _max(nt, a, b):
+    mm = nt.nodes.new("ShaderNodeMath")
+    mm.operation, mm.use_clamp = "MAXIMUM", True
+    nt.links.new(a, mm.inputs[0])
+    nt.links.new(b, mm.inputs[1])
+    return mm.outputs[0]
 
 
 def _mix(nt, blend, fac, a, b):
@@ -277,14 +343,17 @@ def _noise(nt, scale_vec, detail=4.0, rough=0.6):
     return nz.outputs["Fac"]
 
 
-def add_weathering(nt, bsdf, col, tile, w):
-    """Layer grime / rain streaks / moss / per-object drift over a tiled base colour.
-    Everything is driven by geometry (AO, normals, height) so the same base image ages differently
-    on every surface instead of repeating."""
+def add_weathering(nt, bsdf, col, tile, w, name=""):
+    """Layer grime / rain streaks / moss / chipping / rust / per-object drift over a base colour.
+    Driven by geometry (AO, normals) and, when present, the V4 masks, so the same base image ages
+    differently on every surface instead of repeating. tile None = the material uses mesh UVs."""
+    uv = tile is None
+    tile = tile or 0.05
     geo = nt.nodes.new("ShaderNodeNewGeometry")
     sep = nt.nodes.new("ShaderNodeSeparateXYZ")
     nt.links.new(geo.outputs["Normal"], sep.inputs["Vector"])
     up = sep.outputs["Z"]
+    side = _ramp(nt, up, 0.35, 0.05, 0.0, 1.0)     # 1 on vertical faces, 0 on floors/tops
     # macro variation: large soft blotches so the tile never reads as a grid
     macro = _ramp(nt, _noise(nt, (0.15 / tile,) * 3, 2.0, 0.5), 0.3, 0.7, 0.62, 1.18)
     col = _mix(nt, "MULTIPLY", 1.0, col, macro)
@@ -301,27 +370,72 @@ def add_weathering(nt, bsdf, col, tile, w):
         ao.inputs["Distance"].default_value = 0.02
         ao.samples = 8
         cav = _ramp(nt, ao.outputs["AO"], 0.35, 0.95, 1.0, 0.0)
-        brk = _ramp(nt, _noise(nt, (1 / 0.02,) * 3, 6.0, 0.7), 0.35, 0.65, 0.5, 1.0)
-        mm = nt.nodes.new("ShaderNodeMath"); mm.operation = "MULTIPLY"; mm.use_clamp = True
-        nt.links.new(cav, mm.inputs[0]); nt.links.new(brk, mm.inputs[1])
-        fac = _ramp(nt, mm.outputs[0], 0, 1, 0, w["grime"])
+        gm = _mask_image(nt, "grime", None if uv else tile * 1.5)
+        if gm:   # painted dirt clusters break up the AO and add some dirt on open surfaces too
+            brk = _ramp(nt, gm.outputs["Color"], 0.0, 0.5, 0.35, 1.0)
+            src = _max(nt, _mul(nt, cav, brk), _ramp(nt, gm.outputs["Color"], 0.15, 0.8, 0.0, 0.55))
+        else:
+            src = _mul(nt, cav, _ramp(nt, _noise(nt, (1 / 0.02,) * 3, 6.0, 0.7), 0.35, 0.65, 0.5, 1.0))
+        fac = _ramp(nt, src, 0, 1, 0, w["grime"])
         col = _mix(nt, "MULTIPLY", fac, col, (0.10, 0.08, 0.06, 1.0))
-    if w.get("streaks"):   # vertical faces only: noise stretched along Z reads as run-off stains
-        side = _ramp(nt, up, 0.35, 0.05, 0.0, 1.0)
-        sx = 1 / max(tile * 0.06, 0.0015)
-        st = _ramp(nt, _noise(nt, (sx, sx, sx * 0.04), 3.0, 0.55), 0.45, 0.70, 0.0, 1.0)
-        mm = nt.nodes.new("ShaderNodeMath"); mm.operation = "MULTIPLY"; mm.use_clamp = True
-        nt.links.new(side, mm.inputs[0]); nt.links.new(st, mm.inputs[1])
-        fac = _ramp(nt, mm.outputs[0], 0, 1, 0, w["streaks"])
+    if w.get("streaks"):   # vertical faces only: run-off stains
+        sm = _mask_image(nt, "streaks", None if uv else tile * 2.0)
+        if sm:   # box projection maps image-V to world Z on side faces, so the drips run downward
+            st = _ramp(nt, sm.outputs["Color"], 0.04, 0.45, 0.0, 1.0)
+        else:    # noise stretched along Z
+            sx = 1 / max(tile * 0.06, 0.0015)
+            st = _ramp(nt, _noise(nt, (sx, sx, sx * 0.04), 3.0, 0.55), 0.45, 0.70, 0.0, 1.0)
+        fac = _ramp(nt, _mul(nt, side, st), 0, 1, 0, w["streaks"])
         col = _mix(nt, "MULTIPLY", fac, col, (0.22, 0.20, 0.17, 1.0))
+    if w.get("chip"):   # flaking paint: bare, lighter material shows through in sharp chips
+        cm = _mask_image(nt, "chip", None if uv else tile * 1.2)
+        if cm:   # only the strongest chips; concrete just gets a bit paler, paint shows the metal under it
+            fac = _ramp(nt, cm.outputs["Color"], 0.55, 0.85, 0.0, w["chip"])
+            if name in CHIP_COLOR:
+                col = _mix(nt, "MIX", fac, col, CHIP_COLOR[name])
+            else:
+                col = _mix(nt, "MULTIPLY", fac, col, (1.45, 1.42, 1.38, 1.0))
+    if w.get("rust"):   # orange run-off under bolts and seams, vertical faces only
+        rm = _mask_image(nt, "rust", None if uv else tile * 2.0, non_color=False)
+        if rm:
+            fac = _ramp(nt, _mul(nt, side, rm.outputs["Alpha"]), 0, 1, 0, w["rust"])
+            rc = nt.nodes.new("ShaderNodeHueSaturation")      # night palette: no bright orange
+            rc.inputs["Value"].default_value = 0.6
+            nt.links.new(rm.outputs["Color"], rc.inputs["Color"])
+            col = _mix(nt, "MIX", fac, col, rc.outputs["Color"])
     if w.get("moss"):   # damp upward faces, patchy
         top = _ramp(nt, up, 0.55, 0.9, 0.0, 1.0)
-        pat = _ramp(nt, _noise(nt, (1 / 0.035,) * 3, 5.0, 0.65), 0.48, 0.62, 0.0, 1.0)
-        mm = nt.nodes.new("ShaderNodeMath"); mm.operation = "MULTIPLY"; mm.use_clamp = True
-        nt.links.new(top, mm.inputs[0]); nt.links.new(pat, mm.inputs[1])
-        fac = _ramp(nt, mm.outputs[0], 0, 1, 0, w["moss"])
-        col = _mix(nt, "MIX", fac, col, (0.05, 0.12, 0.03, 1.0))
+        mo = _mask_image(nt, "moss", None if uv else tile * 1.5, non_color=False)
+        if mo:   # real moss clumps (colour + alpha) instead of a flat green
+            fac = _ramp(nt, _mul(nt, top, mo.outputs["Alpha"]), 0, 1, 0, min(1.0, w["moss"] * 1.6))
+            mc = nt.nodes.new("ShaderNodeHueSaturation")
+            mc.inputs["Value"].default_value = 0.55
+            nt.links.new(mo.outputs["Color"], mc.inputs["Color"])
+            col = _mix(nt, "MIX", fac, col, mc.outputs["Color"])
+        else:
+            pat = _ramp(nt, _noise(nt, (1 / 0.035,) * 3, 5.0, 0.65), 0.48, 0.62, 0.0, 1.0)
+            fac = _ramp(nt, _mul(nt, top, pat), 0, 1, 0, w["moss"])
+            col = _mix(nt, "MIX", fac, col, (0.05, 0.12, 0.03, 1.0))
     return col
+
+
+def add_fingerprints(m, tile, strength):
+    """Greasy prints and wipe arcs on touched surfaces: rougher where fingers have been."""
+    nt = m.node_tree
+    bsdf = node_of_type(nt, "BSDF_PRINCIPLED")
+    pm = _mask_image(nt, "prints", tile)
+    if not pm:
+        return
+    pr = _ramp(nt, pm.outputs["Color"], 0.0, 0.25, 0.0, strength)
+    rough = bsdf.inputs["Roughness"]
+    add = nt.nodes.new("ShaderNodeMath")
+    add.operation, add.use_clamp = "ADD", True
+    if rough.links:
+        nt.links.new(rough.links[0].from_socket, add.inputs[0])
+    else:
+        add.inputs[0].default_value = rough.default_value
+    nt.links.new(pr, add.inputs[1])
+    nt.links.new(add.outputs[0], rough)
 
 
 def apply_surface_texture(m, filename, tile, bump):
@@ -371,8 +485,8 @@ def apply_surface_texture(m, filename, tile, bump):
         hsv.inputs["Value"].default_value = SURFACE_TINT[m.name]
         nt.links.new(col_out, hsv.inputs["Color"])
         col_out = hsv.outputs["Color"]
-    if m.name in WEATHER and tile:
-        col_out = add_weathering(nt, bsdf, col_out, tile, WEATHER[m.name])
+    if m.name in WEATHER:
+        col_out = add_weathering(nt, bsdf, col_out, tile, WEATHER[m.name], m.name)
     nt.links.new(col_out, bsdf.inputs["Base Color"])
     if bsdf.inputs["Emission Strength"].default_value > 0:
         nt.links.new(tex.outputs["Color"], bsdf.inputs["Emission Color"])
@@ -380,7 +494,17 @@ def apply_surface_texture(m, filename, tile, bump):
         bp = nt.nodes.new("ShaderNodeBump")
         bp.inputs["Strength"].default_value = bump
         bp.inputs["Distance"].default_value = 0.001
-        nt.links.new(tex.outputs["Color"], bp.inputs["Height"])
+        hm = _mask_image(nt, "height", tile) if (tile and m.name in HEIGHT_MATS) else None
+        if hm:   # pores, pits and hairline cracks from the height map, layered over the colour-derived bump
+            ad = nt.nodes.new("ShaderNodeMath")
+            ad.operation = "MULTIPLY_ADD"
+            nt.links.new(tex.outputs["Color"], ad.inputs[0])
+            ad.inputs[1].default_value = 0.4
+            nt.links.new(hm.outputs["Color"], ad.inputs[2])
+            nt.links.new(ad.outputs[0], bp.inputs["Height"])
+            bp.inputs["Strength"].default_value = bump * 1.5
+        else:
+            nt.links.new(tex.outputs["Color"], bp.inputs["Height"])
         nt.links.new(bp.outputs["Normal"], bsdf.inputs["Normal"])
     return True
 
@@ -1665,6 +1789,177 @@ def build_arcade_room(C, M):
         ar.objects.link(o)
 
 
+# --------------------------------------------------------------------------
+# Decals (V4 atlases, 4x4 cells, transparent PNG). Missing atlas -> those decals are skipped.
+# --------------------------------------------------------------------------
+DECAL_ATLAS = {
+    "graffiti": ("decal_graffiti_atlas.png", 0.55),   # (file, brightness: keep to the night palette)
+    "posters":  ("decal_posters_atlas.png", 0.45),
+    "signs":    ("decal_signs_atlas.png", 0.60),
+    "stains":   ("decal_stains_atlas.png", 1.00),
+    "cracks":   ("decal_cracks_atlas.png", 1.00),
+}
+# signs atlas cells: 0 hazard triangle, 1 yellow stripe, 2 "03", 3 no-hand, 4 electric box, 5 cyan pipe arrow,
+# 6 "07", 7 orange stripe, 8 fire, 9 green pipe arrow, 10 "12", 11 wrench, 12 "08", 13 wet floor,
+# 14 red/white stripe, 15 chevron up
+
+
+def decal_material(kind):
+    name = "decal_" + kind
+    if name in bpy.data.materials:
+        return bpy.data.materials[name]
+    fn, value = DECAL_ATLAS[kind]
+    path = first_texture(fn)
+    if not path:
+        return None
+    m = bpy.data.materials.new(name)
+    m.use_nodes = True
+    nt = m.node_tree
+    bsdf = node_of_type(nt, "BSDF_PRINCIPLED")
+    tex = nt.nodes.new("ShaderNodeTexImage")
+    tex.image = bpy.data.images.load(path, check_existing=True)
+    tex.extension = "CLIP"
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    nt.links.new(tc.outputs["UV"], tex.inputs["Vector"])
+    hsv = nt.nodes.new("ShaderNodeHueSaturation")
+    hsv.inputs["Value"].default_value = value
+    nt.links.new(tex.outputs["Color"], hsv.inputs["Color"])
+    nt.links.new(hsv.outputs["Color"], bsdf.inputs["Base Color"])
+    nt.links.new(tex.outputs["Alpha"], bsdf.inputs["Alpha"])
+    bsdf.inputs["Roughness"].default_value = 0.75
+    bsdf.inputs["Specular IOR Level"].default_value = 0.2
+    if hasattr(m, "surface_render_method"):
+        m.surface_render_method = "DITHERED"    # alpha-hashed: no sorting problems between stacked decals
+    m.diffuse_color = (0.3, 0.3, 0.3, 0.6)
+    return m
+
+
+def decal(name, kind, cell, size, loc, normal, collection, spin=0.0, lift=0.0003):
+    """A thin card showing one 4x4 atlas cell, lying flat on a surface (normal = the surface's outward
+    direction). On walls the image's up = world up; on floors `spin` turns it."""
+    from mathutils import Matrix, Vector
+    m = decal_material(kind)
+    if not m:
+        return None
+    w, h = size
+    me = bpy.data.meshes.new("ME_" + name)
+    me.from_pydata([(-w / 2, -h / 2, 0), (w / 2, -h / 2, 0), (w / 2, h / 2, 0), (-w / 2, h / 2, 0)], [], [(0, 1, 2, 3)])
+    uv = me.uv_layers.new(name="UVMap")
+    c, r, p = cell % 4, cell // 4, 0.004
+    u0, u1, v0, v1 = c / 4 + p, (c + 1) / 4 - p, 1 - (r + 1) / 4 + p, 1 - r / 4 - p
+    for i, co in enumerate(((u0, v0), (u1, v0), (u1, v1), (u0, v1))):
+        uv.data[i].uv = co
+    me.materials.append(m)
+    o = bpy.data.objects.new(name, me)
+    n = Vector(normal).normalized()
+    upv = Vector((0, 0, 1)) if abs(n.z) < 0.9 else Vector((0, 1, 0))
+    x = upv.cross(n).normalized()
+    y = n.cross(x)
+    rot = Matrix((x, y, n)).transposed().to_4x4() @ Matrix.Rotation(spin, 4, "Z")
+    o.matrix_world = Matrix.Translation(Vector(loc) + n * lift) @ rot
+    o.visible_shadow = False
+    collection.objects.link(o)
+    return o
+
+
+def build_decals(C):
+    """Graffiti, posters, signs, stains and cracks after the reference boards. Diorama decals are cm-sized
+    (1:60), arcade ones are real size. Placed between windows/doors so nothing is covered."""
+    if not any(first_texture(fn) for fn, _ in DECAL_ATLAS.values()):
+        return 0
+    rnd = random.Random(SEED + 11)
+    dd = coll("DECALS_DIORAMA", bpy.data.collections["DIORAMA"])
+    da = coll("DECALS_ARCADE", bpy.data.collections["ARCADE_ROOM"])
+    S, N, E, W, UP = (0, -1, 0), (0, 1, 0), (1, 0, 0), (-1, 0, 0), (0, 0, 1)
+    R = ROOF_Z
+    placed = []
+
+    def put(kind, cell, size, loc, normal, col, spin=0.0, lift=0.0003):
+        o = decal(f"decal_{kind}_{len(placed):03d}", kind, cell, size, loc, normal, col, spin, lift)
+        if o:
+            placed.append(o)
+
+    # hero building (36 cm block, centre (0, 0.05)): ground floor beside the shutter, upper floors between windows
+    put("graffiti", 0, (0.026, 0.020), (-0.088, -0.13, BED_Z + 0.022), S, dd)
+    put("graffiti", 6, (0.024, 0.018), (0.088, -0.13, BED_Z + 0.021), S, dd)
+    put("posters", 2, (0.013, 0.018), (0.0, -0.13, 1.030), S, dd)
+    put("posters", 9, (0.013, 0.018), (-0.090, -0.13, 1.030), S, dd)
+    put("graffiti", 9, (0.022, 0.016), (0.090, -0.13, 1.080), S, dd)
+    put("graffiti", 4, (0.024, 0.018), (-0.18, 0.05, 0.976), W, dd)
+    put("posters", 13, (0.013, 0.018), (-0.18, -0.04, 1.030), W, dd)
+    put("graffiti", 13, (0.022, 0.016), (0.18, 0.05, 0.976), E, dd)
+    put("graffiti", 2, (0.020, 0.012), (0.18, 0.14, 1.080), E, dd)
+    # parapet inner faces (the side the rooftop cameras see)
+    put("graffiti", 1, (0.016, 0.011), (-0.02, 0.224, R + 0.009), S, dd)
+    put("graffiti", 3, (0.012, 0.012), (0.165, 0.224, R + 0.009), S, dd)
+    put("graffiti", 10, (0.016, 0.011), (0.174, -0.05, R + 0.009), W, dd)
+    put("graffiti", 12, (0.014, 0.011), (0.174, 0.08, R + 0.009), W, dd)
+    # stair shed: signs beside the door, a big tag on the east wall
+    put("signs", 3, (0.009, 0.009), (-0.138, 0.105, R + 0.030), S, dd)
+    put("signs", 2, (0.008, 0.008), (-0.083, 0.105, R + 0.032), S, dd)
+    put("signs", 0, (0.008, 0.008), (-0.083, 0.105, R + 0.020), S, dd)
+    put("graffiti", 8, (0.030, 0.022), (-0.07, 0.135, R + 0.022), E, dd)
+    # rooftop floor: stains and cracks (keep clear of the stair shed)
+    k = 0
+    while k < 9:
+        x, y = rnd.uniform(-0.15, 0.15), rnd.uniform(-0.11, 0.20)
+        if x < -0.06 and y > 0.09:
+            continue
+        s = rnd.uniform(0.015, 0.035)
+        put("stains", rnd.randrange(16), (s, s), (x, y, R + 0.0022 + k * 0.00002), UP, dd, rnd.uniform(0, math.tau), 0)
+        k += 1
+    for k in range(5):
+        x, y = rnd.uniform(-0.15, 0.15), rnd.uniform(-0.11, 0.08)
+        s = rnd.uniform(0.03, 0.05)
+        put("cracks", rnd.randrange(16), (s, s), (x, y, R + 0.0023 + k * 0.00002), UP, dd, rnd.uniform(0, math.tau), 0)
+    # street in front of the block
+    for k in range(6):
+        x, y = rnd.uniform(-0.28, 0.28), rnd.uniform(-0.30, -0.15)
+        s = rnd.uniform(0.02, 0.04)
+        kind = "stains" if k % 2 == 0 else "cracks"
+        put(kind, rnd.randrange(16), (s, s), (x, y, BED_Z + 0.0052 + k * 0.00002), UP, dd, rnd.uniform(0, math.tau), 0)
+    # ruins: posters and tags on the camera-facing (south) faces of the city blocks
+    for ob in sorted((o for o in bpy.data.objects if o.name.startswith("city_") and o.name[5:].isdigit()), key=lambda o: o.name):
+        if rnd.random() > 0.45:
+            continue
+        w, dpt, h = ob.dimensions
+        if h < 0.04:
+            continue
+        s = min(w * 0.45, 0.03)
+        kind = "posters" if rnd.random() < 0.5 else "graffiti"
+        aspect = 1.35 if kind == "posters" else 0.75
+        z = BED_Z + rnd.uniform(0.012, min(h - 0.015, 0.06))
+        put(kind, rnd.randrange(16), (s, s * aspect), (ob.location.x + rnd.uniform(-w, w) * 0.2,
+                                                        ob.location.y - dpt / 2, z), S, dd)
+    # ---- arcade (real scale)
+    k = 0
+    while k < 10:
+        x, y = rnd.uniform(-2.2, 2.2), rnd.uniform(-2.0, 4.0)
+        if abs(x) < 0.65 and abs(y) < 0.65:      # under the hero cabinet
+            continue
+        if any(abs(x - px) < 0.4 and abs(y - py) < 0.4 for px, py in ((-0.85, 0.55), (0.95, 2.4))):
+            continue
+        s = rnd.uniform(0.25, 0.6)
+        put("stains", rnd.randrange(16), (s, s), (x, y, 0.0008 + k * 0.00005), UP, da, rnd.uniform(0, math.tau), 0)
+        k += 1
+    for k, (px, py) in enumerate(((-0.85, 0.55), (0.95, 2.4))):
+        put("cracks", rnd.randrange(16), (0.7, 0.7), (px + 0.45, py - 0.35, 0.0012 + k * 0.00005), UP, da, rnd.uniform(0, math.tau), 0)
+    for k, y in enumerate((-1.2, 0.2, 1.6, 3.0)):
+        put("posters", rnd.randrange(16), (0.45, 0.6), (-2.575, y, rnd.uniform(1.4, 1.8)), E, da, lift=0.002)
+    for k, x in enumerate((-2.0, 0.35, 1.5, 2.2)):
+        put("posters", rnd.randrange(16), (0.45, 0.6), (x, 5.475, 2.35), S, da, lift=0.002)
+    # pillars: floor-number plates and a fire sign
+    put("signs", 6, (0.22, 0.22), (-0.85, 0.55 - 0.25, 1.15), S, da, lift=0.002)
+    put("signs", 10, (0.22, 0.22), (0.95, 2.4 - 0.25, 1.15), S, da, lift=0.002)
+    put("signs", 8, (0.2, 0.2), (-0.85 + 0.25, 0.55, 1.45), E, da, lift=0.002)
+    # the hero cabinet: stickers on the sides and front
+    put("signs", 12, (0.12, 0.12), (0.5, -0.2, 0.60), E, da, lift=0.001)
+    put("signs", 0, (0.12, 0.12), (-0.5, -0.25, 0.55), W, da, lift=0.001)
+    put("signs", 3, (0.09, 0.09), (0.25, -0.5, 0.46), S, da, lift=0.001)
+    print(f"decals: {len(placed)} placed")
+    return len(placed)
+
+
 def build_lights(C):
     lt = coll("LIGHTS_DIORAMA", C["root"])
     # cold "moonlight" = the cabinet's ceiling LED panel
@@ -1823,9 +2118,12 @@ def build_materials():
     }
     found = [k for k, (fn, tile, bump) in SURFACE_TEX.items() if apply_surface_texture(M[k], fn, tile, bump)]
     add_puddles(M["roof_wet"])
+    for k, s in PRINT_MATS.items():
+        add_fingerprints(M[k], SURFACE_TEX[k][1], s)
     # thin, clean cabinet glass: keep raytraced reflections from turning it into a pink mirror
     node_of_type(M["glass"].node_tree, "BSDF_PRINCIPLED").inputs["Specular IOR Level"].default_value = 0.06
     print(f"surface textures: {len(found)}/{len(SURFACE_TEX)} found", found)
+    print(f"weathering masks: {len(MASK_FOUND)}/{len(MASK_TEX)} found", sorted(MASK_FOUND))
     return M
 
 
@@ -1870,6 +2168,7 @@ def main():
     build_characters(C, M, face, tower)
     crowd = build_crowd(C, M, face)
     build_arcade_room(C, M)
+    build_decals(C)
     build_lights(C)
     build_rin_fill(C, tower)
     build_cameras(C)
