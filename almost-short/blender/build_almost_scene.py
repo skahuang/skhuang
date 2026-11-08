@@ -222,6 +222,18 @@ SURFACE_TEX = {
     "gacha_card":     ("tex_gashapon_card.png",                                None, 0.00),
     "prize_box":      ("tex_prize_boxes.png",                                  None, 0.00),
     "wall_tv":        (["tex_wall_tv_promo.png", "tex_arcade_screen.png"],     None, 0.00),
+    # V7 (TEXTURES_V7.md): one whole picture per big object instead of a repeating tile
+    "arcade_side":    ("tex_arcade_cab_side.png",                              None, 0.05),
+    "racing_seat":    ("tex_racing_seat.png",                                  None, 0.25),
+    "control_panel":  ("tex_control_panel_top.png",                            None, 0.05),
+    "machine_yellow": ("tex_claw_machine_yellow.png",                          None, 0.05),
+    "racing_base":    ("tex_racing_base.png",                                  None, 0.20),
+    "racing_dash":    ("tex_racing_dash.png",                                  None, 0.05),
+    "ceiling":        ("tex_ceiling_whole.png",                                None, 0.10),
+    "tarp":           ("tex_tarp_patched.png",                                 None, 0.15),
+    "sleeping_bag":   ("tex_sleeping_bag.png",                                 None, 0.25),
+    "ac_fan":         ("tex_ac_fan_top.png",                                   None, 0.30),
+    "crate":          ("tex_crate_side.png",                                   None, 0.25),
 }
 
 
@@ -979,7 +991,7 @@ def build_cabinet(C, M):
     moon = cyl("ceiling_lamp_MOON", 0.035, 0.006, (0.16, 0.30, 1.865), M["moon_lamp"], cab, verts=48)
     # control box (front-left, under the belt): ball-top joystick + glowing magenta button
     box("ctrl_box", (0.34, 0.16, 0.13), (-0.17, -0.575, 0.835), M["cab_trim"], cab)
-    box("ctrl_box_top", (0.32, 0.14, 0.004), (-0.17, -0.575, 0.902), M["black"], cab)
+    box("ctrl_box_top", (0.32, 0.14, 0.004), (-0.17, -0.575, 0.902), M["control_panel"], cab)
     box("joystick_plate", (0.07, 0.07, 0.004), (-0.25, -0.58, 0.905), M["black"], cab)
     cyl("joystick_shaft", 0.007, 0.07, (-0.25, -0.58, 0.94), M["chrome"], cab, verts=12)
     bpy.ops.mesh.primitive_uv_sphere_add(radius=0.022, location=(-0.25, -0.58, 0.98))
@@ -1113,7 +1125,7 @@ def build_roof_details(dio, M, rnd):
     lo.location = (fb[0], fb[1], Z + 0.016)
     dio.objects.link(lo)
     cyl("water_bucket", 0.0030, 0.0055, (0.072, -0.046, Z + 0.00275), M["metal_dull"], dio, verts=16)
-    box("crate_seat", (0.007, 0.007, 0.006), (0.100, -0.022, Z + 0.003), M["wood"], dio, rot=(0, 0, 0.4))
+    box("crate_seat", (0.007, 0.007, 0.006), (0.100, -0.022, Z + 0.003), M["crate"], dio, rot=(0, 0, 0.4))
     # festoon of warm bulbs strung over the camp between two scavenged poles
     for k, (px, py) in enumerate([(0.078, -0.088), (0.152, -0.026)]):
         cyl(f"festoon_pole_{k}", 0.0005, 0.028, (px, py, Z + 0.014), M["rust"], dio, verts=6)
@@ -1714,7 +1726,7 @@ def build_diorama(C, M):
     wall_lamp("door_lamp", (DOOR_XY[0], DOOR_XY[1] - 0.0004, ROOF_Z + 0.0455), (0, -1), M, dio, light=None)   # lit by L_door_green
     for i, (x, y) in enumerate([(0.05, 0.17), (0.05, -0.10), (0.15, 0.0)]):
         box(f"ac_unit_{i}", (0.022, 0.016, 0.016), (x, y, ROOF_Z + 0.008), M["metal_dull"], dio)
-        box(f"ac_fan_{i}", (0.012, 0.012, 0.001), (x, y, ROOF_Z + 0.0165), M["black"], dio)
+        box(f"ac_fan_{i}", (0.012, 0.012, 0.001), (x, y, ROOF_Z + 0.0165), M["ac_fan"], dio)
     build_roof_details(dio, M, rnd)
     # ---- ruined city (forced perspective: lower toward the back); fog-blue, a few green lights, rare fires
     buildings = []
@@ -2190,7 +2202,7 @@ def neighbour_claw_machine(ar, M, name, loc, rotz, body, accent, rnd):
 def arcade_cabinet(ar, M, name, loc, rotz):
     root = prop_root(name, loc, rotz, ar)
     parts = [
-        box(f"{name}_body", (0.6, 0.7, 1.75), (0, 0, 0.875), M["black"], ar),
+        box(f"{name}_body", (0.6, 0.7, 1.75), (0, 0, 0.875), M["arcade_side"], ar),
         box(f"{name}_screen", (0.48, 0.02, 0.40), (0, -0.33, 1.30), M["arcade_screen"], ar, rot=(math.radians(-15), 0, 0)),
         box(f"{name}_marquee", (0.58, 0.04, 0.16), (0, -0.33, 1.68), M["neon_pink"], ar),
         box(f"{name}_deck", (0.6, 0.25, 0.06), (0, -0.45, 0.98), M["cab_trim"], ar, rot=(math.radians(-10), 0, 0)),
@@ -2278,13 +2290,13 @@ def gashapon(name, loc, rz, M, ar, rnd):
 def racing_cabinet(name, loc, rz, M, ar):
     """Sit-down driving game: bucket seat on rails, big tilted screen, wheel and pedals, lit header."""
     root = prop_root(name, loc, rz, ar)
-    parts = [box(f"{name}_base", (0.75, 1.5, 0.12), (0, 0.2, 0.06), M["black"], ar),
+    parts = [box(f"{name}_base", (0.75, 1.5, 0.12), (0, 0.2, 0.06), M["racing_base"], ar),
              box(f"{name}_tower", (0.75, 0.55, 1.45), (0, -0.30, 0.79), M["cab_body"], ar),
              box(f"{name}_screen", (0.62, 0.03, 0.48), (0, -0.03, 1.12), M["racing_screen"], ar, rot=(math.radians(-12), 0, 0)),
              box(f"{name}_header", (0.75, 0.10, 0.22), (0, -0.05, 1.62), M["neon_cyan"], ar),
-             box(f"{name}_dash", (0.70, 0.30, 0.10), (0, 0.10, 0.80), M["black"], ar, rot=(math.radians(-20), 0, 0)),
-             box(f"{name}_seat", (0.48, 0.48, 0.10), (0, 0.80, 0.42), M["black"], ar),
-             box(f"{name}_seat_back", (0.48, 0.10, 0.62), (0, 1.03, 0.72), M["black"], ar, rot=(math.radians(15), 0, 0)),
+             box(f"{name}_dash", (0.70, 0.30, 0.10), (0, 0.10, 0.80), M["racing_dash"], ar, rot=(math.radians(-20), 0, 0)),
+             box(f"{name}_seat", (0.48, 0.48, 0.10), (0, 0.80, 0.42), M["racing_seat"], ar),
+             box(f"{name}_seat_back", (0.48, 0.10, 0.62), (0, 1.03, 0.72), M["racing_seat"], ar, rot=(math.radians(15), 0, 0)),
              box(f"{name}_seat_post", (0.12, 0.12, 0.30), (0, 0.80, 0.22), M["metal_dull"], ar),
              box(f"{name}_pedals", (0.30, 0.10, 0.05), (0, 0.32, 0.17), M["metal_dull"], ar, rot=(math.radians(30), 0, 0))]
     bpy.ops.mesh.primitive_torus_add(major_radius=0.14, minor_radius=0.018, location=(0, 0.22, 0.92), rotation=(math.radians(70), 0, 0))
@@ -2747,6 +2759,14 @@ def build_materials():
         "red_led":       mat("red_led", (0.3, 0.0, 0.0), 0.4, 0, emit=(1.0, 0.02, 0.02), strength=10),
         "chrome":        mat("chrome", (0.85, 0.85, 0.9), 0.12, 1.0),
         "black":         mat("black", (0.01, 0.01, 0.01), 0.5),
+        # V7 per-object materials: same flat colour as before until their picture arrives
+        "arcade_side":   mat("arcade_side", (0.01, 0.01, 0.01), 0.5),
+        "racing_base":   mat("racing_base", (0.01, 0.01, 0.01), 0.5),
+        "racing_dash":   mat("racing_dash", (0.01, 0.01, 0.01), 0.5),
+        "racing_seat":   mat("racing_seat", (0.01, 0.01, 0.01), 0.5),
+        "control_panel": mat("control_panel", (0.01, 0.01, 0.01), 0.5),
+        "ac_fan":        mat("ac_fan", (0.01, 0.01, 0.01), 0.5),
+        "crate":         mat("crate", (0.22, 0.15, 0.09), 0.85),
         "glass":         mat("glass", (0.75, 0.85, 1.0), 0.02, 0.0, alpha=0.04),
         "acrylic":       mat("acrylic_base", (0.9, 0.95, 1.0), 0.05, 0.0, alpha=0.25),
         "marquee":       mat("marquee", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=6),
