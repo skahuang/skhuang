@@ -156,7 +156,7 @@ SHOTS = [
     ("S01_door_bang",     0.0,  2.5, 50, (-0.085, -0.03, 1.114),  (-0.092, -0.005, 1.116), (-0.11, 0.11, 1.124), (-0.11, 0.11, 1.122)),
     ("S02_establish",     2.5,  6.0, 35, (0.26, -0.46, 1.56),    (0.18, -0.30, 1.32),    (0.0, 0.05, 1.11),    (0.0, 0.04, 1.11)),
     ("S03_lost_boot",     6.0,  8.5, 50, (0.024, -0.058, 1.106), (0.018, -0.049, 1.105), (-0.002, 0.0, 1.108), (-0.002, 0.0, 1.108)),   # tight enough to read the boot coming off
-    ("S04_run_climb",     8.5, 12.0, 35, (-0.09, -0.11, 1.14),   (0.02, -0.03, 1.165),   (0.08, 0.10, 1.12),   (0.10, 0.12, 1.18)),
+    ("S04_run_climb",     8.5, 12.0, 35, (-0.05, -0.08, 1.25),   (0.02, -0.03, 1.20),    (0.075, 0.07, 1.11),  (0.10, 0.12, 1.18)),   # high enough to see her over the horde
     ("S05_pile_topdown", 12.0, 15.0, 35, (0.15, 0.02, 1.58),     (0.12, 0.06, 1.52),     (0.10, 0.14, 1.10),   (0.10, 0.14, 1.12)),
     # ---- Act 2: false rescue (15-32 s)
     ("S06_light_above",  15.0, 18.0, 16, (0.108, 0.070, 1.170),  (0.107, 0.071, 1.171),  (0.10, 0.103, 1.215), (0.10, 0.103, 1.220)),
@@ -166,14 +166,14 @@ SHOTS = [
     ("S10_slip",         30.0, 32.0, 35, (0.00, -0.08, 1.66),    (0.01, -0.07, 1.65),    (0.10, 0.14, 1.48),   (0.10, 0.14, 1.48)),
     # ---- Act 3: fall, grabbed, pinned, pull-back (32-46 s) — the tower stays in the claw, only Rin falls
     ("S11_fall",         32.0, 34.5, 35, (0.28, -0.22, 1.42),    (0.075, -0.055, 1.13),    (0.10, 0.10, 1.40),   (0.025, 0.00, 1.11)),   # SHOT_MID keeps her framed
-    ("S12_impact",       34.5, 35.5, 50, (0.065, -0.05, 1.106),  (0.065, -0.05, 1.106),  (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
+    ("S12_impact",       34.5, 35.5, 50, (0.060, -0.052, 1.113), (0.060, -0.052, 1.113), (0.02, 0.0, 1.106),   (0.02, 0.0, 1.106)),   # a touch higher: less blurred foreground
     # S12b-S12d: the horde closes in, grabs her bare ankle and hood, drags her down and presses her flat
     ("S12b_surrounded",  35.5, 36.5, 35, (0.075, -0.075, 1.113), (0.066, -0.063, 1.110), (0.02, 0.004, 1.109), (0.02, 0.004, 1.108)),
     ("S12c_grabbed",     36.5, 38.0, 50, (0.046, -0.056, 1.108), (0.041, -0.050, 1.106), (0.02, 0.0, 1.106),   (0.02, 0.0, 1.106)),
     ("S12d_pressed",     38.0, 39.0, 50, (0.044, -0.080, 1.110), (0.042, -0.076, 1.110), (0.02, 0.0, 1.112),   (0.02, 0.0, 1.112)),
-    ("S13a_pinned",      39.0, 41.0, 50, (0.042, -0.076, 1.110), (0.039, -0.068, 1.110), (0.02, 0.0, 1.112),   (0.02, 0.0, 1.111)),
+    ("S13a_pinned",      39.0, 41.0, 50, (0.028, -0.070, 1.107), (0.024, -0.054, 1.108), (0.02, 0.0, 1.110),   (0.021, 0.0, 1.108)),   # lower, frontal push-in: reads as a new shot after S12d
     ("S13b_pinned_face", 41.0, 43.0, 50, (0.02, -0.052, 1.108),  (0.02, -0.046, 1.108),  (0.02, -0.013, 1.108), (0.02, -0.013, 1.108)),
-    ("S14_pullback",     43.0, 46.0, 24, (0.039, -0.068, 1.110), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.07, 0.08, 1.31)),   # ends framing the pile AND the empty tower in the claw
+    ("S14_pullback",     43.0, 46.0, 24, (0.024, -0.054, 1.108), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.07, 0.08, 1.31)),   # ends framing the pile AND the empty tower in the claw
     # ---- Act 4: reveal + loop (46-60 s)
     ("S15_glass_reveal", 46.0, 51.0, 35, (0.14, -0.44, 1.37),    (-0.85, -3.40, 1.95),   (0.07, 0.08, 1.31),   (0.15, 0.30, 1.45)),   # ends wide enough to show the arcade
     ("S16_nova_almost",  51.0, 55.0, 85, (1.00, -1.74, 1.23),    (0.95, -1.67, 1.22),    (0.24, -0.86, 1.115), (0.24, -0.86, 1.12)),   # tight 3/4 close-up on her face (eyes ~1.15 m)
@@ -191,6 +191,8 @@ SHOT_PARENT = {"S09_false_hope": "TOWER_ROOT"}
 SHOT_FOCUS = {"S06_light_above": "rin_look_up"}
 # Extra in-between camera keys: sid -> [(fraction of the shot, cam, aim)]
 SHOT_MID = {
+    # the tower only leaves the roof at 24.5 s: keep the aim on the tank until then, then ride up with it
+    "S08_grip_lift": [(0.5, (0.29, -0.21, 1.36), (0.10, 0.14, 1.20)), (0.75, (0.295, -0.215, 1.41), (0.10, 0.14, 1.33))],
     # keep the pinned group in frame while we rise: the aim lingers on her, then tilts up to the hanging tower
     "S14_pullback": [(0.45, (0.06, -0.15, 1.17), (0.025, 0.01, 1.12)), (0.75, (0.10, -0.30, 1.27), (0.05, 0.05, 1.24))],
     # follow her down (she eases out of the slow-mo hang, then drops) and get close enough to read her
@@ -2403,7 +2405,7 @@ def build_crowd(C, M, face):
         t = spawn + 3.0
         while t < RESET_S - 0.5:
             # anyone standing in the lens path (in front of the pin spot) is pushed behind her too
-            in_lens = gy < PIN_XY[1] + 0.012 and abs(gx - PIN_XY[0]) < 0.10
+            in_lens = gy < PIN_XY[1] + 0.012 and abs(gx - PIN_XY[0]) < 0.16
             # they start converging while she is still falling (33 s), so by S12b (35.5 s) they ring her
             cx, cy = (sx, sy) if ((swarm or in_lens) and t > 33.0) else (gx, gy)
             key_loc(o, f(t), (cx + rnd.uniform(-0.004, 0.004), cy + rnd.uniform(-0.004, 0.004), ROOF_Z))
