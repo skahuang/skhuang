@@ -2331,6 +2331,13 @@ def build_characters(C, M, face, tower_root):
         animate_named(o, name, [s13])
         animate_sheet(o.data.materials[0], [s14], 9, TIMING.get(name))
         rin[name] = o
+    # Secondary motion on ones: the drawings change every 3 frames, the layers move every frame
+    # (a few mm), so the tug / press / struggle reads as continuous force instead of a slideshow.
+    for part, _dy, _col in stack:
+        o = rin["pin_layer_" + part]
+        secondary_motion(o, [(s13, 0), (s14, 9)], PIN_MOTION[part], cycle=36)
+        o = rin["pin_takedown_" + part]
+        secondary_motion(o, [(sd, 0)], TAKEDOWN_MOTION[part], cycle=None)
     face_cu = sprite("pin_face_closeup", "pin_face_closeup.png", 0.017, (PIN_XY[0], PIN_XY[1] - 0.013, ROOF_Z), ch, face, RIN)
     key_visible(face_cu, [shot_rng["S13b_pinned_face"]])
     animate_named(face_cu, "pin_face_closeup", [shot_rng["S13b_pinned_face"]])
@@ -2383,6 +2390,47 @@ def clear_of_run(x, y):
     else:
         ux, uy = (x - px) / d, (y - py) / d
     return px + ux * RUN_CLEAR, py + uy * RUN_CLEAR
+
+
+def _pulse(c, start, length):
+    """0 -> 1 -> 0 sine bump over [start, start+length) of the 24 fps cycle index c."""
+    u = (c - start) / length
+    return math.sin(math.pi * u) if 0.0 <= u < 1.0 else 0.0
+
+
+# Per-frame offsets (dx, dy, dz in metres; +y = away from the lens) over the 36-frame pin cycle:
+# cells 1-3 push up / press, 4-6 hair yanked + cry, 7-9 twist + kick, 10-12 sag and look up.
+PIN_MOTION = {
+    "back":  lambda c: (0.0002 * math.sin(c / 36 * math.tau),
+                        0.0007 * _pulse(c, 9, 12) + 0.0003 * _pulse(c, 22, 8),          # yank the hood back
+                        0.0005 * _pulse(c, 9, 12) + 0.00015 * math.sin(c / 18 * math.tau)),
+    "rin":   lambda c: (0.00025 * _pulse(c, 18, 9) * math.sin(c * 2.1),                  # twist / kick shudder
+                        0.0,
+                        0.0004 * _pulse(c, 9, 10) - 0.0002 * _pulse(c, 30, 6)),        # head yanked up, sag down
+    "front": lambda c: (0.0003 * _pulse(c, 18, 10) * math.sin(c * 1.3),
+                        -0.0002 * _pulse(c, 0, 9),
+                        -0.0005 * _pulse(c, 0, 9) - 0.0006 * _pulse(c, 27, 9)           # lean in and press down
+                        + 0.0002 * _pulse(c, 9, 9)),
+}
+# S12d takedown (24 frames): the front pair slams down at frame 8 (cell 4), she is driven into the tiles
+TAKEDOWN_MOTION = {
+    "back":  lambda c: (0.0, 0.0006 * _pulse(c, 6, 10), 0.0004 * _pulse(c, 6, 10)),
+    "rin":   lambda c: (0.0, 0.0, -0.0004 * _pulse(c, 8, 6)),
+    "front": lambda c: (0.0, 0.0, 0.0006 * _pulse(c, 0, 8) - 0.0010 * _pulse(c, 8, 7)),
+}
+
+
+def secondary_motion(o, ranges, fn, cycle=36):
+    """Key o's location every frame inside each (range, phase_cells) with base + fn(cycle index)."""
+    base = o.location.copy()
+    for (a, b), phase in ranges:
+        for fr in range(a, b + 1):
+            c = fr - a + phase * 3
+            if cycle:
+                c %= cycle
+            dx, dy, dz = fn(c)
+            key_loc(o, fr, (base.x + dx, base.y + dy, base.z + dz))
+    set_interp(o, "LINEAR", "location")
 
 
 def build_crowd(C, M, face):
