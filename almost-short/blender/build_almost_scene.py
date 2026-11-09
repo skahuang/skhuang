@@ -121,10 +121,10 @@ TIMING = {
     "pin_takedown_back": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],                                     # same clock as the Rin layer
     "pin_takedown_front": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],
     "rin_run_to_ladder": [(1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 2)],                                    # 17 = S04 opening
-    # the three pin layers share one 12-cell clock (8 fps); cell 9 of the front pair drops lower, so it flashes by
-    "pin_layer_rin":   [(i, 2 if i == 9 else 3) for i in range(1, 13)],
-    "pin_layer_back":  [(i, 2 if i == 9 else 3) for i in range(1, 13)],
-    "pin_layer_front": [(i, 2 if i == 9 else 3) for i in range(1, 13)],
+    # the three pin layers share one 12-cell clock (8 fps)
+    "pin_layer_rin":   [(i, 3) for i in range(1, 13)],
+    "pin_layer_back":  [(i, 3) for i in range(1, 13)],
+    "pin_layer_front": [(i, 3) for i in range(1, 13)],
     "pin_face_closeup": [(i, 4) for i in range(1, 13)],                                                       # 48 = S13b
     "nova_profile_almost": [(1, 6), (2, 6), (3, 8), (4, 8), (5, 8), (6, 10), (7, 8), (8, 8), (9, 8), (10, 8), (11, 8), (12, 10)],  # 96 = S16
     "nova_hand_coin":   [(1, 4), (2, 4), (3, 4), (4, 6), (5, 8), (6, 6), (7, 6), (8, 10)],                     # 48 = S17a
