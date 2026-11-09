@@ -2357,6 +2357,34 @@ def build_characters(C, M, face, tower_root):
     return rin
 
 
+# S04: Rin sprints from mid-roof to the ladder. Zombies standing on that run (or between it and the
+# high S04 lens) step aside for the shot, so the host's ray test hits her, not zombie_006/010/015.
+RUN_PATH = [(0.0, -0.03), (TOWER_XY[0] - 0.035, TOWER_XY[1] - 0.085), (TOWER_XY[0], TOWER_XY[1] - 0.043)]
+RUN_CLEAR = 0.026
+RUN_WINDOW = (8.0, 12.3)
+
+
+def clear_of_run(x, y):
+    """Push (x, y) out to RUN_CLEAR from the S04 run polyline; unchanged if already clear."""
+    best = None
+    for (ax, ay), (bx, by) in zip(RUN_PATH, RUN_PATH[1:]):
+        dx, dy = bx - ax, by - ay
+        t = max(0.0, min(1.0, ((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy)))
+        px, py = ax + dx * t, ay + dy * t
+        d = math.hypot(x - px, y - py)
+        if best is None or d < best[0]:
+            best = (d, px, py, dx, dy)
+    d, px, py, dx, dy = best
+    if d >= RUN_CLEAR:
+        return x, y
+    if d < 1e-6:                      # dead on the line: step off to its right-hand side
+        n = math.hypot(dx, dy)
+        ux, uy = dy / n, -dx / n
+    else:
+        ux, uy = (x - px) / d, (y - py) / d
+    return px + ux * RUN_CLEAR, py + uy * RUN_CLEAR
+
+
 def build_crowd(C, M, face):
     cr = coll("ZOMBIE_CROWD", C["root"])
     root = empty("CROWD_ROOT", (0, 0, 0), cr, "CUBE", 0.01)
@@ -2384,6 +2412,8 @@ def build_crowd(C, M, face):
         vname, _ = variants[i % 4]
         # spawn order: first 6 burst out with the door at 2.5 s, the rest stream out until ~14 s
         spawn = 2.5 + (i / n) * 11.5 if i >= 6 else 2.5
+        if 5.0 < spawn < RUN_WINDOW[1]:   # nobody crosses her S04 run on the way out: they surge out after it
+            spawn = RUN_WINDOW[1] + (spawn - 5.0) * 0.25
         ang = rnd.uniform(0, math.tau)
         rad = rnd.uniform(0.04, 0.14) if i > 20 else rnd.uniform(0.03, 0.06)
         gx = max(-0.165, min(0.165, tx + math.cos(ang) * rad - 0.03))
@@ -2396,7 +2426,14 @@ def build_crowd(C, M, face):
         door = (DOOR_XY[0] + rnd.uniform(-0.01, 0.01), DOOR_XY[1] - 0.01, ROOF_Z)
         key_loc(o, 1, door)
         key_loc(o, f(spawn), door)
-        key_loc(o, f(spawn) + rnd.randint(36, 70), (gx, gy, ROOF_Z))
+        rx, ry = clear_of_run(gx, gy)
+        in_run = lambda sec: RUN_WINDOW[0] <= sec <= RUN_WINDOW[1]
+        arrive = f(spawn) + rnd.randint(36, 70)
+        key_loc(o, arrive, (rx, ry, ROOF_Z) if in_run((arrive - 1) / FPS) else (gx, gy, ROOF_Z))
+        if (rx, ry) != (gx, gy):          # hold the side-step for the whole S04 window
+            for sec in RUN_WINDOW:
+                if f(sec) > arrive:
+                    key_loc(o, f(sec), (rx, ry, ROOF_Z))
         # after Rin lands (35 s) the nearest half of the horde swarms the pin spot and rings it
         swarm = i % 2 == 0
         ring = rnd.uniform(0.022, 0.07)
@@ -2407,7 +2444,7 @@ def build_crowd(C, M, face):
             # anyone standing in the lens path (in front of the pin spot) is pushed behind her too
             in_lens = gy < PIN_XY[1] + 0.012 and abs(gx - PIN_XY[0]) < 0.16
             # they start converging while she is still falling (33 s), so by S12b (35.5 s) they ring her
-            cx, cy = (sx, sy) if ((swarm or in_lens) and t > 33.0) else (gx, gy)
+            cx, cy = (sx, sy) if ((swarm or in_lens) and t > 33.0) else ((rx, ry) if in_run(t) else (gx, gy))
             key_loc(o, f(t), (cx + rnd.uniform(-0.004, 0.004), cy + rnd.uniform(-0.004, 0.004), ROOF_Z))
             t += rnd.uniform(0.6, 1.0) if 32.5 < t < 43 else rnd.uniform(1.2, 2.2)
         key_visible(o, [(f(spawn), R - 1)])
