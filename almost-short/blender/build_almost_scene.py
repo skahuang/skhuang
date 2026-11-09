@@ -55,7 +55,13 @@ ZOMBIE_H = 0.033            # adults: ~1.1-1.3x Rin standing (was 0.026, shorter
 NOVA_XY = (0.25, -0.85)
 NOVA_H = 1.62
 PIN_XY = (0.02, 0.0)       # where Rin lands and gets pinned
-PIN_H = 0.0156             # height of the 512x256 lying-Rin cells: her prone length ~= her standing height (was 0.012)
+PIN_H = 0.0156             # (legacy 512x256 pin cells; unused since the v2 square canvas)
+# v2 pin art (sprite_list_v2.md): every pin / takedown / grabbed-down layer shares ONE square 512 px canvas,
+# so all layers use the same plane size and position and overlay 1:1. Scale is set from sitting Rin
+# (rin_grabbed_down cell 1, 157 px) matching her sitting size in S12 (~1.0 cm); the art's ground line
+# sits 52 px above the cell bottom, so the planes drop by that much to put her on the tiles.
+PIN_SQ_H = 0.0333
+PIN_SQ_Z = ROOF_Z + 0.002 - PIN_SQ_H * 52 / 512
 CHUTE_XY = (0.30, -0.30)   # prize chute (front-right, above the outside pickup door)
 RESET_S = 57.0
 TIMER_START = 32           # overlay countdown hits 00:00 at 32 s, the moment her grip fails
@@ -82,15 +88,16 @@ ANIM = {
     "rin_impact":          (4, 2, 8, 12, "once"),      # land, bounce, push up on one elbow
     "pin_layer_rin":       (4, 3, 12, 8, "loop"),      # struggle beats: push up / cry out / twist+kick / look up
     "pin_face_closeup":    (4, 3, 12, 8, "once"),      # S13b face ECU: grit teeth -> eyes to tower -> cry -> defiance
-    "pin_layer_back":      (3, 2, 6, 8, "pingpong"),   # pulling the hoodie, tentacles writhing
+    "pin_layer_back":      (4, 3, 12, 8, "loop"),      # Z03 + Z04 gripping hood and ankle; same square canvas as pin_layer_rin
     "pin_layer_front":     (4, 3, 12, 8, "loop"),      # pressing down; frame-locked to pin_layer_rin (same clock, phase 0)
     "rin_reset_lookup":    (4, 2, 8, 12, "once"),      # slowly tilts head up to the lens
     # S12b-S12d grab-and-pin sequence (sprite_list_v1.md B1-B5); placeholders until the art lands
     "rin_scoot_back":      (4, 2, 8, 12, "once"),      # S12b sitting, scoots back, bumps into legs, looks up
     "rin_grabbed_down":    (4, 3, 12, 12, "once"),     # S12c ankle grabbed, yanked, rolled onto her stomach
     "pin_takedown_rin":    (3, 2, 6, 12, "once"),      # S12d cheek pressed to the tiles; last cell = pin_layer_rin cell 1
-    "pin_takedown_zombies":(3, 2, 6, 12, "once"),      # S12d row 1 = back pair, row 2 = front pair
-    "pin_contact_hands":   (4, 3, 12, 8, "loop"),      # hands/tentacle touching her, frame-locked to pin_layer_rin
+    "pin_takedown_back":   (3, 2, 6, 12, "once"),      # S12d Z03 + Z04 lunge in; last cell = pin_layer_back cell 1
+    "pin_takedown_front":  (3, 2, 6, 12, "once"),      # S12d Z01 + Z02 slam her down; last cell = pin_layer_front cell 1
+    "rin_run_to_ladder":   (3, 2, 6, 12, "once"),      # S04 opening: scrambles up, two strides, leaps onto the ladder
     "nova_back_joystick":  (4, 2, 8, 12, "loop"),      # joystick jiggle, shoulders tense
     "nova_profile_almost": (4, 3, 12, 8, "once"),      # wince, exhale, glance at the chute
     "nova_hand_coin":      (4, 2, 8, 12, "once"),      # flip token, push it into the slot
@@ -111,6 +118,13 @@ TIMING = {
     "rin_scoot_back":   [(1, 2), (2, 3), (3, 3), (4, 2), (5, 3), (6, 4), (7, 3), (8, 4)],                      # 24 = S12b
     "rin_grabbed_down": [(1, 3), (2, 3), (3, 4), (4, 2), (5, 2), (6, 3), (7, 2), (8, 2), (9, 2), (10, 4), (11, 4), (12, 5)],   # 36 = S12c
     "pin_takedown_rin": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],                                      # 24 = S12d
+    "pin_takedown_back": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],                                     # same clock as the Rin layer
+    "pin_takedown_front": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],
+    "rin_run_to_ladder": [(1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 2)],                                    # 17 = S04 opening
+    # the three pin layers share one 12-cell clock (8 fps); cell 9 of the front pair drops lower, so it flashes by
+    "pin_layer_rin":   [(i, 2 if i == 9 else 3) for i in range(1, 13)],
+    "pin_layer_back":  [(i, 2 if i == 9 else 3) for i in range(1, 13)],
+    "pin_layer_front": [(i, 2 if i == 9 else 3) for i in range(1, 13)],
     "pin_face_closeup": [(i, 4) for i in range(1, 13)],                                                       # 48 = S13b
     "nova_profile_almost": [(1, 6), (2, 6), (3, 8), (4, 8), (5, 8), (6, 10), (7, 8), (8, 8), (9, 8), (10, 8), (11, 8), (12, 10)],  # 96 = S16
     "nova_hand_coin":   [(1, 4), (2, 4), (3, 4), (4, 6), (5, 8), (6, 6), (7, 6), (8, 10)],                     # 48 = S17a
@@ -156,10 +170,10 @@ SHOTS = [
     # S12b-S12d: the horde closes in, grabs her bare ankle and hood, drags her down and presses her flat
     ("S12b_surrounded",  35.5, 36.5, 35, (0.075, -0.075, 1.113), (0.066, -0.063, 1.110), (0.02, 0.004, 1.109), (0.02, 0.004, 1.108)),
     ("S12c_grabbed",     36.5, 38.0, 50, (0.046, -0.056, 1.108), (0.041, -0.050, 1.106), (0.02, 0.0, 1.106),   (0.02, 0.0, 1.106)),
-    ("S12d_pressed",     38.0, 39.0, 50, (0.041, -0.049, 1.106), (0.039, -0.045, 1.106), (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
-    ("S13a_pinned",      39.0, 41.0, 50, (0.039, -0.045, 1.106), (0.036, -0.040, 1.106), (0.02, 0.0, 1.108),   (0.02, 0.0, 1.108)),
+    ("S12d_pressed",     38.0, 39.0, 50, (0.044, -0.080, 1.110), (0.042, -0.076, 1.110), (0.02, 0.0, 1.112),   (0.02, 0.0, 1.112)),
+    ("S13a_pinned",      39.0, 41.0, 50, (0.042, -0.076, 1.110), (0.039, -0.068, 1.110), (0.02, 0.0, 1.112),   (0.02, 0.0, 1.111)),
     ("S13b_pinned_face", 41.0, 43.0, 50, (0.02, -0.052, 1.108),  (0.02, -0.046, 1.108),  (0.02, -0.013, 1.108), (0.02, -0.013, 1.108)),
-    ("S14_pullback",     43.0, 46.0, 24, (0.039, -0.045, 1.106), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.07, 0.08, 1.31)),   # ends framing the pile AND the empty tower in the claw
+    ("S14_pullback",     43.0, 46.0, 24, (0.039, -0.068, 1.110), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.07, 0.08, 1.31)),   # ends framing the pile AND the empty tower in the claw
     # ---- Act 4: reveal + loop (46-60 s)
     ("S15_glass_reveal", 46.0, 51.0, 35, (0.14, -0.44, 1.37),    (-0.85, -3.40, 1.95),   (0.07, 0.08, 1.31),   (0.15, 0.30, 1.45)),   # ends wide enough to show the arcade
     ("S16_nova_almost",  51.0, 55.0, 85, (1.00, -1.74, 1.23),    (0.95, -1.67, 1.22),    (0.24, -0.86, 1.115), (0.24, -0.86, 1.12)),   # tight 3/4 close-up on her face (eyes ~1.15 m)
@@ -2251,9 +2265,20 @@ def build_characters(C, M, face, tower_root):
     set_interp(ba, "LINEAR", "location")
     # S04: the climb cycle rises up the ladder (about one rung per cycle) to where she clings in S05
     cb, (a4, b4) = rin["rin_climb_back"], shot_rng["S04_run_climb"]
-    key_loc(cb, a4, (0.0, -0.041, 0.008))
+    run_end = a4 + sum(h for _, h in TIMING["rin_run_to_ladder"])
+    key_loc(cb, run_end, (0.0, -0.041, 0.008))
     key_loc(cb, b4, (0.0, -0.041, 0.072))
     set_interp(cb, "LINEAR", "location")
+    for prop in ("hide_render", "hide_viewport"):   # replace the full-shot visibility keyed above
+        cb.keyframe_delete(prop, frame=a4)
+    key_visible(cb, [(run_end, b4)])        # the run below covers the shot's first ~0.7 s
+    run = sprite("rin_run_to_ladder", "rin_run_to_ladder.png", RIN_H, (0, 0, ROOF_Z), ch, face, RIN, base_mat=base)
+    key_loc(run, a4, (TOWER_XY[0] - 0.035, TOWER_XY[1] - 0.085, ROOF_Z))
+    key_loc(run, run_end - 1, (TOWER_XY[0], TOWER_XY[1] - 0.043, ROOF_Z))
+    set_interp(run, "LINEAR", "location")
+    key_visible(run, [(a4, run_end - 1)])
+    animate_named(run, "rin_run_to_ladder", [(a4, run_end - 1)])
+    rin["rin_run_to_ladder"] = run
     # falling: leaves the ladder (world pos of the hanging tower) and lands on the roof at PIN_XY
     fall = sprite("rin_falling", "rin_falling.png", RIN_H, (0, 0, 0), ch, face, RIN)
     tx, ty = TOWER_XY
@@ -2271,7 +2296,7 @@ def build_characters(C, M, face, tower_root):
     imp = sprite("rin_impact", "rin_impact.png", RIN_H, (PIN_XY[0], PIN_XY[1], ROOF_Z), ch, face, RIN)
     key_visible(imp, [shot_rng["S12_impact"]])
     animate_named(imp, "rin_impact", [shot_rng["S12_impact"]])
-    # ---- S12b-S12d: surrounded -> ankle + hood grabbed, rolled face down -> pressed flat (sprite_list_v1.md)
+    # ---- S12b-S12d: surrounded -> ankle + hood grabbed, rolled face down -> pressed flat (sprite_list_v2.md)
     scoot = sprite("rin_scoot_back", "rin_scoot_back.png", RIN_H, (PIN_XY[0], PIN_XY[1], ROOF_Z), ch, face, RIN)
     sb = shot_rng["S12b_surrounded"]
     key_visible(scoot, [sb])
@@ -2279,47 +2304,30 @@ def build_characters(C, M, face, tower_root):
     key_loc(scoot, sb[0], (PIN_XY[0] - 0.002, PIN_XY[1] - 0.003, ROOF_Z))   # scoots back toward the legs behind her
     key_loc(scoot, sb[1], (PIN_XY[0], PIN_XY[1], ROOF_Z))
     rin["rin_scoot_back"] = scoot
-    grab = sprite("rin_grabbed_down", "rin_grabbed_down.png", PIN_H, (PIN_XY[0], PIN_XY[1], ROOF_Z + 0.002), ch, face, RIN)
+    grab = sprite("rin_grabbed_down", "rin_grabbed_down.png", PIN_SQ_H, (PIN_XY[0], PIN_XY[1], PIN_SQ_Z), ch, face, RIN)
     sc = shot_rng["S12c_grabbed"]
     key_visible(grab, [sc])
     animate_named(grab, "rin_grabbed_down", [sc])
-    key_loc(grab, sc[0], (PIN_XY[0] + 0.003, PIN_XY[1], ROOF_Z + 0.002))     # dragged a few mm by the ankle
-    key_loc(grab, sc[0] + 10, (PIN_XY[0], PIN_XY[1], ROOF_Z + 0.002))
     rin["rin_grabbed_down"] = grab
+    # S12d takedown and the S13a/S14 pin: back zombies / Rin / front zombies on the same square canvas.
+    # Only a hair of depth between them, so the hands stay on her (GPT drew the contact into the zombie layers).
+    stack = [("back", +0.0008, (0.40, 0.30, 0.20)), ("rin", 0.0, RIN), ("front", -0.0008, (0.30, 0.45, 0.40))]
     sd = shot_rng["S12d_pressed"]
-    td = sprite("pin_takedown_rin", "pin_takedown_rin.png", PIN_H, (PIN_XY[0], PIN_XY[1], ROOF_Z + 0.002), ch, face, RIN)
-    key_visible(td, [sd])
-    animate_named(td, "pin_takedown_rin", [sd])
-    rin["pin_takedown_rin"] = td
-    # the zombie takedown sheet carries both pairs: row 1 (cells 1-3) back layer, row 2 (cells 4-6) front layer
-    for lname, cells, h, dy, col in [("pin_takedown_back", (1, 2, 3), 0.034, +0.010, (0.40, 0.30, 0.20)),
-                                     ("pin_takedown_front", (4, 5, 6), PIN_H, -0.0004, (0.30, 0.45, 0.40))]:
-        m, asp = load_sheet("pin_takedown_zombies", col, ANIM["pin_takedown_zombies"], mat_name="M_" + lname)
-        o = sprite(lname, None, h, (PIN_XY[0], PIN_XY[1] + dy, ROOF_Z + 0.002), ch, face, col, aspect=asp, material=m)
+    for part, dy, col in stack:
+        name = "pin_takedown_" + part
+        o = sprite(name, name + ".png", PIN_SQ_H, (PIN_XY[0], PIN_XY[1] + dy, PIN_SQ_Z), ch, face, col)
         key_visible(o, [sd])
-        animate_sheet(m, [sd], timing=[(cells[0], 5), (cells[1], 7), (cells[2], 12)])
-        rin[lname] = o
-    # PINNED GROUP: three parallax layers (back zombies / Rin / front zombies), visible until the reset
-    # (hidden during the face ECU, where the close-up sheet carries the same struggle at face size).
-    # S14 picks the struggle up at cell 10 (eyes up) so it continues the S13b close-up's last look.
+        animate_named(o, name, [sd])
+        rin[name] = o
+    # PINNED GROUP, visible until the reset (hidden during the face ECU, where the close-up sheet carries
+    # the same struggle at face size). S14 picks the struggle up at cell 10 (eyes up) to continue S13b's last look.
     s13, s14 = shot_rng["S13a_pinned"], (shot_rng["S14_pullback"][0], R - 1)
-    pin_rng = [s13, s14]
-    layers = [
-        ("pin_layer_back",  "pin_layer_back.png",  0.034, +0.010, (0.40, 0.30, 0.20)),
-        ("pin_layer_rin",   "pin_layer_rin.png",   PIN_H,  0.000, RIN),
-        ("pin_layer_front", "pin_layer_front.png", PIN_H, -0.0004, (0.30, 0.45, 0.40)),  # same plane as pin_layer_rin
-    ]
-    if os.path.isfile(os.path.join(ASSET_DIR, "pin_contact_hands_sheet.png")):   # no placeholder: it sits ON her
-        layers.append(("pin_contact_hands", "pin_contact_hands.png", PIN_H, -0.0002, (0.45, 0.55, 0.45)))
-    for name, fn, h, dy, col in layers:
-        o = sprite(name, fn, h, (PIN_XY[0], PIN_XY[1] + dy, ROOF_Z + 0.002), ch, face, col)   # sit ON the 2 mm roof tiles
-        key_visible(o, pin_rng)
-        m = o.data.materials[0]
-        if int(m["sheet"][2]) == 12:          # frame-locked to pin_layer_rin
-            animate_sheet(m, [s13])
-            animate_sheet(m, [s14], phase=9)
-        else:
-            animate_sheet(m, pin_rng)
+    for part, dy, col in stack:
+        name = "pin_layer_" + part
+        o = sprite(name, name + ".png", PIN_SQ_H, (PIN_XY[0], PIN_XY[1] + dy, PIN_SQ_Z), ch, face, col)
+        key_visible(o, [s13, s14])
+        animate_named(o, name, [s13])
+        animate_sheet(o.data.materials[0], [s14], 9, TIMING.get(name))
         rin[name] = o
     face_cu = sprite("pin_face_closeup", "pin_face_closeup.png", 0.017, (PIN_XY[0], PIN_XY[1] - 0.013, ROOF_Z), ch, face, RIN)
     key_visible(face_cu, [shot_rng["S13b_pinned_face"]])
