@@ -179,8 +179,8 @@ SHOTS = [
     ("S12d_pressed",     38.0, 39.0, 50, (0.044, -0.080, 1.110), (0.042, -0.076, 1.110), (0.02, 0.0, 1.112),   (0.02, 0.0, 1.112)),
     ("S13a_pinned",      39.0, 40.5, 50, (0.028, -0.070, 1.107), (0.024, -0.054, 1.108), (0.02, 0.0, 1.110),   (0.021, 0.0, 1.108)),   # lower, frontal push-in: reads as a new shot after S12d
     # S13c: macro insert, Z02's huge hand clamps her forearm to the tiles (pin_hand_press, 6 cells on twos)
-    ("S13c_hand_press",  40.5, 41.0, 50, (0.024, -0.072, 1.1115), (0.024, -0.069, 1.1112), (0.024, -0.013, 1.1115), (0.024, -0.013, 1.1112)),   # 9:16 crop: cell top out of frame, her fingers in
-    ("S13b_pinned_face", 41.0, 43.0, 50, (0.02, -0.052, 1.108),  (0.02, -0.046, 1.108),  (0.02, -0.013, 1.108), (0.02, -0.013, 1.108)),
+    ("S13c_hand_press",  40.5, 41.0, 50, (0.0245, -0.072, 1.116), (0.0245, -0.069, 1.1158), (0.0245, -0.013, 1.116), (0.0245, -0.013, 1.1158)),   # 9:16 crop: both cell edges out of frame, her fingers in
+    ("S13b_pinned_face", 41.0, 43.0, 50, (0.0178, -0.050, 1.1112), (0.0178, -0.046, 1.1102), (0.0178, -0.013, 1.1112), (0.0178, -0.013, 1.1102)),   # frame bottom at 86.5% of the cell, just above the art's cut-off (92%)
     ("S14_pullback",     43.0, 46.0, 24, (0.024, -0.054, 1.108), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.07, 0.08, 1.31)),   # ends framing the pile AND the empty tower in the claw
     # ---- Act 4: reveal + loop (46-60 s)
     ("S15_glass_reveal", 46.0, 51.0, 35, (0.14, -0.44, 1.37),    (-0.85, -3.40, 1.95),   (0.07, 0.08, 1.31),   (0.15, 0.30, 1.45)),   # ends wide enough to show the arcade
@@ -2355,7 +2355,7 @@ def build_characters(C, M, face, tower_root):
     # and springs back a touch (the camera thumps on the same frames, see PRESS_THUMPS).
     squash_motion(rin["pin_layer_rin"], [(s13, 0), (s14, 9)], PIN_SQUASH, cycle=36, vary=CYCLE_VARY)
     squash_motion(rin["pin_takedown_rin"], [(sd, 0)], TAKEDOWN_SQUASH, cycle=None)
-    hand_cu = sprite("pin_hand_press", "pin_hand_press.png", 0.028, (PIN_XY[0], PIN_XY[1] - 0.013, ROOF_Z), ch, face, RIN)
+    hand_cu = sprite("pin_hand_press", "pin_hand_press.png", 0.032, (PIN_XY[0], PIN_XY[1] - 0.013, ROOF_Z), ch, face, RIN)
     key_visible(hand_cu, [shot_rng["S13c_hand_press"]])
     animate_named(hand_cu, "pin_hand_press", [shot_rng["S13c_hand_press"]])
     rin["pin_hand_press"] = hand_cu
@@ -3215,8 +3215,9 @@ def build_cameras(C):
             cd.dof.aperture_fstop = 5.6
             cd.keyframe_insert("dof.aperture_fstop", frame=f(b) - 1)
         if sid in ("S12_impact", "S12c_grabbed", "S12d_pressed", "S13a_pinned", "S13b_pinned_face"):    # handheld shake
+            amp = 0.0003 if sid == "S13b_pinned_face" else 0.002   # the face ECU frames tight to the art's edges
             for k in range(0, 10):
-                key_loc(cam, f(a) + k * 2, (c0[0] + random.uniform(-0.002, 0.002), c0[1], c0[2] + random.uniform(-0.002, 0.002)))
+                key_loc(cam, f(a) + k * 2, (c0[0] + random.uniform(-amp, amp), c0[1], c0[2] + random.uniform(-amp, amp)))
         if sid in PRESS_THUMPS:
             press_thumps(cam, f(a), f(b), PRESS_THUMPS[sid])
         mk = scn.timeline_markers.new(sid, frame=f(a))
