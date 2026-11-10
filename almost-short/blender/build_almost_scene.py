@@ -90,6 +90,7 @@ ANIM = {
     "pin_face_closeup":    (4, 3, 12, 8, "once"),      # S13b face ECU: grit teeth -> eyes to tower -> cry -> defiance
     "pin_layer_back":      (4, 3, 12, 8, "loop"),      # Z03 + Z04 gripping hood and ankle; same square canvas as pin_layer_rin
     "pin_layer_front":     (4, 3, 12, 8, "loop"),      # pressing down; frame-locked to pin_layer_rin (same clock, phase 0)
+    "pin_layer_contact":   (4, 3, 12, 8, "loop"),      # baked contact shadow of the front pair (tools/make_contact_shadows.py)
     "rin_reset_lookup":    (4, 2, 8, 12, "once"),      # slowly tilts head up to the lens
     # S12b-S12d grab-and-pin sequence (sprite_list_v1.md B1-B5); placeholders until the art lands
     "rin_scoot_back":      (4, 2, 8, 12, "once"),      # S12b sitting, scoots back, bumps into legs, looks up
@@ -97,6 +98,7 @@ ANIM = {
     "pin_takedown_rin":    (3, 2, 6, 12, "once"),      # S12d cheek pressed to the tiles; last cell = pin_layer_rin cell 1
     "pin_takedown_back":   (3, 2, 6, 12, "once"),      # S12d Z03 + Z04 lunge in; last cell = pin_layer_back cell 1
     "pin_takedown_front":  (3, 2, 6, 12, "once"),      # S12d Z01 + Z02 slam her down; last cell = pin_layer_front cell 1
+    "pin_takedown_contact": (3, 2, 6, 12, "once"),     # baked contact shadow of the takedown front pair
     "rin_run_to_ladder":   (3, 2, 6, 12, "once"),      # S04 opening: scrambles up, two strides, leaps onto the ladder
     "nova_back_joystick":  (4, 2, 8, 12, "loop"),      # joystick jiggle, shoulders tense
     "nova_profile_almost": (4, 3, 12, 8, "once"),      # wince, exhale, glance at the chute
@@ -120,11 +122,13 @@ TIMING = {
     "pin_takedown_rin": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],                                      # 24 = S12d
     "pin_takedown_back": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],                                     # same clock as the Rin layer
     "pin_takedown_front": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],
+    "pin_takedown_contact": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],
     "rin_run_to_ladder": [(1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 2)],                                    # 17 = S04 opening
     # the three pin layers share one 12-cell clock (8 fps)
     "pin_layer_rin":   [(i, 3) for i in range(1, 13)],
     "pin_layer_back":  [(i, 3) for i in range(1, 13)],
     "pin_layer_front": [(i, 3) for i in range(1, 13)],
+    "pin_layer_contact": [(i, 3) for i in range(1, 13)],
     "pin_face_closeup": [(i, 4) for i in range(1, 13)],                                                       # 48 = S13b
     "nova_profile_almost": [(1, 6), (2, 6), (3, 8), (4, 8), (5, 8), (6, 10), (7, 8), (8, 8), (9, 8), (10, 8), (11, 8), (12, 10)],  # 96 = S16
     "nova_hand_coin":   [(1, 4), (2, 4), (3, 4), (4, 6), (5, 8), (6, 6), (7, 6), (8, 10)],                     # 48 = S17a
@@ -2313,13 +2317,16 @@ def build_characters(C, M, face, tower_root):
     rin["rin_grabbed_down"] = grab
     # S12d takedown and the S13a/S14 pin: back zombies / Rin / front zombies on the same square canvas.
     # Only a hair of depth between them, so the hands stay on her (GPT drew the contact into the zombie layers).
-    stack = [("back", +0.0008, (0.40, 0.30, 0.20)), ("rin", 0.0, RIN), ("front", -0.0008, (0.30, 0.45, 0.40))]
+    stack = [("back", +0.0008, (0.40, 0.30, 0.20)), ("rin", 0.0, RIN), ("contact", -0.0004, (0.0, 0.0, 0.0)),
+             ("front", -0.0008, (0.30, 0.45, 0.40))]
     sd = shot_rng["S12d_pressed"]
     for part, dy, col in stack:
         name = "pin_takedown_" + part
         o = sprite(name, name + ".png", PIN_SQ_H, (PIN_XY[0], PIN_XY[1] + dy, PIN_SQ_Z), ch, face, col)
         key_visible(o, [sd])
         animate_named(o, name, [sd])
+        if part == "contact":
+            shadow_material(o)
         rin[name] = o
     # PINNED GROUP, visible until the reset (hidden during the face ECU, where the close-up sheet carries
     # the same struggle at face size). S14 picks the struggle up at cell 10 (eyes up) to continue S13b's last look.
@@ -2330,6 +2337,8 @@ def build_characters(C, M, face, tower_root):
         key_visible(o, [s13, s14])
         animate_named(o, name, [s13])
         animate_sheet(o.data.materials[0], [s14], 9, TIMING.get(name))
+        if part == "contact":
+            shadow_material(o)
         rin[name] = o
     # Secondary motion on ones: the drawings change every 3 frames, the layers move every frame
     # (a few mm), so the tug / press / struggle reads as continuous force instead of a slideshow.
@@ -2338,6 +2347,10 @@ def build_characters(C, M, face, tower_root):
         secondary_motion(o, [(s13, 0), (s14, 9)], PIN_MOTION[part], cycle=36)
         o = rin["pin_takedown_" + part]
         secondary_motion(o, [(sd, 0)], TAKEDOWN_MOTION[part], cycle=None)
+    # Shared press beat: each time the front pair drives down, Rin's layer squashes under the weight
+    # and springs back a touch (the camera thumps on the same frames, see PRESS_THUMPS).
+    squash_motion(rin["pin_layer_rin"], [(s13, 0), (s14, 9)], PIN_SQUASH, cycle=36)
+    squash_motion(rin["pin_takedown_rin"], [(sd, 0)], TAKEDOWN_SQUASH, cycle=None)
     face_cu = sprite("pin_face_closeup", "pin_face_closeup.png", 0.017, (PIN_XY[0], PIN_XY[1] - 0.013, ROOF_Z), ch, face, RIN)
     key_visible(face_cu, [shot_rng["S13b_pinned_face"]])
     animate_named(face_cu, "pin_face_closeup", [shot_rng["S13b_pinned_face"]])
@@ -2412,12 +2425,82 @@ PIN_MOTION = {
                         -0.0005 * _pulse(c, 0, 9) - 0.0006 * _pulse(c, 27, 9)           # lean in and press down
                         + 0.0002 * _pulse(c, 9, 9)),
 }
+PIN_MOTION["contact"] = PIN_MOTION["front"]      # the baked shadow travels with the hands that cast it
+
+
+def PIN_SQUASH(c):
+    """(scale x, scale z) of Rin's pin layer: squashed on the two presses (c 0-9, 27-36), small rebound after."""
+    p = _pulse(c, 0, 9) + _pulse(c, 27, 9)
+    r = _pulse(c, 9, 6)
+    return 1.0 + 0.015 * p - 0.006 * r, 1.0 - 0.035 * p + 0.012 * r
+
+
+def TAKEDOWN_SQUASH(c):
+    p, r = _pulse(c, 8, 7), _pulse(c, 15, 6)
+    return 1.0 + 0.02 * p - 0.008 * r, 1.0 - 0.05 * p + 0.015 * r
+
+
 # S12d takedown (24 frames): the front pair slams down at frame 8 (cell 4), she is driven into the tiles
 TAKEDOWN_MOTION = {
     "back":  lambda c: (0.0, 0.0006 * _pulse(c, 6, 10), 0.0004 * _pulse(c, 6, 10)),
     "rin":   lambda c: (0.0, 0.0, -0.0004 * _pulse(c, 8, 6)),
     "front": lambda c: (0.0, 0.0, 0.0006 * _pulse(c, 0, 8) - 0.0010 * _pulse(c, 8, 7)),
 }
+TAKEDOWN_MOTION["contact"] = TAKEDOWN_MOTION["front"]
+# Camera thumps on the press peaks: shot -> [(frame offset into the shot, strength 0-1)].
+# S13a runs the pin clock from cell 1 (presses peak at c 4 and 31); S14 enters at cell 10 (c 27).
+PRESS_THUMPS = {
+    "S12d_pressed": [(11, 1.0)],
+    "S13a_pinned":  [(4, 0.8), (31, 1.0), (40, 0.8)],
+    "S14_pullback": [(4, 0.6), (13, 0.4)],
+}
+THUMP_AMP = 0.0007
+
+
+def squash_motion(o, ranges, fn, cycle=36):
+    """Key o's scale every frame inside each (range, phase_cells) with fn(cycle index) -> (sx, sz)."""
+    for (a, b), phase in ranges:
+        for fr in range(a, b + 1):
+            c = fr - a + phase * 3
+            if cycle:
+                c %= cycle
+            sx, sz = fn(c)
+            o.scale = (sx, 1.0, sz)
+            o.keyframe_insert("scale", frame=fr)
+        o.scale = (1.0, 1.0, 1.0)
+        o.keyframe_insert("scale", frame=b + 1)
+    set_interp(o, "LINEAR", "scale")
+
+
+def shadow_material(o):
+    """Baked contact shadow: keep its soft alpha (no cut-out firming), no glow, matte."""
+    nt = o.data.materials[0].node_tree
+    for n in nt.nodes:
+        if n.type == "MAP_RANGE":
+            n.inputs["From Max"].default_value = 1.0
+        elif n.type == "BSDF_PRINCIPLED":
+            n.inputs["Emission Strength"].default_value = 0.0
+            n.inputs["Roughness"].default_value = 1.0
+            n.inputs["Specular IOR Level"].default_value = 0.0
+
+
+def press_thumps(cam, a, b, thumps):
+    """Add a short decaying jolt (mostly downward) at each press peak on top of the camera's own move."""
+    fcs = {fc.array_index: fc for fc in fcurves_of(cam) if fc.data_path == "location"}
+    if len(fcs) < 3:
+        return
+    frames = list(range(a, b))
+    path = [[fcs[i].evaluate(fr) for i in range(3)] for fr in frames]
+    for fr, loc in zip(frames, path):
+        dx = dz = 0.0
+        for off, k in thumps:
+            t = fr - (a + off)
+            if t >= 0:
+                env = THUMP_AMP * k * math.exp(-t / 2.2)
+                dz -= env * math.cos(t * 1.9)
+                dx += 0.35 * env * math.sin(t * 2.7)
+        key_loc(cam, fr, (loc[0] + dx, loc[1], loc[2] + dz))
+    set_interp(cam, "LINEAR", "location")
 
 
 def secondary_motion(o, ranges, fn, cycle=36):
@@ -3114,6 +3197,8 @@ def build_cameras(C):
         if sid in ("S12_impact", "S12c_grabbed", "S12d_pressed", "S13a_pinned", "S13b_pinned_face"):    # handheld shake
             for k in range(0, 10):
                 key_loc(cam, f(a) + k * 2, (c0[0] + random.uniform(-0.002, 0.002), c0[1], c0[2] + random.uniform(-0.002, 0.002)))
+        if sid in PRESS_THUMPS:
+            press_thumps(cam, f(a), f(b), PRESS_THUMPS[sid])
         mk = scn.timeline_markers.new(sid, frame=f(a))
         mk.camera = cam
         first = first or cam
