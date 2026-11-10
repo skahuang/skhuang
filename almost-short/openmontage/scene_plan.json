@@ -262,7 +262,7 @@
       "type": "animation",
       "description": "Pinned (ref image 3): cop pulls her hoodie, mechanic grips her hair, tourist pins her arm, tentacles bind arm and ankle. Frame-by-frame struggle loop: push up gritting teeth, cry out as hair is yanked, twist and kick, eyes dart up to the empty tower. Injuries, no blood.",
       "start_seconds": 39.0,
-      "end_seconds": 41.0,
+      "end_seconds": 40.5,
       "shot_language": {
         "shot_size": "extreme_close_up",
         "camera_movement": "handheld",
@@ -273,6 +273,23 @@
       },
       "shot_intent": "climax",
       "overlay_notes": "Blender camera CAM_S13a_pinned"
+    },
+    {
+      "id": "S13c_hand_press",
+      "type": "animation",
+      "description": "Macro insert: Z02's huge hand slams onto Rin's forearm, clamps it to the wet tiles, her fingers claw and drag, then go limp (pin_hand_press, 6 frames).",
+      "start_seconds": 40.5,
+      "end_seconds": 41.0,
+      "shot_language": {
+        "shot_size": "extreme_close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S13c_hand_press"
     },
     {
       "id": "S13b_pinned_face",

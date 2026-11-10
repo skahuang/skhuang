@@ -87,7 +87,8 @@ ANIM = {
     "rin_falling":         (3, 2, 6, 12, "loop"),      # flailing fall
     "rin_impact":          (4, 2, 8, 12, "once"),      # land, bounce, push up on one elbow
     "pin_layer_rin":       (4, 3, 12, 8, "loop"),      # struggle beats: push up / cry out / twist+kick / look up
-    "pin_face_closeup":    (4, 3, 12, 8, "once"),      # S13b face ECU: grit teeth -> eyes to tower -> cry -> defiance
+    "pin_face_closeup":    (4, 3, 12, 8, "once"),
+    "pin_hand_press":      (3, 2, 6, 12, "once"),      # S13c macro: hand slams, closes, presses, drags, tightens, she goes limp      # S13b face ECU: grit teeth -> eyes to tower -> cry -> defiance
     "pin_layer_back":      (4, 3, 12, 8, "loop"),      # Z03 + Z04 gripping hood and ankle; same square canvas as pin_layer_rin
     "pin_layer_front":     (4, 3, 12, 8, "loop"),      # pressing down; frame-locked to pin_layer_rin (same clock, phase 0)
     "pin_layer_contact":   (4, 3, 12, 8, "loop"),      # baked contact shadow of the front pair (tools/make_contact_shadows.py)
@@ -120,6 +121,7 @@ TIMING = {
     "rin_scoot_back":   [(1, 2), (2, 3), (3, 3), (4, 2), (5, 3), (6, 4), (7, 3), (8, 4)],                      # 24 = S12b
     "rin_grabbed_down": [(1, 3), (2, 3), (3, 4), (4, 2), (5, 2), (6, 3), (7, 2), (8, 2), (9, 2), (10, 4), (11, 4), (12, 5)],   # 36 = S12c
     "pin_takedown_rin": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],                                      # 24 = S12d
+    "pin_hand_press":   [(1, 1), (2, 2), (3, 2), (4, 2), (5, 2), (6, 3)],                                      # 12 = S13c
     "pin_takedown_back": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],                                     # same clock as the Rin layer
     "pin_takedown_front": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],
     "pin_takedown_contact": [(1, 3), (2, 3), (3, 2), (4, 6), (5, 4), (6, 6)],
@@ -175,7 +177,9 @@ SHOTS = [
     ("S12b_surrounded",  35.5, 36.5, 35, (0.075, -0.075, 1.113), (0.066, -0.063, 1.110), (0.02, 0.004, 1.109), (0.02, 0.004, 1.108)),
     ("S12c_grabbed",     36.5, 38.0, 50, (0.046, -0.056, 1.108), (0.041, -0.050, 1.106), (0.02, 0.0, 1.106),   (0.02, 0.0, 1.106)),
     ("S12d_pressed",     38.0, 39.0, 50, (0.044, -0.080, 1.110), (0.042, -0.076, 1.110), (0.02, 0.0, 1.112),   (0.02, 0.0, 1.112)),
-    ("S13a_pinned",      39.0, 41.0, 50, (0.028, -0.070, 1.107), (0.024, -0.054, 1.108), (0.02, 0.0, 1.110),   (0.021, 0.0, 1.108)),   # lower, frontal push-in: reads as a new shot after S12d
+    ("S13a_pinned",      39.0, 40.5, 50, (0.028, -0.070, 1.107), (0.024, -0.054, 1.108), (0.02, 0.0, 1.110),   (0.021, 0.0, 1.108)),   # lower, frontal push-in: reads as a new shot after S12d
+    # S13c: macro insert, Z02's huge hand clamps her forearm to the tiles (pin_hand_press, 6 cells on twos)
+    ("S13c_hand_press",  40.5, 41.0, 50, (0.024, -0.072, 1.1115), (0.024, -0.069, 1.1112), (0.024, -0.013, 1.1115), (0.024, -0.013, 1.1112)),   # 9:16 crop: cell top out of frame, her fingers in
     ("S13b_pinned_face", 41.0, 43.0, 50, (0.02, -0.052, 1.108),  (0.02, -0.046, 1.108),  (0.02, -0.013, 1.108), (0.02, -0.013, 1.108)),
     ("S14_pullback",     43.0, 46.0, 24, (0.024, -0.054, 1.108), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.108),   (0.07, 0.08, 1.31)),   # ends framing the pile AND the empty tower in the claw
     # ---- Act 4: reveal + loop (46-60 s)
@@ -2351,6 +2355,10 @@ def build_characters(C, M, face, tower_root):
     # and springs back a touch (the camera thumps on the same frames, see PRESS_THUMPS).
     squash_motion(rin["pin_layer_rin"], [(s13, 0), (s14, 9)], PIN_SQUASH, cycle=36, vary=CYCLE_VARY)
     squash_motion(rin["pin_takedown_rin"], [(sd, 0)], TAKEDOWN_SQUASH, cycle=None)
+    hand_cu = sprite("pin_hand_press", "pin_hand_press.png", 0.028, (PIN_XY[0], PIN_XY[1] - 0.013, ROOF_Z), ch, face, RIN)
+    key_visible(hand_cu, [shot_rng["S13c_hand_press"]])
+    animate_named(hand_cu, "pin_hand_press", [shot_rng["S13c_hand_press"]])
+    rin["pin_hand_press"] = hand_cu
     face_cu = sprite("pin_face_closeup", "pin_face_closeup.png", 0.017, (PIN_XY[0], PIN_XY[1] - 0.013, ROOF_Z), ch, face, RIN)
     key_visible(face_cu, [shot_rng["S13b_pinned_face"]])
     animate_named(face_cu, "pin_face_closeup", [shot_rng["S13b_pinned_face"]])
@@ -2451,7 +2459,8 @@ TAKEDOWN_MOTION["contact"] = TAKEDOWN_MOTION["front"]
 # S13a runs the pin clock from cell 1 (presses peak at c 4 and 31); S14 enters at cell 10 (c 27).
 PRESS_THUMPS = {
     "S12d_pressed": [(11, 1.0)],
-    "S13a_pinned":  [(4, 0.8), (31, 1.0), (40, 0.8)],
+    "S13a_pinned":  [(4, 0.8), (31, 1.0)],
+    "S13c_hand_press": [(1, 0.7), (5, 1.0)],      # the slam, then the hard press of cell 3
     "S14_pullback": [(4, 0.6), (13, 0.4)],
 }
 THUMP_AMP = 0.0007
@@ -3197,7 +3206,7 @@ def build_cameras(C):
         cd.dof.use_dof = True
         cd.dof.focus_object = bpy.data.objects.get(SHOT_FOCUS.get(sid, "")) or aim
         # at 1:60 scale f/1.4 blurs everything; f/2.8-4 still reads as tilt-shift miniature
-        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S12_impact", "S12b_surrounded", "S12c_grabbed", "S12d_pressed", "S13a_pinned", "S13b_pinned_face", "S17b_reset_loop") else 2.8
+        cd.dof.aperture_fstop = 8.0 if sid in ("S01_door_bang", "S03_lost_boot", "S12_impact", "S12b_surrounded", "S12c_grabbed", "S12d_pressed", "S13a_pinned", "S13c_hand_press", "S13b_pinned_face", "S17b_reset_loop") else 2.8
         if sid == "S06_light_above":    # 3 cm from her: needs deep focus to keep face and the light above readable
             cd.dof.aperture_fstop = 22.0
         if sid == "S15_glass_reveal":   # rack DOF wider as we exit the glass
