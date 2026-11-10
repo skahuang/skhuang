@@ -2336,7 +2336,7 @@ def build_characters(C, M, face, tower_root):
         o = sprite(name, name + ".png", PIN_SQ_H, (PIN_XY[0], PIN_XY[1] + dy, PIN_SQ_Z), ch, face, col)
         key_visible(o, [s13, s14])
         animate_named(o, name, [s13])
-        animate_sheet(o.data.materials[0], [s14], 9, TIMING.get(name))
+        animate_sheet(o.data.materials[0], [s14], 9, S14_PIN_TIMING)
         if part == "contact":
             shadow_material(o)
         rin[name] = o
@@ -2344,12 +2344,12 @@ def build_characters(C, M, face, tower_root):
     # (a few mm), so the tug / press / struggle reads as continuous force instead of a slideshow.
     for part, _dy, _col in stack:
         o = rin["pin_layer_" + part]
-        secondary_motion(o, [(s13, 0), (s14, 9)], PIN_MOTION[part], cycle=36)
+        secondary_motion(o, [(s13, 0), (s14, 9)], PIN_MOTION[part], cycle=36, vary=CYCLE_VARY)
         o = rin["pin_takedown_" + part]
         secondary_motion(o, [(sd, 0)], TAKEDOWN_MOTION[part], cycle=None)
     # Shared press beat: each time the front pair drives down, Rin's layer squashes under the weight
     # and springs back a touch (the camera thumps on the same frames, see PRESS_THUMPS).
-    squash_motion(rin["pin_layer_rin"], [(s13, 0), (s14, 9)], PIN_SQUASH, cycle=36)
+    squash_motion(rin["pin_layer_rin"], [(s13, 0), (s14, 9)], PIN_SQUASH, cycle=36, vary=CYCLE_VARY)
     squash_motion(rin["pin_takedown_rin"], [(sd, 0)], TAKEDOWN_SQUASH, cycle=None)
     face_cu = sprite("pin_face_closeup", "pin_face_closeup.png", 0.017, (PIN_XY[0], PIN_XY[1] - 0.013, ROOF_Z), ch, face, RIN)
     key_visible(face_cu, [shot_rng["S13b_pinned_face"]])
@@ -2457,14 +2457,24 @@ PRESS_THUMPS = {
 THUMP_AMP = 0.0007
 
 
-def squash_motion(o, ranges, fn, cycle=36):
+# S14 plays the pin loop more than once: every repeat changes force and in-cell rhythm so it never reads
+# as the same 1.5 s again (each 3-cell beat still sums to 9 frames, so the motion stays on the drawings).
+CYCLE_VARY = [1.0, 0.7, 1.25, 0.8, 1.1]
+S14_PIN_TIMING = ([(i, 3) for i in range(1, 13)] +
+                  [(1, 2), (2, 3), (3, 4), (4, 4), (5, 3), (6, 2), (7, 2), (8, 2), (9, 5), (10, 3), (11, 4), (12, 2)] +
+                  [(1, 4), (2, 3), (3, 2), (4, 2), (5, 2), (6, 5), (7, 3), (8, 3), (9, 3), (10, 2), (11, 2), (12, 5)])
+
+
+def squash_motion(o, ranges, fn, cycle=36, vary=None):
     """Key o's scale every frame inside each (range, phase_cells) with fn(cycle index) -> (sx, sz)."""
     for (a, b), phase in ranges:
         for fr in range(a, b + 1):
             c = fr - a + phase * 3
+            k = vary[(c // cycle) % len(vary)] if (cycle and vary) else 1.0
             if cycle:
                 c %= cycle
             sx, sz = fn(c)
+            sx, sz = 1.0 + (sx - 1.0) * k, 1.0 + (sz - 1.0) * k
             o.scale = (sx, 1.0, sz)
             o.keyframe_insert("scale", frame=fr)
         o.scale = (1.0, 1.0, 1.0)
@@ -2503,15 +2513,16 @@ def press_thumps(cam, a, b, thumps):
     set_interp(cam, "LINEAR", "location")
 
 
-def secondary_motion(o, ranges, fn, cycle=36):
+def secondary_motion(o, ranges, fn, cycle=36, vary=None):
     """Key o's location every frame inside each (range, phase_cells) with base + fn(cycle index)."""
     base = o.location.copy()
     for (a, b), phase in ranges:
         for fr in range(a, b + 1):
             c = fr - a + phase * 3
+            k = vary[(c // cycle) % len(vary)] if (cycle and vary) else 1.0
             if cycle:
                 c %= cycle
-            dx, dy, dz = fn(c)
+            dx, dy, dz = (v * k for v in fn(c))
             key_loc(o, fr, (base.x + dx, base.y + dy, base.z + dz))
     set_interp(o, "LINEAR", "location")
 

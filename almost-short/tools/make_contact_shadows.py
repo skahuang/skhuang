@@ -15,16 +15,16 @@ def alpha(name):
     return Image.open(os.path.join(SPR, name + "_sheet.png")).convert("RGBA").split()[3]
 
 
-def bake(prefix, cell=512, blur=9, shift=(4, 6), on_rin=0.62, on_roof=0.28):
+def bake(prefix, cell=512, blur=7, shift=(4, 6), on_rin=0.85, on_roof=0.45):
     fa = alpha(prefix + "_front")
     ra = alpha(prefix + "_rin").filter(ImageFilter.MaxFilter(5))
     f = np.asarray(fa, np.float32) / 255
     soft = np.asarray(fa.filter(ImageFilter.GaussianBlur(blur)), np.float32) / 255
     # light from upper-left: the occlusion falls a little right and down of the hands
-    soft = np.roll(soft, shift, axis=(1, 0)) if False else np.roll(np.roll(soft, shift[1], 0), shift[0], 1)
+    soft = np.roll(np.roll(soft, shift[1], 0), shift[0], 1)
     r = np.asarray(ra, np.float32) / 255
     a = soft * (1 - f) * (on_roof + (on_rin - on_roof) * r)
-    a = np.clip(a * 1.6, 0, on_rin)
+    a = np.clip(a * 2.4, 0, on_rin)
     out = np.zeros(a.shape + (4,), np.uint8)
     out[..., 3] = (a * 255).astype(np.uint8)
     path = os.path.join(SPR, prefix + "_contact_sheet.png")
