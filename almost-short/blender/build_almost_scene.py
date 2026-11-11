@@ -178,21 +178,21 @@ def f(sec):
 SHOTS = [
     # ---- Act 1: trapped (0-15 s)
     # S01a: the door flies open and Rin bursts out straight at the lens (rin_burst_door)
-    ("S01a_door_burst",   0.0,  1.2, 35, (-0.092, 0.040, 1.108), (-0.093, 0.048, 1.109), (-0.106, 0.092, 1.114), (-0.099, 0.072, 1.112)),
+    ("S01a_door_burst",   0.0,  1.2, 35, (-0.092, 0.040, 1.108), (-0.090, 0.046, 1.109), (-0.106, 0.092, 1.114), (-0.082, 0.070, 1.112)),
     # S01b: she has slammed it behind her; fingers squirm out of the gap, she backs off in the foreground
     ("S01b_door_bang",    1.2,  2.5, 50, (-0.052, -0.025, 1.114), (-0.060, -0.010, 1.116), (-0.101, 0.107, 1.124), (-0.101, 0.107, 1.122)),   # ~21 deg off-axis so the dents read; fingers centred
     # S02: medium crane-down as the door bursts and the horde pours out after her (was a static wide)
-    ("S02_establish",     2.5,  4.0, 35, (0.000, -0.020, 1.140), (0.010, -0.030, 1.135), (-0.082, 0.052, 1.115), (-0.050, 0.030, 1.115)),   # on her as she backs off, the horde bursting out behind
+    ("S02_establish",     2.5,  4.0, 35, (0.000, -0.020, 1.140), (0.010, -0.030, 1.135), (-0.062, 0.046, 1.115), (-0.045, 0.027, 1.115)),   # on her as she backs off, the horde bursting out behind
     # S02b: low tracking shot ahead of her as she runs, zombies chasing behind (rin_run_chase)
     ("S02b_chase_low",    4.0,  5.0, 24, (-0.011, 0.007, 1.106), (0.019, -0.012, 1.106), (-0.045, 0.027, 1.110), (-0.015, 0.008, 1.110)),
     # S02c: close-up, she looks back over her shoulder at the horde closing in (rin_look_back)
     ("S02c_look_back",    5.0,  6.0, 50, (0.025, 0.030, 1.113),  (0.065, 0.052, 1.113),  (-0.015, 0.008, 1.115), (0.025, 0.030, 1.115)),   # leads her (chasers stay behind her, not in the lens)
     # S04a: she reaches the tower and jumps on the ladder, the chasers right behind her
-    ("S04a_run_climb",    6.0,  7.3, 35, (0.055, 0.030, 1.150),  (0.075, 0.050, 1.145),  (0.090, 0.085, 1.125), (0.100, 0.095, 1.130)),
+    ("S04a_run_climb",    6.0,  7.3, 35, (0.040, 0.000, 1.160),  (0.075, 0.050, 1.145),  (0.075, 0.065, 1.120), (0.100, 0.095, 1.130)),
     # S03: they drag her back down off the ladder and tear the boot off (rin_boot_grab, at the tower foot)
     ("S03_lost_boot",     7.3,  9.8, 50, (0.124, 0.030, 1.106),  (0.118, 0.039, 1.105),  (0.098, 0.088, 1.113), (0.098, 0.088, 1.113)),
     # S04b: she kicks free and scrambles back up, hands clawing at her heels; low angle up the ladder
-    ("S04b_climb_escape", 9.8, 12.0, 35, (0.116, 0.044, 1.112),  (0.113, 0.050, 1.140),  (0.100, 0.100, 1.128), (0.100, 0.100, 1.165)),
+    ("S04b_climb_escape", 9.8, 12.0, 35, (0.108, 0.040, 1.112),  (0.106, 0.047, 1.140),  (0.100, 0.100, 1.128), (0.100, 0.100, 1.165)),   # low angle up the ladder, clawing hands either side
     # S05: high 3/4 down the ladder at her clinging, the pile clawing up below (was top-down on the tank lid)
     ("S05_pile_topdown", 12.0, 15.0, 35, (0.150, 0.050, 1.215),  (0.145, 0.058, 1.210),  (0.100, 0.101, 1.185), (0.100, 0.101, 1.180)),   # 3/4 at her height, the pile clawing below
     ("S06_light_above",  15.0, 18.0, 16, (0.106, 0.060, 1.165),  (0.106, 0.062, 1.167),  (0.10, 0.100, 1.200), (0.10, 0.100, 1.205)),   # whole figure clear of the bottom UI zone
@@ -206,7 +206,7 @@ SHOTS = [
     ("S11_fall",         32.0, 34.5, 35, (0.28, -0.22, 1.42),    (0.090, -0.075, 1.150),   (0.10, 0.10, 1.40),   (0.030, 0.010, 1.130)),   # SHOT_MID keeps her framed
     ("S12_impact",       34.5, 35.5, 50, (0.060, -0.052, 1.113), (0.060, -0.052, 1.113), (0.02, 0.0, 1.111),   (0.02, 0.0, 1.111)),   # aim up: less blurred foreground
     # S12b-S12d: the horde closes in, grabs her bare ankle and hood, drags her down and presses her flat
-    ("S12b_surrounded",  35.5, 36.5, 35, (0.050, -0.050, 1.112), (0.044, -0.042, 1.111), (0.016, 0.0, 1.108),  (0.016, 0.0, 1.108)),   # pushed in: she reads at ~20% of frame height
+    ("S12b_surrounded",  35.5, 36.5, 24, (0.040, -0.042, 1.118), (0.034, -0.034, 1.116), (0.018, 0.008, 1.112), (0.018, 0.006, 1.111)),   # wider + deep focus: the lunge reads, Rin ~25% of frame
     ("S12c_grabbed",     36.5, 38.0, 50, (0.046, -0.056, 1.108), (0.041, -0.050, 1.106), (0.02, 0.0, 1.106),   (0.02, 0.0, 1.106)),
     ("S12d_pressed",     38.0, 39.0, 35, (0.070, -0.060, 1.135), (0.064, -0.055, 1.130), (0.02, 0.0, 1.114),   (0.02, 0.0, 1.114)),   # high side angle: no near-jump-cut into the frontal S13a
     ("S13a_pinned",      39.0, 40.5, 50, (0.028, -0.070, 1.107), (0.024, -0.054, 1.108), (0.02, 0.0, 1.116),   (0.021, 0.0, 1.115)),   # aim up: zombie heads in, less ground
@@ -218,10 +218,10 @@ SHOTS = [
     ("S15_glass_reveal", 46.0, 50.0, 35, (0.14, -0.44, 1.37),    (-0.85, -3.40, 1.95),   (0.08, 0.10, 1.34),   (0.20, -0.20, 1.40)),   # follows the tower to the chute, ends on the arcade + Nova
     # S15b/c: more arcade — the aisle with Nova at our machine, then the prize tray full of tiny boots
     ("S15b_arcade_aisle",50.0, 51.3, 24, (1.40, -2.60, 1.55),    (1.10, -2.20, 1.45),    (0.20, -0.60, 1.10),  (0.25, -0.70, 1.15)),
-    ("S15c_prize_tray",  51.3, 52.5, 50, (0.45, -0.75, 1.15),    (0.42, -0.70, 1.12),    (0.30, -0.30, 1.00),  (0.30, -0.30, 0.99)),   # the empty tower lying in the prize chute
+    ("S15c_prize_tray",  51.3, 52.5, 50, (0.78, -1.12, 1.32),    (0.72, -1.04, 1.29),    (0.30, -0.32, 1.04),  (0.30, -0.32, 1.03)),   # outside the glass: the empty tower lying in the prize chute
     ("S16_nova_almost",  52.5, 56.0, 85, (1.00, -1.74, 1.23),    (0.90, -1.62, 1.21),    (0.24, -0.86, 1.115), (0.24, -0.86, 1.12)),   # slow push-in on her face (eyes ~1.15 m)
     ("S17a_coin",        56.0, 58.0, 50, (0.53, -1.04, 1.02),    (0.50, -0.98, 1.00),    (0.28, -0.54, 0.87),  (0.28, -0.54, 0.87)),   # hand + coin mid-frame, sleeve edge below frame
-    ("S17b_reset_loop",  58.0, 62.0, 35, (0.010, -0.050, 1.120), (-0.092, 0.040, 1.108), (0.0, -0.01, 1.117),  (-0.106, 0.092, 1.114)),   # starts close on her face, ends EXACTLY on the S01a frame (loop seam)
+    ("S17b_reset_loop",  58.0, 62.0, 35, (0.010, -0.060, 1.116), (-0.092, 0.040, 1.108), (0.0, -0.01, 1.112),  (-0.106, 0.092, 1.114)),   # whole figure clear of the UI zone, ends EXACTLY on the S01a frame (loop seam)
 ]
 
 
@@ -243,7 +243,8 @@ SHOT_MID = {
     "S11_fall": [(0.3, (0.17, -0.06, 1.42), (0.088, 0.085, 1.425)), (0.55, (0.14, -0.035, 1.37), (0.077, 0.07, 1.375)),
                  (0.8, (0.105, -0.060, 1.27), (0.050, 0.038, 1.25))],
     # hold on Rin looking up into the lens, then whip back to the door for the loop
-    "S17b_reset_loop": [(0.65, (0.006, -0.036, 1.118), (0.0, -0.01, 1.117))],
+    "S17b_reset_loop": [(0.6, (0.006, -0.046, 1.115), (0.0, -0.01, 1.112)),
+                        (0.88, (-0.092, 0.040, 1.108), (-0.106, 0.092, 1.114))],   # whip done early: the door settles for the seam
     # get out of the cabinet fog fast: outside the glass by a quarter of the shot
     "S15_glass_reveal": [(0.25, (-0.15, -1.30, 1.55), (0.15, 0.05, 1.52))],
 }
@@ -2411,9 +2412,11 @@ def build_characters(C, M, face, tower_root):
                       ("rin_look_back", "S02c_look_back")):
         key = name if os.path.isfile(os.path.join(ASSET_DIR, name + "_sheet.png")) else SPRITE_FALLBACK[name]
         m, asp = load_sheet(key, RIN, ANIM[key], mat_name="M_" + name)
-        o = sprite(name, name + ".png", RIN_H * SHEET_SCALE.get(key, 1.0), (0, 0, ROOF_Z), ch, face, RIN, aspect=asp,
-                   base_mat=base, material=m)
+        o = sprite(name, name + ".png", RIN_H * (SHEET_SCALE.get(key, 1.0) if key != name else 1.0), (0, 0, ROOF_Z),
+                   ch, face, RIN, aspect=asp, base_mat=base, material=m)    # sprite() applies SHEET_SCALE[name]
         a, b = shot_rng[sid]
+        if name == "rin_burst_door":     # still behind the shut door on frame 1, so the loop seam matches
+            a = f(0.12)
         key_visible(o, [(a, b)])
         animate_sheet(m, [(a, b)], 0, TIMING.get(key), False)
         lo, hi = story_to_film((a - 1) / FPS), story_to_film(b / FPS)
@@ -2541,7 +2544,7 @@ def build_characters(C, M, face, tower_root):
 
 # Rin's ground track through Act 1 (story s): out of the door, backing off, the chase run, the trip.
 # The crowd's chasers follow it with a lag, so the horde visibly runs after her.
-RIN_TRACK = [(0.0, (-0.108, 0.098)), (0.35, (-0.102, 0.084)), (1.2, (-0.096, 0.070)), (2.5, (-0.082, 0.050)),
+RIN_TRACK = [(0.0, (-0.108, 0.098)), (0.35, (-0.098, 0.084)), (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
              (4.0, (-0.045, 0.027)), (5.0, (-0.015, 0.008)), (6.0, (0.025, 0.030)),
              (6.7, (TOWER_XY[0] - 0.040, TOWER_XY[1] - 0.090)), (7.3, (TOWER_XY[0], TOWER_XY[1] - 0.052)),
              (9.8, (TOWER_XY[0], TOWER_XY[1] - 0.052)), (10.3, (TOWER_XY[0], TOWER_XY[1] - 0.043))]
@@ -2746,10 +2749,10 @@ def build_crowd(C, M, face):
         if 5.0 < spawn < RUN_WINDOW[1]:   # nobody crosses her S04 run on the way out: they surge out after it
             spawn = RUN_WINDOW[1] + (spawn - 5.0) * 0.25
         ang = rnd.uniform(0, math.tau)
-        rad = rnd.uniform(0.04, 0.14) if i > 20 else rnd.uniform(0.03, 0.06)
+        rad = rnd.uniform(0.04, 0.14) if i > 20 else rnd.uniform(0.042, 0.06)   # >= tank radius + card: none under the tank
         gx = max(-0.165, min(0.165, tx + math.cos(ang) * rad - 0.03))
         gy = max(-0.115, min(0.215, ty + math.sin(ang) * rad - 0.05))
-        pose = "climb" if rad < 0.045 else ("reach" if rad < 0.07 else "walk")   # climbers pile up the tower legs
+        pose = "climb" if rad < 0.048 else ("reach" if rad < 0.07 else "walk")   # climbers pile up the tower legs
         if i < CHASERS:
             pose = "reach"           # they end up clawing at her heels at the ladder foot
         m, asp = mats[(vname, pose, i % 3)]
@@ -2776,7 +2779,7 @@ def build_crowd(C, M, face):
             # their spot at the ladder foot: to either side of it, so the low S04b lens sees her between them
             sgn = -1 if i % 2 else 1
             lx = TOWER_XY[0] + sgn * rnd.uniform(0.014, 0.034)
-            ly = TOWER_XY[1] - rnd.uniform(0.045, 0.075)
+            ly = TOWER_XY[1] - rnd.uniform(0.040, 0.062)     # not in the S04b lens (0.108, 0.040)
             gx, gy = lx, ly
             t = spawn + 0.25
             while t < CHASE_END:
@@ -2811,7 +2814,7 @@ def build_crowd(C, M, face):
             cx, cy = (sx, sy) if ((swarm or in_lens) and t > 33.0) else ((rx, ry) if in_run(t) else (gx, gy))
             if (swarm or in_lens) and 34.6 < t < 37.2:
                 # S12/S12b: they hang back a beat while she lands... then LUNGE in on her together
-                k = 1.6 if t < 35.8 else 0.55
+                k = 1.6 if t < 35.8 else 0.38
                 cx, cy = PIN_XY[0] + (sx - PIN_XY[0]) * k, PIN_XY[1] + 0.012 + (sy - PIN_XY[1] - 0.012) * k
             key_loc(o, f(t), (cx + rnd.uniform(-0.004, 0.004), cy + rnd.uniform(-0.004, 0.004), ROOF_Z))
             t += (0.25 if 34.6 < t < 37.2 else rnd.uniform(0.6, 1.0)) if 32.5 < t < 43 else rnd.uniform(1.2, 2.2)
@@ -3433,8 +3436,8 @@ def build_cameras(C):
         cd.dof.focus_object = bpy.data.objects.get(SHOT_FOCUS.get(sid, "")) or aim
         # at 1:60 scale f/1.4 blurs everything; f/2.8-4 still reads as tilt-shift miniature
         cd.dof.aperture_fstop = 8.0 if sid in ("S01a_door_burst", "S04a_run_climb", "S01b_door_bang", "S02b_chase_low", "S02c_look_back", "S03_lost_boot", "S15c_prize_tray", "S09a_false_hope", "S09b_hope_low", "S05_pile_topdown", "S12_impact", "S12b_surrounded", "S12c_grabbed", "S12d_pressed", "S13a_pinned", "S13c_hand_press", "S13b_pinned_face", "S17b_reset_loop") else 2.8
-        if sid in ("S09a_false_hope", "S09b_hope_low"):   # 85 mm / 35 mm a few cm from her: deep focus or she melts
-            cd.dof.aperture_fstop = 16.0
+        if sid in ("S09a_false_hope", "S09b_hope_low", "S12b_surrounded"):   # a few cm from her: deep focus or she melts
+            cd.dof.aperture_fstop = 22.0
         if sid == "S06_light_above":    # 3 cm from her: needs deep focus to keep face and the light above readable
             cd.dof.aperture_fstop = 22.0
         if sid == "S15_glass_reveal":   # rack DOF wider as we exit the glass
