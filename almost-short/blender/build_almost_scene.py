@@ -1818,9 +1818,9 @@ def dent_door(door):
     door.shape_key_add(name="Basis", from_mix=False)
     hx, hz = 0.012, 0.019
     # (centre x, centre z, radius, depth) in door-local metres; outside is -Y
-    blows = [[(0.003, 0.004, 0.0060, 0.0013)],
-             [(-0.004, -0.006, 0.0055, 0.0011), (0.003, 0.004, 0.0070, 0.0007)],
-             [(0.0, 0.0, 0.0110, 0.0022), (0.006, 0.011, 0.0045, 0.0008)]]
+    blows = [[(0.003, 0.008, 0.0065, 0.0022)],
+             [(-0.004, -0.004, 0.0060, 0.0019), (0.003, 0.008, 0.0075, 0.0010)],
+             [(0.0, 0.003, 0.0120, 0.0034), (0.006, 0.012, 0.0050, 0.0012)]]
     keys = []
     for k, dents in enumerate(blows):
         kb = door.shape_key_add(name=f"dent_{k}", from_mix=False)
@@ -2254,7 +2254,10 @@ def build_claw(C, M):
     glow = cyl("claw_neon_ring", 0.0205, 0.0015, (0, 0, 0.0285), M["neon_purple"], cl, verts=32)
     glow.parent = root
     pivots = []
-    for i, a in enumerate((90, 210, 330)):
+    # pivot +Y points along a+90 deg in plan, so the fingers sit at 0 / 120 / 240 deg: the S07-S10 cameras (about -62 deg)
+    # look into the gap between two fingers instead of straight down one (render2 check: a finger seen end-on read
+    # as a rod through the tank)
+    for i, a in enumerate((-90, 30, 150)):
         pv = empty(f"prong_pivot_{i}", (0, 0, 0.018), cl, "SINGLE_ARROW", 0.02)
         pv.parent = root
         pv.rotation_euler = (0, 0, math.radians(a))
