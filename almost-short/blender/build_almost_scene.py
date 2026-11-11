@@ -64,6 +64,7 @@ PIN_SQ_H = 0.0333
 PIN_SQ_Z = ROOF_Z + 0.002 - PIN_SQ_H * 52 / 512
 CHUTE_XY = (0.30, -0.30)   # prize chute (front-right, above the outside pickup door)
 RESET_S = 57.0
+DOOR_BANGS_S = (1.45, 1.85, 2.2)   # story seconds of the S01b bangs (hinge kicks, panel dents, lamp flicker)
 TIMER_START = 32           # overlay countdown hits 00:00 at 32 s, the moment her grip fails
 
 ASSET_DIR = None  # resolved in main()
@@ -1067,6 +1068,10 @@ def build_cabinet(C, M):
         box(name, size, loc, M["cab_trim"], cab)
     box("neon_top_front", (0.92, 0.012, 0.012), (0, -0.497, H - 0.06), M["neon_cyan"], cab)
     box("glass_top", (0.91, 0.91, 0.004), (0, 0, H - 0.004), M["glass"], cab)
+    # lit marquee header on the top front edge (tex_marquee_logo): reads as a claw machine in the S15 reveal
+    box("cab_marquee_back", (1.0, 0.05, 0.19), (0, -0.475, H + 0.095), M["cab_body"], cab)
+    box("cab_marquee", (0.94, 0.006, 0.15), (0, -0.503, H + 0.095), M["marquee"], cab)
+    box("cab_marquee_neon_t", (1.0, 0.012, 0.012), (0, -0.505, H + 0.186), M["neon_cyan"], cab)
     # magenta belt at the glass line, all four sides
     for name, size, loc in [("belt_front", (1.004, 0.012, 0.055), (0, -0.502, BED_Z - 0.005)),
                             ("belt_back", (1.004, 0.012, 0.055), (0, 0.502, BED_Z - 0.005)),
@@ -1121,7 +1126,18 @@ def build_cabinet(C, M):
     box("coin_slot_plate", (0.10, 0.012, 0.16), (0.22, -0.506, 0.84), M["coin_mech"], cab)
     box("coin_slot", (0.004, 0.012, 0.05), (0.22, -0.513, 0.87), M["black"], cab)
     box("coin_return", (0.04, 0.012, 0.025), (0.22, -0.513, 0.79), M["black"], cab)
-    box("led_timer", (0.16, 0.01, 0.05), (0.0, -0.505, H - 0.12), M["led_red"], cab)
+    # LED timer on the glass header: dark face with lit seven-segment "00:00" (a flat red slab read as a
+    # blank placeholder sign in the S15 reveal, render1 audit #43)
+    box("led_timer", (0.16, 0.01, 0.05), (0.0, -0.505, H - 0.12), M["black"], cab)
+    zc, yf, t = H - 0.12, -0.5108, 0.0035
+    for k, dx in enumerate((-0.054, -0.024, 0.024, 0.054)):
+        w, h = 0.020, 0.034
+        for sname, size, off in (("t", (w, 0.001, t), (0, h / 2)), ("b", (w, 0.001, t), (0, -h / 2)),
+                                 ("ul", (t, 0.001, h / 2), (-w / 2, h / 4)), ("ur", (t, 0.001, h / 2), (w / 2, h / 4)),
+                                 ("ll", (t, 0.001, h / 2), (-w / 2, -h / 4)), ("lr", (t, 0.001, h / 2), (w / 2, -h / 4))):
+            box(f"led_timer_d{k}_{sname}", size, (dx + off[0], yf, zc + off[1]), M["led_red"], cab)
+    for dz in (-0.007, 0.007):
+        box(f"led_timer_colon_{dz:+.3f}", (0.004, 0.001, 0.004), (0.0, yf, zc + dz), M["led_red"], cab)
     # lower front: speaker grille (left) and the prize pickup door (right)
     box("vent_grille_front", (0.17, 0.006, 0.17), (-0.30, -0.503, 0.24), M["vent_grille"], cab)
     box("vent_grille_frame", (0.19, 0.004, 0.19), (-0.30, -0.5005, 0.24), M["cab_trim"], cab)
@@ -1751,6 +1767,47 @@ def build_city_details(dio, M, buildings):
     return lit
 
 
+def dent_door(door):
+    """Each bang in S01 punches the steel panel further out (cumulative shape keys), it stays dented
+    through the burst-open, and snaps flat again on the loop reset."""
+    import bmesh
+    bm = bmesh.new()
+    bm.from_mesh(door.data)
+    bmesh.ops.subdivide_edges(bm, edges=bm.edges[:], cuts=14, use_grid_fill=True)
+    bm.to_mesh(door.data)
+    bm.free()
+    for poly in door.data.polygons:
+        poly.use_smooth = True
+    door.shape_key_add(name="Basis", from_mix=False)
+    hx, hz = 0.012, 0.019
+    # (centre x, centre z, radius, depth) in door-local metres; outside is -Y
+    blows = [[(0.003, 0.004, 0.0060, 0.0013)],
+             [(-0.004, -0.006, 0.0055, 0.0011), (0.003, 0.004, 0.0070, 0.0007)],
+             [(0.0, 0.0, 0.0110, 0.0022), (0.006, 0.011, 0.0045, 0.0008)]]
+    keys = []
+    for k, dents in enumerate(blows):
+        kb = door.shape_key_add(name=f"dent_{k}", from_mix=False)
+        for v, base in zip(kb.data, door.data.vertices):
+            x, z = base.co.x, base.co.z
+            edge = min(1.0, (hx - abs(x)) / 0.003) * min(1.0, (hz - abs(z)) / 0.003)   # rim stays in the frame
+            edge = max(0.0, edge)
+            d = sum(dep * math.exp(-((x - cx) ** 2 + (z - cz) ** 2) / (r * r)) for cx, cz, r, dep in dents)
+            v.co.y = base.co.y - d * edge
+        keys.append(kb)
+    R = f(RESET_S)
+    for kb, sec in zip(keys, DOOR_BANGS_S):
+        b = f(sec)
+        for fr, val in ((1, 0.0), (b - 1, 0.0), (b + 1, 1.25), (b + 3, 0.9), (b + 5, 1.0), (R - 1, 1.0), (R, 0.0)):
+            kb.value = val
+            kb.keyframe_insert("value", frame=fr)
+    ad = door.data.shape_keys.animation_data
+    if ad and ad.action:
+        for fc in fcurves_of(door.data.shape_keys):
+            for kp in fc.keyframe_points:
+                if int(kp.co.x) in (R - 1, R):
+                    kp.interpolation = "CONSTANT"
+
+
 def build_stairwell(dio, M, hero, roof_tiles):
     """Hollow stair shed + a real stairwell behind the rooftop door (1:60): the door frame opens onto a
     landing, a flight drops away from the door, turns at a half-landing and keeps going into the dark.
@@ -1935,6 +1992,7 @@ def build_diorama(C, M):
     hinge = empty("door_hinge", (DOOR_XY[0] - 0.012, DOOR_XY[1] - 0.001, ROOF_Z), dio)
     door = box("shed_door", (0.024, 0.002, 0.038), (0.012, 0, 0.019), M["door_green"], dio)
     door.parent = hinge
+    dent_door(door)
     wall_lamp("door_lamp", (DOOR_XY[0], DOOR_XY[1] - 0.0004, ROOF_Z + 0.0455), (0, -1), M, dio, light=None)   # lit by L_door_green
     for i, (x, y) in enumerate([(0.05, 0.17), (0.05, -0.10), (0.15, 0.0)]):
         box(f"ac_unit_{i}", (0.022, 0.016, 0.016), (x, y, ROOF_Z + 0.008), M["metal_dull"], dio)
@@ -1991,7 +2049,35 @@ def build_diorama(C, M):
     out = nt.nodes.new("ShaderNodeOutputMaterial")
     vol = nt.nodes.new("ShaderNodeVolumePrincipled")
     vol.inputs["Color"].default_value = (0.30, 0.42, 0.65, 1)
-    vol.inputs["Density"].default_value = 0.35
+    # density fades out toward the top and the side walls: a uniform box showed a hard horizontal
+    # edge across the backdrop print in S15 (render1 audit #40)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    sep = nt.nodes.new("ShaderNodeSeparateXYZ")
+    nt.links.new(tc.outputs["Generated"], sep.inputs[0])
+    fz = nt.nodes.new("ShaderNodeMapRange")
+    fz.interpolation_type = "SMOOTHERSTEP"
+    fz.inputs["From Min"].default_value, fz.inputs["From Max"].default_value = 1.0, 0.25
+    nt.links.new(sep.outputs["Z"], fz.inputs["Value"])
+    dens = fz.outputs["Result"]
+    for ax in ("X", "Y"):
+        d = nt.nodes.new("ShaderNodeMath")
+        d.operation = "PINGPONG"          # 0 at both walls, 0.5 in the middle
+        d.inputs[1].default_value = 0.5
+        nt.links.new(sep.outputs[ax], d.inputs[0])
+        fx = nt.nodes.new("ShaderNodeMapRange")
+        fx.interpolation_type = "SMOOTHSTEP"
+        fx.inputs["From Min"].default_value, fx.inputs["From Max"].default_value = 0.0, 0.12
+        nt.links.new(d.outputs[0], fx.inputs["Value"])
+        m = nt.nodes.new("ShaderNodeMath")
+        m.operation = "MULTIPLY"
+        nt.links.new(dens, m.inputs[0])
+        nt.links.new(fx.outputs["Result"], m.inputs[1])
+        dens = m.outputs[0]
+    k = nt.nodes.new("ShaderNodeMath")
+    k.operation = "MULTIPLY"
+    k.inputs[1].default_value = 0.42
+    nt.links.new(dens, k.inputs[0])
+    nt.links.new(k.outputs[0], vol.inputs["Density"])
     nt.links.new(vol.outputs["Volume"], out.inputs["Volume"])
     fog.data.materials.append(fm)
     fog.display_type = "WIRE"
@@ -2701,7 +2787,7 @@ def arcade_cabinet(ar, M, name, loc, rotz):
     parts = [
         box(f"{name}_body", (0.6, 0.7, 1.75), (0, 0, 0.875), M["arcade_side"], ar),
         box(f"{name}_screen", (0.48, 0.02, 0.40), (0, -0.33, 1.30), M["arcade_screen"], ar, rot=(math.radians(-15), 0, 0)),
-        box(f"{name}_marquee", (0.58, 0.04, 0.16), (0, -0.33, 1.68), M["neon_pink"], ar),
+        box(f"{name}_marquee", (0.58, 0.04, 0.16), (0, -0.33, 1.68), M["marquee_yellow" if sum(map(ord, name)) % 2 else "marquee_pink"], ar),
         box(f"{name}_deck", (0.6, 0.25, 0.06), (0, -0.45, 0.98), M["cab_trim"], ar, rot=(math.radians(-10), 0, 0)),
     ]
     parented(parts, root)
@@ -3144,6 +3230,12 @@ def build_lights(C):
     o = bpy.data.objects.new(L.name, L)
     o.location = (DOOR_XY[0], DOOR_XY[1] - 0.012, ROOF_Z + 0.046)
     lt.objects.link(o)
+    for sec in DOOR_BANGS_S:   # the door lamp stutters on every bang
+        b = f(sec)
+        for fr, e in ((b - 1, 0.04), (b + 1, 0.004), (b + 2, 0.07), (b + 4, 0.01), (b + 6, 0.04)):
+            L.energy = e
+            L.keyframe_insert("energy", frame=fr)
+    L.energy = 0.04
     # spotlight that "comes from heaven" in S06 (the claw's work light)
     L = bpy.data.lights.new("L_claw_spot", "SPOT")
     L.energy, L.color, L.spot_size = 3.0, (0.85, 0.92, 1.0), math.radians(25)
@@ -3246,7 +3338,7 @@ def build_materials():
         "plush_card":    mat("plush_card", (0.9, 0.6, 0.8), 0.7, 0, emit=(0.9, 0.6, 0.8), strength=0.6),
         "machine_pink":  mat("machine_pink", (0.95, 0.8, 0.9), 0.4, 0.1),
         "machine_yellow":mat("machine_yellow", (0.95, 0.7, 0.1), 0.4, 0.1),
-        "ceiling":       mat("ceiling", (0.02, 0.02, 0.025), 0.8, 0, emit=(0.02, 0.02, 0.025), strength=0.4),    # all lights point down: faint self-glow so the V7 ceiling art reads
+        "ceiling":       mat("ceiling", (0.02, 0.02, 0.025), 0.8, 0, emit=(0.02, 0.02, 0.025), strength=0.7),    # all lights point down: faint self-glow so the V7 ceiling art reads
         "lamp_shade":    mat("lamp_shade", (0.05, 0.05, 0.05), 0.4, 0.8),
         "wood":          mat("wood", (0.22, 0.15, 0.09), 0.85),
         "wood_old":      mat("wood_old", (0.10, 0.075, 0.05), 0.9),
@@ -3282,9 +3374,9 @@ def build_materials():
         "crate":         mat("crate", (0.22, 0.15, 0.09), 0.85),
         "glass":         mat("glass", (0.75, 0.85, 1.0), 0.02, 0.0, alpha=0.04),
         "acrylic":       mat("acrylic_base", (0.30, 0.36, 0.42), 0.12, 0.0, alpha=0.10),   # dark, mostly clear: read as a glint, not a white disc
-        "marquee":       mat("marquee", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=6),
-        "marquee_pink":  mat("marquee_pink", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=5),
-        "marquee_yellow":mat("marquee_yellow", (0.35, 0.25, 0.02), 0.4, 0, emit=(1.0, 0.8, 0.2), strength=5),
+        "marquee":       mat("marquee", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=1.8),
+        "marquee_pink":  mat("marquee_pink", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=1.6),
+        "marquee_yellow":mat("marquee_yellow", (0.35, 0.25, 0.02), 0.4, 0, emit=(1.0, 0.8, 0.2), strength=1.6),
         "neon_pink":     mat("neon_pink", (1.0, 0.2, 0.7), 0.3, 0, emit=(1.0, 0.2, 0.7), strength=5),
         "neon_cyan":     mat("neon_cyan", (0.1, 0.85, 1.0), 0.3, 0, emit=(0.05, 0.8, 1.0), strength=5),
         "led_red":       mat("led_red", (0.2, 0.0, 0.0), 0.4, 0, emit=(1.0, 0.05, 0.05), strength=8),
