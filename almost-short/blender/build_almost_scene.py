@@ -67,7 +67,7 @@ PIN_H = 0.0156             # (legacy 512x256 pin cells; unused since the v2 squa
 PIN_SQ_H = 0.0333
 PIN_SQ_Z = ROOF_Z + 0.002 - PIN_SQ_H * 52 / 512
 CHUTE_XY = (0.30, -0.30)   # prize chute (front-right, above the outside pickup door)
-PRIZE_TRAY = (0.30, -0.46, 0.19)   # where the dropped tower ends up, behind the outside pickup flap (scene thread's chute shaft)
+PRIZE_TRAY = (0.29, -0.45, 0.19)   # where the dropped tower ends up, behind the outside pickup flap (scene thread's chute shaft)
 RESET_S = 58.0             # story seconds (film 56 s)
 DOOR_BANGS_S = (1.45, 1.85, 2.2)   # story s: the horde hammers the door Rin slammed (S01b); shared with dent_door()
 TIMER_START = 32           # story seconds (film 30 s): overlay countdown hits 00:00 the moment her grip fails
@@ -264,7 +264,8 @@ SHOT_MID = {
     # get out of the cabinet fog fast: outside the glass by a quarter of the shot
     "S15_glass_reveal": [(0.25, (-0.15, -1.30, 1.55), (0.15, 0.05, 1.52))],
     # hold on the opening claw, then tilt down with the falling tower
-    "S15d_chute_drop": [(0.2, (0.398, -0.852, 1.62), (0.30, -0.30, 1.52)), (0.55, (0.393, -0.835, 1.55), (0.30, -0.30, 1.00))],
+    "S15d_chute_drop": [(0.2, (0.398, -0.852, 1.62), (0.30, -0.30, 1.52)), (0.38, (0.396, -0.845, 1.59), (0.30, -0.30, 1.38)),
+                        (0.48, (0.394, -0.840, 1.57), (0.30, -0.30, 1.14)), (0.6, (0.393, -0.835, 1.55), (0.30, -0.30, 1.00))],   # tilt keeps the falling tank in frame
 }
 
 
@@ -792,6 +793,39 @@ def key_visible(o, visible_ranges):
             o.keyframe_insert(prop, frame=b + 1)
         set_interp(o, "CONSTANT", prop)
     o.hide_viewport = False
+    for ch in o.children:             # the acrylic base is a child: hide it with its standee
+        if ch.name.endswith("_base"):
+            ch.animation_data_clear()
+            key_visible(ch, visible_ranges)
+
+
+# Close-ups where the clear acrylic bases read as glowing discs / pale ellipses on the tiles (host check 4)
+BASE_HIDDEN_SHOTS = ("S01a_door_burst", "S12_impact", "S12b_surrounded", "S12c_grabbed", "S12d_pressed",
+                     "S13a_pinned", "S13c_hand_press", "S13b_pinned_face")
+
+
+def hide_bases_in_close_shots():
+    for o in bpy.data.objects:
+        if not (o.name.endswith("_base") and o.parent and o.parent.constraints.get("Locked Track")):
+            continue
+        fcs = {fc.data_path: fc for fc in fcurves_of(o)} if o.animation_data else {}
+        for sid, a, b, *_ in SHOTS:
+            if sid not in BASE_HIDDEN_SHOTS:
+                continue
+            fa, fb = f(a), f(b)
+            for prop in ("hide_render", "hide_viewport"):
+                fc = fcs.get(prop)
+                after = bool(fc.evaluate(fb) > 0.5) if fc else bool(getattr(o, prop))
+                if fc:
+                    for i in reversed(range(len(fc.keyframe_points))):
+                        if fa <= fc.keyframe_points[i].co.x <= fb:
+                            fc.keyframe_points.remove(fc.keyframe_points[i])
+                setattr(o, prop, True)
+                o.keyframe_insert(prop, frame=fa)
+                setattr(o, prop, after)
+                o.keyframe_insert(prop, frame=fb)
+            set_interp(o, "CONSTANT")
+        o.hide_viewport = False
 
 
 # --------------------------------------------------------------------------
@@ -3020,10 +3054,14 @@ def build_crowd(C, M, face):
                 def ring_at(k):
                     return PIN_XY[0] + (sx - PIN_XY[0]) * k, PIN_XY[1] + 0.012 + (sy - PIN_XY[1] - 0.012) * k
                 d = rnd.uniform(-0.03, 0.03)                 # not all on exactly the same frame
-                for sec, k, hop in ((35.70, 1.6, 0.0), (35.79, 1.0, 0.0045), (35.86, 0.30, 0.0015), (35.92, 0.36, 0.0),
-                                    (36.05, 0.38, 0.0)):
+                # (sec, ring factor, hop height, squash): crouch -> stretch into the leap -> land squashed -> settle
+                for sec, k, hop, sq in ((35.60, 1.6, 0.0, 1.0), (35.70, 1.65, 0.0, 0.80), (35.76, 1.25, 0.010, 1.14),
+                                        (35.82, 0.75, 0.013, 1.10), (35.88, 0.30, 0.0, 0.84), (35.96, 0.34, 0.0, 1.04),
+                                        (36.05, 0.38, 0.0, 1.0)):
                     px, py = ring_at(k)
                     key_loc(o, f(sec + d), (px, py, ROOF_Z + hop))
+                    o.scale = (1.0 / math.sqrt(sq), 1.0, sq)
+                    o.keyframe_insert("scale", frame=f(sec + d))
                 t = 36.3
                 continue
             key_loc(o, f(t), (cx + rnd.uniform(-0.004, 0.004), cy + rnd.uniform(-0.004, 0.004), ROOF_Z))
@@ -3846,6 +3884,7 @@ def main():
     face = empty("FACE_TARGET", SHOTS[0][4], coll("CAMERAS", C["root"]), "SPHERE", 0.004)
     build_characters(C, M, face, tower)
     crowd = build_crowd(C, M, face)
+    hide_bases_in_close_shots()
     build_arcade_room(C, M)
     print("arcade detail objects:", build_arcade_details(bpy.data.collections["ARCADE_ROOM"], M))
     # S17a coin close-up: the chrome coin plate only mirrors the dark room, so give it a soft key light
