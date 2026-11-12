@@ -2849,7 +2849,9 @@ def build_characters(C, M, face, tower_root):
         if bs:   # Nova is a real person, not an acrylic print: no milky sheen under the arcade lights up close
             bs.inputs["Roughness"].default_value = 0.85
             bs.inputs["Specular IOR Level"].default_value = 0.15
-            bs.inputs["Emission Strength"].default_value = 0.35   # the art's own colours win over the cyan/magenta arcade light
+            bs.inputs["Emission Strength"].default_value = 0.6    # the art's own colours win over the cyan/magenta arcade light
+            if hasattr(o.data.materials[0], "surface_render_method"):
+                o.data.materials[0].surface_render_method = "BLENDED"   # true soft alpha; dithered alpha stair-steps up close
             mr = next((n for n in o.data.materials[0].node_tree.nodes if n.type == "MAP_RANGE"), None)
             if mr:   # keep the soft (feathered) alpha edge up close instead of firming it into stair steps
                 mr.inputs["From Max"].default_value = 1.0
@@ -2867,7 +2869,10 @@ def build_characters(C, M, face, tower_root):
 # Rin's ground track through Act 1 (story s): out of the door, backing off, the chase run, the trip.
 # The crowd's chasers follow it with a lag, so the horde visibly runs after her.
 RIN_TRACK = [(0.0, (-0.110, 0.118)), (0.25, (-0.109, 0.108)), (0.55, (-0.110, 0.088)), (0.625, (-0.119, 0.073)), (0.71, (-0.133, 0.080)),
-             (0.79, (-0.124, 0.088)),   # round the open leaf's free end (y 0.080), never through it (0.92, (-0.114, 0.092)), (1.15, (-0.105, 0.085)),   # hinge side: she shoves the leaf shut toward +X (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
+             # S01a: round the open leaf's free end (y 0.080), never through it, then on the hinge side
+             # she shoves the leaf shut toward +X
+             (0.79, (-0.124, 0.088)), (0.92, (-0.114, 0.092)), (1.15, (-0.105, 0.085)),
+             (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
              (4.0, (-0.045, 0.027)), (5.0, (-0.015, 0.008)), (6.0, (0.025, 0.030)),
              (6.7, (TOWER_XY[0] - 0.040, TOWER_XY[1] - 0.090)), (7.3, (TOWER_XY[0], TOWER_XY[1] - 0.052)),
              (9.8, (TOWER_XY[0], TOWER_XY[1] - 0.052)), (10.3, (TOWER_XY[0], TOWER_XY[1] - 0.043))]
