@@ -1170,10 +1170,13 @@ def build_cabinet(C, M):
     box("ctrl_box", (0.34, 0.16, 0.13), (-0.17, -0.575, 0.835), M["cab_trim"], cab)
     box("ctrl_box_top", (0.32, 0.14, 0.004), (-0.17, -0.575, 0.902), M["control_panel"], cab)
     box("joystick_plate", (0.07, 0.07, 0.004), (-0.25, -0.58, 0.905), M["black"], cab)
-    cyl("joystick_shaft", 0.007, 0.07, (-0.25, -0.58, 0.94), M["chrome"], cab, verts=12)
-    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.022, location=(-0.25, -0.58, 0.98))
+    shaft = cyl("joystick_shaft", 0.007, 0.07, (-0.25, -0.58, 0.94), M["chrome"], cab, verts=32)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=0.022, segments=64, ring_count=32, location=(-0.25, -0.58, 0.98))
     ball = bpy.context.active_object
     ball.name = "joystick_ball"
+    for o in (ball, shaft):     # S15n macro close-up: no visible facets
+        for poly in o.data.polygons:
+            poly.use_smooth = True
     ball.data.materials.append(M["red_glossy"])
     link(ball, cab)
     cyl("button_bezel", 0.036, 0.012, (-0.08, -0.58, 0.908), M["cab_trim"], cab, verts=32)
@@ -1198,8 +1201,8 @@ def build_cabinet(C, M):
     box("vent_grille_front", (0.17, 0.006, 0.17), (-0.30, -0.503, 0.24), M["vent_grille"], cab)
     box("vent_grille_frame", (0.19, 0.004, 0.19), (-0.30, -0.5005, 0.24), M["cab_trim"], cab)
     # pickup door frame: four bars round the opening (build_prize_chute cuts the pocket behind it)
-    for nm, size, off in (("t", (0.21, 0.008, 0.02), (0, 0.075)), ("b", (0.21, 0.008, 0.02), (0, -0.075)),
-                          ("l", (0.02, 0.008, 0.17), (-0.095, 0)), ("r", (0.02, 0.008, 0.17), (0.095, 0))):
+    for nm, size, off in (("t", (0.24, 0.008, 0.02), (0, 0.075)), ("b", (0.24, 0.008, 0.02), (0, -0.075)),
+                          ("l", (0.02, 0.008, 0.17), (-0.11, 0)), ("r", (0.02, 0.008, 0.17), (0.11, 0))):
         box(f"prize_door_frame_{nm}", size, (CHUTE_XY[0] + off[0], -0.504, 0.24 + off[1]), M["cab_trim"], cab)
     box("prize_tray", (0.16, 0.10, 0.02), (CHUTE_XY[0], -0.46, 0.175), M["cab_trim"], cab)
     # tiny single boots in the prize tray: earlier failed rounds (dark-humour clue)
@@ -1935,7 +1938,7 @@ def build_prize_chute(C, M):
         box(f"prize_chute_rim_{nm}", rim, (cx + off[0], cy + off[1], BED_Z + 0.005 + gh), M["neon_cyan"], cab)
     # pickup opening: a real cavity in the cabinet front (S15c looks in at the tower lying in the tray)
     px, pz0, pz1, py0, py1 = cx, 0.175, 0.305, -0.52, -0.37
-    pw = 0.17
+    pw = 0.20      # tower lying in the tray is ~0.15 long: keep clear of both side walls
     pocket = box("pickup_cutter", (pw, py1 - py0, pz1 - pz0), (px, (py0 + py1) / 2, (pz0 + pz1) / 2), M["black"], cab)
     ob = bpy.data.objects["cab_body"]
     mod = ob.modifiers.new("pickup_pocket", "BOOLEAN")
@@ -1964,6 +1967,14 @@ def build_prize_chute(C, M):
     L.energy, L.color, L.shadow_soft_size = 6.0, (1.0, 0.75, 0.45), 0.03
     lo = bpy.data.objects.new(L.name, L)
     lo.location = (px, -0.42, pz1 - 0.02)
+    cab.objects.link(lo)
+    # soft cool fill on the lower cabinet front: S15c looks at it from knee height and every arcade light
+    # points down at the floor, so the casing round the pickup went pure black (render4 check)
+    L = bpy.data.lights.new("L_cab_front_low", "AREA")
+    L.energy, L.color, L.size = 25.0, (0.55, 0.7, 1.0), 0.6
+    lo = bpy.data.objects.new(L.name, L)
+    lo.location = (0.35, -1.15, 0.45)
+    lo.rotation_euler = (math.radians(90), 0, 0)     # area light faces -Z by default: turn it to face +Y (the cabinet)
     cab.objects.link(lo)
     # black void just below the lip so the shaft reads as deep even under the arcade lights
     box("chute_void", (CHUTE_HOLE, CHUTE_HOLE, 0.002), (cx, cy, BED_Z - 0.12), M["black"], cab)
