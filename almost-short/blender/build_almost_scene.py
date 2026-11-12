@@ -162,7 +162,8 @@ SPRITE_FALLBACK = {"rin_door_slam": "rin_burst_door", "rin_burst_door": "rin_run
 SHEET_SCALE = {
     "rin_backing_away": 1.17, "rin_boot_grab": 1.5, "rin_climb_back": 1.12, "rin_cling_scared": 0.88,
     "rin_look_up": 0.97, "rin_slip_shock": 1.2, "rin_falling": 1.17, "rin_impact": 1.12,
-    "rin_burst_door": 1.17, "rin_door_slam": 1.17, "rin_run_chase": 1.17, "rin_look_back": 1.17,
+    "rin_burst_door": 1.17, "rin_door_slam": 0.96,   # square 512 cells, figure ~410 px tall (run sheets: ~335 of 512)
+    "rin_run_chase": 1.17, "rin_look_back": 1.17,
 }
 ZOMBIE_ANIM = {
     "walk":  (4, 2, 8, 12, "loop"),
@@ -2757,7 +2758,7 @@ def build_characters(C, M, face, tower_root):
     # so the 3D control it replaces is hidden for that shot. No art yet -> the shot just shows the keyed 3D controls.
     for name, sid, base_xyz, h, hide in (
             ("nova_joystick_hand", "S15n_nova_joystick", (-0.25, -0.58, 0.905), 0.26, ("joystick_ball", "joystick_shaft")),
-            ("nova_button_slam", "S15m_nova_button", (-0.08, -0.58, 0.902), 0.30, ("button_grab", "button_bezel"))):
+            ("nova_button_slam", "S15m_nova_button", (-0.08, -0.58, 0.872), 0.30, ("button_grab", "button_bezel"))):   # card sunk 3 cm: the drawn bezel's front edge sits in front of the card plane
         if not os.path.isfile(os.path.join(ASSET_DIR, name + "_sheet.png")):
             continue
         o = sprite(name, name + ".png", h, base_xyz, ch, face, NOVA, shape="hand")
