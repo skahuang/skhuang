@@ -2547,7 +2547,7 @@ def animate_story(rig):
     # S01a (2 s), frame-locked to the rin_door_slam cells (film frames; S01a is before any STORY_MAP stretch):
     # a first shoulder hit rattles it (f6), the second bursts it open (f13, cell 1) and it bangs into the wall,
     # she stumbles out, spins back to the hinge side and shoves the leaf shut with her fists (cells 7-8, f19-22), slam on f23
-    for fr, deg in ((1, 0), (5, 0), (6, -6), (8, 0), (13, -20), (15, -128), (18, -100), (26, -107),
+    for fr, deg in ((1, 0), (5, 0), (6, -13), (7, -4), (8, -9), (10, 0), (13, -20), (15, -128), (18, -100), (26, -107),
                     (33, -104), (35, -95), (38, -55), (40, -12), (41, 0), (43, -3), (45, 0)):
         key_rot(hinge, fr, (0, 0, math.radians(deg)))
     for sec in DOOR_BANGS_S:
@@ -2972,7 +2972,7 @@ PRESS_THUMPS = {
     "S13a_pinned":  [(4, 0.8), (31, 1.0)],
     "S13c_hand_press": [(1, 0.7), (5, 1.0)],      # the slam, then the hard press of cell 3
     "S14_pullback": [(4, 0.6), (13, 0.4)],
-    "S01a_door_burst": [(12, 1.0), (40, 0.8)],      # shoulder bursts the door open, then she heaves it shut
+    "S01a_door_burst": [(5, 0.9), (12, 1.0), (40, 0.8)],   # first shoulder hit rattles the lens too      # shoulder bursts the door open, then she heaves it shut
     "S15m_nova_button": [(5, 9.0)],                # real-world scale: the palm slam (k scales the 1:60 amplitude)
 }
 THUMP_AMP = 0.0007
@@ -3787,6 +3787,10 @@ def build_cameras(C):
             cd.dof.aperture_fstop = 22.0
         if sid == "S06_light_above":    # 3 cm from her: needs deep focus to keep face and the light above readable
             cd.dof.aperture_fstop = 22.0
+        if sid == "S02_establish":      # the burst-through beat: deep focus so the door AND the horde pouring out read
+            for fr, stop in ((f(3.0), 22.0), (f(3.45), 22.0), (f(3.8), 2.8)):
+                cd.dof.aperture_fstop = stop
+                cd.dof.keyframe_insert("aperture_fstop", frame=fr)
         if sid == "S01a_door_burst":    # f/8 at the loop seam, then deep focus so her fists AND the door leaf are sharp
             for fr, stop in ((f(1.04), 8.0), (f(1.46), 22.0)):
                 cd.dof.aperture_fstop = stop
