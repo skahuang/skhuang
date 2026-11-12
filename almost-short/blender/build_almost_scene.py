@@ -69,7 +69,7 @@ PIN_SQ_Z = ROOF_Z + 0.002 - PIN_SQ_H * 52 / 512
 CHUTE_XY = (0.30, -0.30)   # prize chute (front-right, above the outside pickup door)
 PRIZE_TRAY = (0.29, -0.45, 0.19)   # where the dropped tower ends up, behind the outside pickup flap (scene thread's chute shaft)
 RESET_S = 58.0             # story seconds (film 56 s)
-DOOR_BANGS_S = (1.45, 1.85, 2.2)   # story s: the horde hammers the door Rin slammed (S01b); shared with dent_door()
+DOOR_BANGS_S = (2.22, 2.52, 2.8)   # story s: the horde hammers the door Rin slammed (S01b); shared with dent_door()
 TIMER_START = 32           # story seconds (film 30 s): overlay countdown hits 00:00 the moment her grip fails
 
 ASSET_DIR = None  # resolved in main()
@@ -147,8 +147,8 @@ TIMING = {
     "pin_face_closeup": [(i, 4) for i in range(1, 13)],                                                       # 48 = S13b
     "nova_profile_almost": [(1, 6), (2, 6), (3, 6), (4, 6), (5, 8), (6, 8), (7, 8), (8, 8), (9, 6), (10, 6), (11, 6), (12, 10)],  # 84 = S16
     "nova_hand_coin":   [(1, 4), (2, 4), (3, 4), (4, 6), (5, 8), (6, 6), (7, 6), (8, 10)],                     # 48 = S17a
-    # S01a, frame-locked to the door keys in animate_story: cell 1 on the burst (film f7), cell 9 on the slam (f23)
-    "rin_door_slam":    [(1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2), (8, 2), (9, 2), (10, 2), (11, 2), (12, 1)],   # 23
+    # S01a, frame-locked to the door keys in animate_story: cell 1 on the burst (film f13), cell 9 on the slam (f41)
+    "rin_door_slam":    [(1, 3), (2, 3), (3, 4), (4, 4), (5, 5), (6, 3), (7, 3), (8, 3), (9, 3), (10, 3), (11, 2), (12, 1)],   # 37: f13-49
     # S15n: cells 2-3 nudge left, 5-6 nudge forward (claw keys follow), 8 lets go = 17 frames
     "nova_joystick_hand": [(1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2), (8, 3)],
     # S15m: cell 3 = impact on frame 5 of the shot (thump + 3D button travel on the same frame) = 12 frames
@@ -191,11 +191,11 @@ def f(sec):
 SHOTS = [
     # ---- Act 1: trapped (0-15 s)
     # S01a: the door flies open and Rin bursts out straight at the lens (rin_burst_door)
-    ("S01a_door_burst",   0.0,  1.2, 35, (-0.092, 0.040, 1.108), (-0.106, 0.046, 1.109), (-0.106, 0.092, 1.114), (-0.117, 0.089, 1.112)),   # stays on her at the door through the slam
+    ("S01a_door_burst",   0.0,  2.0, 35, (-0.092, 0.040, 1.108), (-0.106, 0.046, 1.109), (-0.106, 0.092, 1.114), (-0.111, 0.089, 1.112)),   # stays on her at the door through the slam
     # S01b: she has slammed it behind her; fingers squirm out of the gap, she backs off in the foreground
-    ("S01b_door_bang",    1.2,  2.5, 50, (-0.052, -0.025, 1.114), (-0.060, -0.010, 1.116), (-0.101, 0.107, 1.124), (-0.101, 0.107, 1.122)),   # ~21 deg off-axis so the dents read; fingers centred
+    ("S01b_door_bang",    2.0,  3.0, 50, (-0.052, -0.025, 1.114), (-0.060, -0.010, 1.116), (-0.101, 0.107, 1.124), (-0.101, 0.107, 1.122)),   # ~21 deg off-axis so the dents read; fingers centred
     # S02: medium crane-down as the door bursts and the horde pours out after her (was a static wide)
-    ("S02_establish",     2.5,  4.0, 35, (0.000, -0.020, 1.140), (0.010, -0.030, 1.135), (-0.062, 0.046, 1.115), (-0.045, 0.027, 1.115)),   # on her as she backs off, the horde bursting out behind
+    ("S02_establish",     3.0,  4.0, 35, (0.000, -0.020, 1.140), (0.010, -0.030, 1.135), (-0.062, 0.046, 1.115), (-0.045, 0.027, 1.115)),   # on her as she backs off, the horde bursting out behind
     # S02b: low tracking shot ahead of her as she runs, zombies chasing behind (rin_run_chase)
     ("S02b_chase_low",    4.0,  5.0, 24, (-0.011, 0.007, 1.106), (0.019, -0.012, 1.106), (-0.045, 0.027, 1.110), (-0.015, 0.008, 1.110)),
     # S02c: close-up, she looks back over her shoulder at the horde closing in (rin_look_back)
@@ -265,9 +265,11 @@ SHOT_MID = {
     "S17b_reset_loop": [(0.6, (0.006, -0.046, 1.115), (0.0, -0.01, 1.112)),
                         (0.88, (-0.092, 0.040, 1.108), (-0.106, 0.092, 1.114))],   # whip done early: the door settles for the seam
     # follow her round the open leaf to the hinge side and hold on her shoving it shut (start frame = loop seam, untouched)
-    "S01a_door_burst": [(0.4, (-0.094, 0.041, 1.108), (-0.108, 0.088, 1.113)), (0.55, (-0.106, 0.043, 1.108), (-0.129, 0.080, 1.112)),
-                        (0.68, (-0.108, 0.044, 1.109), (-0.120, 0.086, 1.112)),   # door leaf + her fists both in frame
-                        (0.8, (-0.107, 0.045, 1.109), (-0.119, 0.090, 1.112))],
+    "S01a_door_burst": [(0.44, (-0.094, 0.041, 1.108), (-0.108, 0.088, 1.113)),
+                        (0.62, (-0.100, 0.034, 1.109), (-0.117, 0.076, 1.112)),   # step back as she comes at the lens
+                        (0.69, (-0.105, 0.038, 1.109), (-0.127, 0.081, 1.112)),   # round the leaf's free end
+                        (0.77, (-0.108, 0.043, 1.109), (-0.120, 0.087, 1.112)),   # door leaf + her fists both in frame
+                        (0.85, (-0.106, 0.045, 1.109), (-0.112, 0.090, 1.112))],   # palms on the door stay in frame
     # get out of the cabinet fog fast: outside the glass by a quarter of the shot
     "S15_glass_reveal": [(0.25, (-0.15, -1.30, 1.55), (0.15, 0.05, 1.52))],
     # hold on the opening claw, then tilt down with the falling tower
@@ -2542,17 +2544,17 @@ def animate_story(rig):
     tx, ty = TOWER_XY
     R = f(RESET_S)
     # ---- door: bangs in S01, bursts open at 2.5 s, shuts again on reset
-    # S01a, frame-locked to the rin_door_slam cells (film frames; S01a is before any STORY_MAP stretch):
-    # a first shoulder hit rattles it (f4), the second bursts it open (f7, cell 1) and it bangs into the wall,
+    # S01a (2 s), frame-locked to the rin_door_slam cells (film frames; S01a is before any STORY_MAP stretch):
+    # a first shoulder hit rattles it (f6), the second bursts it open (f13, cell 1) and it bangs into the wall,
     # she stumbles out, spins back to the hinge side and shoves the leaf shut with her fists (cells 7-8, f19-22), slam on f23
-    for fr, deg in ((1, 0), (3, 0), (4, -6), (6, 0), (7, -20), (9, -128), (12, -100), (16, -107),
-                    (18, -95), (20, -55), (22, -12), (23, 0), (25, -3), (27, 0)):
+    for fr, deg in ((1, 0), (5, 0), (6, -6), (8, 0), (13, -20), (15, -128), (18, -100), (26, -107),
+                    (33, -104), (35, -95), (38, -55), (40, -12), (41, 0), (43, -3), (45, 0)):
         key_rot(hinge, fr, (0, 0, math.radians(deg)))
     for sec in DOOR_BANGS_S:
         key_rot(hinge, f(sec), (0, 0, math.radians(-8)))
         key_rot(hinge, f(sec) + 3, (0, 0, 0))
-    key_rot(hinge, f(2.5), (0, 0, 0))
-    key_rot(hinge, f(2.75), (0, 0, math.radians(-115)))
+    key_rot(hinge, f(3.0), (0, 0, 0))                        # the horde bursts it open (S02)
+    key_rot(hinge, f(3.25), (0, 0, math.radians(-115)))
     key_rot(hinge, R - 1, (0, 0, math.radians(-115)))
     key_rot(hinge, R, (0, 0, 0))
     set_interp(hinge, "CONSTANT")
@@ -2696,7 +2698,7 @@ def build_characters(C, M, face, tower_root):
     # stumbling faster at the end so the S03 fall reads as a trip
     ba = rin["rin_backing_away"]
     for sec, xy in RIN_TRACK:
-        if 1.2 <= sec <= 4.0:
+        if 2.0 <= sec <= 4.0:
             key_loc(ba, f(sec), (xy[0], xy[1], ROOF_Z))
     set_interp(ba, "LINEAR", "location")
     # S01a burst, S02b chase run, S02c look-back: new sheets; until they land, the ladder run stands in
@@ -2710,8 +2712,8 @@ def build_characters(C, M, face, tower_root):
         o = sprite(name, name + ".png", RIN_H * SHEET_SCALE.get(key, 1.0) / SHEET_SCALE.get(name, 1.0), (0, 0, ROOF_Z),
                    ch, face, RIN, aspect=asp, base_mat=base, material=m)
         a, b = shot_rng[sid]
-        if name == "rin_door_slam":      # behind the shut door until it bursts open on f7 (loop seam stays clean)
-            a = f(0.25)
+        if name == "rin_door_slam":      # behind the shut door until it bursts open on f13 (loop seam stays clean)
+            a = f(0.5)
         key_visible(o, [(a, b)])
         animate_sheet(m, [(a, b)], 0, TIMING.get(key), False)
         lo, hi = story_to_film((a - 1) / FPS), story_to_film(b / FPS)
@@ -2868,11 +2870,11 @@ def build_characters(C, M, face, tower_root):
 
 # Rin's ground track through Act 1 (story s): out of the door, backing off, the chase run, the trip.
 # The crowd's chasers follow it with a lag, so the horde visibly runs after her.
-RIN_TRACK = [(0.0, (-0.110, 0.118)), (0.25, (-0.109, 0.108)), (0.55, (-0.110, 0.088)), (0.625, (-0.119, 0.073)), (0.71, (-0.133, 0.080)),
+RIN_TRACK = [(0.0, (-0.110, 0.118)), (0.5, (-0.109, 0.108)), (0.875, (-0.110, 0.088)), (1.04, (-0.111, 0.087)),
              # S01a: round the open leaf's free end (y 0.080), never through it, then on the hinge side
-             # she shoves the leaf shut toward +X
-             (0.79, (-0.124, 0.088)), (0.92, (-0.114, 0.092)), (1.15, (-0.105, 0.085)),
-             (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
+             # she shoves the leaf shut toward +X (slam f41), then backs off
+             (1.25, (-0.119, 0.073)), (1.375, (-0.133, 0.080)), (1.54, (-0.124, 0.088)), (1.67, (-0.114, 0.092)),
+             (1.96, (-0.105, 0.085)), (2.0, (-0.072, 0.066)), (3.0, (-0.062, 0.046)),
              (4.0, (-0.045, 0.027)), (5.0, (-0.015, 0.008)), (6.0, (0.025, 0.030)),
              (6.7, (TOWER_XY[0] - 0.040, TOWER_XY[1] - 0.090)), (7.3, (TOWER_XY[0], TOWER_XY[1] - 0.052)),
              (9.8, (TOWER_XY[0], TOWER_XY[1] - 0.052)), (10.3, (TOWER_XY[0], TOWER_XY[1] - 0.043))]
@@ -2965,12 +2967,12 @@ PRESS_THUMPS = {
     "S03_lost_boot":  [(1, 1.0), (30, 0.6), (44, 0.8)],       # dragged off the ladder, the pull, the boot rips off
     "S04b_climb_escape": [(12, 0.7)],                          # yanked once more before she climbs clear
     "S12b_surrounded": [(9, 1.2)],                             # the horde lands on her (pounce keys in build_crowd)
-    "S01b_door_bang": [(f(sec) - f(1.2) + 1, 0.8) for sec in DOOR_BANGS_S],   # each bang jolts the lens
+    "S01b_door_bang": [(f(sec) - f(2.0) + 1, 0.8) for sec in DOOR_BANGS_S],   # each bang jolts the lens
     "S12d_pressed": [(11, 1.0)],
     "S13a_pinned":  [(4, 0.8), (31, 1.0)],
     "S13c_hand_press": [(1, 0.7), (5, 1.0)],      # the slam, then the hard press of cell 3
     "S14_pullback": [(4, 0.6), (13, 0.4)],
-    "S01a_door_burst": [(7, 1.0), (23, 0.8)],      # shoulder bursts the door open, then she heaves it shut
+    "S01a_door_burst": [(12, 1.0), (40, 0.8)],      # shoulder bursts the door open, then she heaves it shut
     "S15m_nova_button": [(5, 9.0)],                # real-world scale: the palm slam (k scales the 1:60 amplitude)
 }
 THUMP_AMP = 0.0007
@@ -3075,7 +3077,7 @@ def build_crowd(C, M, face):
     n, CHASERS = 48, 12
     for i in range(n):
         vname, _ = variants[i % 4]
-        spawn = 2.5 + (i / n) * 11.5 if i >= CHASERS else 2.5 + 0.12 * i
+        spawn = 3.0 + (i / n) * 11.0 if i >= CHASERS else 3.0 + 0.12 * i
         if 5.0 < spawn < RUN_WINDOW[1]:   # nobody crosses her S04 run on the way out: they surge out after it
             spawn = RUN_WINDOW[1] + (spawn - 5.0) * 0.25
         ang = rnd.uniform(0, math.tau)
@@ -3786,7 +3788,7 @@ def build_cameras(C):
         if sid == "S06_light_above":    # 3 cm from her: needs deep focus to keep face and the light above readable
             cd.dof.aperture_fstop = 22.0
         if sid == "S01a_door_burst":    # f/8 at the loop seam, then deep focus so her fists AND the door leaf are sharp
-            for fr, stop in ((f(0.5), 8.0), (f(0.74), 22.0)):
+            for fr, stop in ((f(1.04), 8.0), (f(1.46), 22.0)):
                 cd.dof.aperture_fstop = stop
                 cd.dof.keyframe_insert("aperture_fstop", frame=fr)
         if sid == "S15_glass_reveal":   # rack DOF wider as we exit the glass
