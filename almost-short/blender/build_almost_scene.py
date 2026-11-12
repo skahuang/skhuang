@@ -191,7 +191,7 @@ def f(sec):
 SHOTS = [
     # ---- Act 1: trapped (0-15 s)
     # S01a: the door flies open and Rin bursts out straight at the lens (rin_burst_door)
-    ("S01a_door_burst",   0.0,  1.2, 35, (-0.092, 0.040, 1.108), (-0.090, 0.046, 1.109), (-0.106, 0.092, 1.114), (-0.114, 0.090, 1.112)),   # stays on her at the door through the slam
+    ("S01a_door_burst",   0.0,  1.2, 35, (-0.092, 0.040, 1.108), (-0.106, 0.046, 1.109), (-0.106, 0.092, 1.114), (-0.117, 0.089, 1.112)),   # stays on her at the door through the slam
     # S01b: she has slammed it behind her; fingers squirm out of the gap, she backs off in the foreground
     ("S01b_door_bang",    1.2,  2.5, 50, (-0.052, -0.025, 1.114), (-0.060, -0.010, 1.116), (-0.101, 0.107, 1.124), (-0.101, 0.107, 1.122)),   # ~21 deg off-axis so the dents read; fingers centred
     # S02: medium crane-down as the door bursts and the horde pours out after her (was a static wide)
@@ -264,6 +264,10 @@ SHOT_MID = {
     # hold on Rin looking up into the lens, then whip back to the door for the loop
     "S17b_reset_loop": [(0.6, (0.006, -0.046, 1.115), (0.0, -0.01, 1.112)),
                         (0.88, (-0.092, 0.040, 1.108), (-0.106, 0.092, 1.114))],   # whip done early: the door settles for the seam
+    # follow her round the open leaf to the hinge side and hold on her shoving it shut (start frame = loop seam, untouched)
+    "S01a_door_burst": [(0.4, (-0.094, 0.041, 1.108), (-0.108, 0.088, 1.113)), (0.55, (-0.106, 0.043, 1.108), (-0.129, 0.080, 1.112)),
+                        (0.68, (-0.108, 0.044, 1.109), (-0.120, 0.086, 1.112)),   # door leaf + her fists both in frame
+                        (0.8, (-0.107, 0.045, 1.109), (-0.119, 0.090, 1.112))],
     # get out of the cabinet fog fast: outside the glass by a quarter of the shot
     "S15_glass_reveal": [(0.25, (-0.15, -1.30, 1.55), (0.15, 0.05, 1.52))],
     # hold on the opening claw, then tilt down with the falling tower
@@ -2835,9 +2839,9 @@ def build_characters(C, M, face, tower_root):
     for name, sid, base_xyz, h, hide in (
             ("nova_joystick_hand", "S15n_nova_joystick", (-0.25, -0.58, 0.905), 0.26, ("joystick_ball", "joystick_shaft")),
             # topi: the button should be the MODELLED one -> hand-only sheet, the 3D button stays and presses.
-            # The card sits 4.5 cm toward the lens (along the view line, so it frames the same) so her
-            # fingertips are in front of the button's near half, and shrinks to keep the same screen size.
-            ("nova_button_hand", "S15m_nova_button", (-0.059, -0.613, 0.894), 0.264, ())):
+            # The card sits 3 cm toward the lens (just in front of the dome's near edge, r 2.8 cm) and 1.2 cm
+            # higher, so her palm lands ON the dome top (~0.928), not on the bezel's front edge.
+            ("nova_button_hand", "S15m_nova_button", (-0.066, -0.602, 0.899), 0.276, ())):
         if not os.path.isfile(os.path.join(ASSET_DIR, name + "_sheet.png")):
             continue
         o = sprite(name, name + ".png", h, base_xyz, ch, face, NOVA, shape="hand")
@@ -2845,6 +2849,7 @@ def build_characters(C, M, face, tower_root):
         if bs:   # Nova is a real person, not an acrylic print: no milky sheen under the arcade lights up close
             bs.inputs["Roughness"].default_value = 0.85
             bs.inputs["Specular IOR Level"].default_value = 0.15
+            bs.inputs["Emission Strength"].default_value = 0.04   # less self-glow: no whitish hand, sleeve keeps its purple
         rng = [shot_rng[sid]]
         key_visible(o, rng)
         animate_named(o, name, rng)
@@ -2858,8 +2863,8 @@ def build_characters(C, M, face, tower_root):
 
 # Rin's ground track through Act 1 (story s): out of the door, backing off, the chase run, the trip.
 # The crowd's chasers follow it with a lag, so the horde visibly runs after her.
-RIN_TRACK = [(0.0, (-0.110, 0.118)), (0.25, (-0.109, 0.108)), (0.55, (-0.110, 0.088)), (0.62, (-0.112, 0.088)), (0.70, (-0.117, 0.087)),
-             (0.80, (-0.121, 0.088)), (0.92, (-0.114, 0.092)), (1.15, (-0.105, 0.085)),   # hinge side: she shoves the leaf shut toward +X (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
+RIN_TRACK = [(0.0, (-0.110, 0.118)), (0.25, (-0.109, 0.108)), (0.55, (-0.110, 0.088)), (0.625, (-0.119, 0.073)), (0.71, (-0.133, 0.080)),
+             (0.79, (-0.124, 0.088)),   # round the open leaf's free end (y 0.080), never through it (0.92, (-0.114, 0.092)), (1.15, (-0.105, 0.085)),   # hinge side: she shoves the leaf shut toward +X (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
              (4.0, (-0.045, 0.027)), (5.0, (-0.015, 0.008)), (6.0, (0.025, 0.030)),
              (6.7, (TOWER_XY[0] - 0.040, TOWER_XY[1] - 0.090)), (7.3, (TOWER_XY[0], TOWER_XY[1] - 0.052)),
              (9.8, (TOWER_XY[0], TOWER_XY[1] - 0.052)), (10.3, (TOWER_XY[0], TOWER_XY[1] - 0.043))]
