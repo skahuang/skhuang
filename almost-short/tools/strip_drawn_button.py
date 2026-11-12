@@ -31,7 +31,7 @@ for j in range(2):
                 magenta = mid and (h > 0.88 or h < 0.02) and s > 0.5 and not skin
                 cuff = v < 0.30 and y < ch * 0.84            # her dark sleeve cuff dips into the band in cells 3-5
                 core = y >= ch * 0.78 and cw * 0.26 <= x < cw * 0.74 and not skin and not cuff
-                ghost = mid and y >= ch * 0.80 and a < 230 and not skin and not cuff   # semi-transparent button leftovers
+                ghost = mid and y >= ch * 0.74 and (a < 230 or s < 0.14) and not skin and not cuff   # grey / see-through leftovers
                 if core or magenta or ghost:
                     c[y, x, 3] = 0
                     c[y, x, :3] = (225, 172, 150)       # skin tone, so the feathered fringe is not pink/grey

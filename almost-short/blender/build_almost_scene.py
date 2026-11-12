@@ -2849,7 +2849,10 @@ def build_characters(C, M, face, tower_root):
         if bs:   # Nova is a real person, not an acrylic print: no milky sheen under the arcade lights up close
             bs.inputs["Roughness"].default_value = 0.85
             bs.inputs["Specular IOR Level"].default_value = 0.15
-            bs.inputs["Emission Strength"].default_value = 0.04   # less self-glow: no whitish hand, sleeve keeps its purple
+            bs.inputs["Emission Strength"].default_value = 0.35   # the art's own colours win over the cyan/magenta arcade light
+            mr = next((n for n in o.data.materials[0].node_tree.nodes if n.type == "MAP_RANGE"), None)
+            if mr:   # keep the soft (feathered) alpha edge up close instead of firming it into stair steps
+                mr.inputs["From Max"].default_value = 1.0
         rng = [shot_rng[sid]]
         key_visible(o, rng)
         animate_named(o, name, rng)
@@ -3777,6 +3780,10 @@ def build_cameras(C):
             cd.dof.aperture_fstop = 22.0
         if sid == "S06_light_above":    # 3 cm from her: needs deep focus to keep face and the light above readable
             cd.dof.aperture_fstop = 22.0
+        if sid == "S01a_door_burst":    # f/8 at the loop seam, then deep focus so her fists AND the door leaf are sharp
+            for fr, stop in ((f(0.5), 8.0), (f(0.74), 22.0)):
+                cd.dof.aperture_fstop = stop
+                cd.dof.keyframe_insert("aperture_fstop", frame=fr)
         if sid == "S15_glass_reveal":   # rack DOF wider as we exit the glass
             cd.dof.aperture_fstop = 2.0
             cd.keyframe_insert("dof.aperture_fstop", frame=f(a))
