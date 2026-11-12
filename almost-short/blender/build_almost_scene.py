@@ -1179,13 +1179,20 @@ def build_cabinet(C, M):
     # lower front: speaker grille (left) and the prize pickup door (right)
     box("vent_grille_front", (0.17, 0.006, 0.17), (-0.30, -0.503, 0.24), M["vent_grille"], cab)
     box("vent_grille_frame", (0.19, 0.004, 0.19), (-0.30, -0.5005, 0.24), M["cab_trim"], cab)
-    box("prize_door_frame", (0.21, 0.006, 0.17), (CHUTE_XY[0], -0.503, 0.24), M["cab_trim"], cab)
-    box("prize_door_hole", (0.17, 0.010, 0.13), (CHUTE_XY[0], -0.505, 0.24), M["black"], cab)
+    # pickup door frame: four bars round the opening (build_prize_chute cuts the pocket behind it)
+    for nm, size, off in (("t", (0.21, 0.008, 0.02), (0, 0.075)), ("b", (0.21, 0.008, 0.02), (0, -0.075)),
+                          ("l", (0.02, 0.008, 0.17), (-0.095, 0)), ("r", (0.02, 0.008, 0.17), (0.095, 0))):
+        box(f"prize_door_frame_{nm}", size, (CHUTE_XY[0] + off[0], -0.504, 0.24 + off[1]), M["cab_trim"], cab)
     box("prize_tray", (0.16, 0.10, 0.02), (CHUTE_XY[0], -0.46, 0.175), M["cab_trim"], cab)
     # tiny single boots in the prize tray: earlier failed rounds (dark-humour clue)
-    for i in range(5):
-        box(f"lost_boot_{i}", (0.006, 0.010, 0.007),
-            (CHUTE_XY[0] - 0.06 + i * 0.028, -0.47 + (i % 2) * 0.012, 0.19), M["boot"], cab, rot=(0, 0, i * 0.7))
+    for i in range(5):   # each a little boot lying on its side: shaft + foot, not a block
+        bx, by, rz = CHUTE_XY[0] - 0.06 + i * 0.028, -0.47 + (i % 2) * 0.012, i * 0.7
+        boot_root = empty(f"lost_boot_{i}", (bx, by, 0.188), cab, "PLAIN_AXES", 0.005)
+        boot_root.rotation_euler = (0, 0, rz)
+        for nm, size, off in (("shaft", (0.006, 0.009, 0.006), (0, 0.0, 0.0)), ("foot", (0.010, 0.005, 0.005), (0.004, 0.006, -0.0005)),
+                              ("sole", (0.011, 0.0055, 0.0012), (0.0045, 0.006, -0.0032))):
+            o = box(f"lost_boot_{i}_{nm}", size, off, M["black" if nm == "sole" else "boot"], cab)
+            o.parent = boot_root
     return moon
 
 
@@ -1908,6 +1915,38 @@ def build_prize_chute(C, M):
         box(f"prize_chute_glass_{nm}", size, (cx + off[0], cy + off[1], BED_Z + 0.005 + gh / 2), M["glass"], cab)
         rim = (size[0], size[1], 0.004)
         box(f"prize_chute_rim_{nm}", rim, (cx + off[0], cy + off[1], BED_Z + 0.005 + gh), M["neon_cyan"], cab)
+    # pickup opening: a real cavity in the cabinet front (S15c looks in at the tower lying in the tray)
+    px, pz0, pz1, py0, py1 = cx, 0.175, 0.305, -0.52, -0.37
+    pw = 0.17
+    pocket = box("pickup_cutter", (pw, py1 - py0, pz1 - pz0), (px, (py0 + py1) / 2, (pz0 + pz1) / 2), M["black"], cab)
+    ob = bpy.data.objects["cab_body"]
+    mod = ob.modifiers.new("pickup_pocket", "BOOLEAN")
+    mod.operation, mod.object = "DIFFERENCE", pocket
+    try:
+        mod.solver = "EXACT"
+    except Exception:
+        pass
+    bpy.context.view_layer.objects.active = ob
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.data.objects.remove(pocket, do_unlink=True)
+    t = 0.004
+    box("pickup_back", (pw, t, pz1 - pz0), (px, py1 + t / 2, (pz0 + pz1) / 2), M["metal_dull"], cab)
+    box("pickup_ceiling", (pw, py1 - py0, t), (px, (py0 + py1) / 2, pz1 - t / 2), M["black"], cab)
+    for sx in (-1, 1):
+        box(f"pickup_side_{sx:+d}", (t, py1 - py0, pz1 - pz0), (px + sx * (pw / 2 - t / 2), (py0 + py1) / 2, (pz0 + pz1) / 2), M["cab_trim"], cab)
+    # the chute ramp drops into the pocket through a slot in its ceiling
+    box("pickup_slot_lip", (pw - 0.02, 0.006, 0.006), (px, -0.40, pz1 - 0.006), M["metal_dull"], cab)
+    # smoked flap hinged at the top, pushed open inward
+    hinge = empty("pickup_flap_hinge", (px, -0.506, pz1 - 0.004), cab, "PLAIN_AXES", 0.02)
+    flap = box("pickup_flap", (pw - 0.01, 0.003, 0.12), (0, 0, -0.06), M["glass"], cab)
+    flap.parent = hinge
+    hinge.rotation_euler = (math.radians(80), 0, 0)    # tucked under the ceiling: clears the tower lying in the tray
+    # small warm lamp inside so the prize reads from outside
+    L = bpy.data.lights.new("L_pickup_tray", "POINT")
+    L.energy, L.color, L.shadow_soft_size = 6.0, (1.0, 0.75, 0.45), 0.03
+    lo = bpy.data.objects.new(L.name, L)
+    lo.location = (px, -0.42, pz1 - 0.02)
+    cab.objects.link(lo)
     # black void just below the lip so the shaft reads as deep even under the arcade lights
     box("chute_void", (CHUTE_HOLE, CHUTE_HOLE, 0.002), (cx, cy, BED_Z - 0.12), M["black"], cab)
 
