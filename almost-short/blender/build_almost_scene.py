@@ -67,6 +67,7 @@ PIN_H = 0.0156             # (legacy 512x256 pin cells; unused since the v2 squa
 PIN_SQ_H = 0.0333
 PIN_SQ_Z = ROOF_Z + 0.002 - PIN_SQ_H * 52 / 512
 CHUTE_XY = (0.30, -0.30)   # prize chute (front-right, above the outside pickup door)
+PRIZE_TRAY = (0.30, -0.46, 0.19)   # where the dropped tower ends up, behind the outside pickup flap (scene thread's chute shaft)
 RESET_S = 58.0             # story seconds (film 56 s)
 DOOR_BANGS_S = (1.45, 1.85, 2.2)   # story s: the horde hammers the door Rin slammed (S01b); shared with dent_door()
 TIMER_START = 32           # story seconds (film 30 s): overlay countdown hits 00:00 the moment her grip fails
@@ -106,7 +107,10 @@ ANIM = {
     "pin_takedown_front":  (3, 2, 6, 12, "once"),      # S12d Z01 + Z02 slam her down; last cell = pin_layer_front cell 1
     "pin_takedown_contact": (3, 2, 6, 12, "once"),     # baked contact shadow of the takedown front pair
     "rin_run_to_ladder":   (3, 2, 6, 12, "once"),      # S04 opening: scrambles up, two strides, leaps onto the ladder
-    "rin_burst_door":      (4, 2, 8, 12, "once"),      # S01a shoulders the door open, stumbles out at the lens, slams it
+    "rin_burst_door":      (4, 2, 8, 12, "once"),      # S01a (old art: reads as backing away; superseded by rin_door_slam)
+    "rin_door_slam":       (4, 3, 12, 12, "once"),     # S01a shoulder-slams the door open, stumbles out, spins, heaves it shut
+    "nova_joystick_hand":  (4, 2, 8, 12, "once"),      # S15n ECU: Nova's hand nudges the ball-top joystick over the chute
+    "nova_button_slam":    (3, 2, 6, 12, "once"),      # S15m ECU: her palm slams the magenta drop button
     "rin_run_chase":       (4, 2, 8, 12, "loop"),      # S02b front-3/4 sprint cycle, terrified
     "rin_look_back":       (4, 2, 8, 12, "once"),      # S02c running, twists to look back over her shoulder
     "nova_back_joystick":  (4, 2, 8, 12, "loop"),      # joystick jiggle, shoulders tense
@@ -142,17 +146,23 @@ TIMING = {
     "pin_face_closeup": [(i, 4) for i in range(1, 13)],                                                       # 48 = S13b
     "nova_profile_almost": [(1, 6), (2, 6), (3, 6), (4, 6), (5, 8), (6, 8), (7, 8), (8, 8), (9, 6), (10, 6), (11, 6), (12, 10)],  # 84 = S16
     "nova_hand_coin":   [(1, 4), (2, 4), (3, 4), (4, 6), (5, 8), (6, 6), (7, 6), (8, 10)],                     # 48 = S17a
+    # S01a, frame-locked to the door keys in animate_story: cell 1 on the burst (film f7), cell 9 on the slam (f23)
+    "rin_door_slam":    [(1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2), (8, 2), (9, 2), (10, 2), (11, 2), (12, 1)],   # 23
+    # S15n: cells 2-3 nudge left, 5-6 nudge forward (claw keys follow), 8 lets go = 17 frames
+    "nova_joystick_hand": [(1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2), (8, 3)],
+    # S15m: cell 3 = impact on frame 5 of the shot (thump + 3D button travel on the same frame) = 12 frames
+    "nova_button_slam": [(1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2)],
     "rin_reset_lookup": [(1, 10), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8), (7, 10), (8, 12)],                   # 72 = S17b
 }
 # Sheets whose clock runs on across several shots instead of restarting in each one
 CONTINUOUS = {"rin_cling_hope"}
-SPRITE_FALLBACK = {"rin_burst_door": "rin_run_to_ladder", "rin_run_chase": "rin_run_to_ladder", "rin_look_back": "rin_backing_away"}
+SPRITE_FALLBACK = {"rin_door_slam": "rin_burst_door", "rin_burst_door": "rin_run_to_ladder", "rin_run_chase": "rin_run_to_ladder", "rin_look_back": "rin_backing_away"}
 # GPT drew Rin at different sizes inside the cells (standing figure 330-458 px of 512).
 # Height multipliers, judged from her head size against rin_reset_lookup, so she keeps one size across cuts.
 SHEET_SCALE = {
     "rin_backing_away": 1.17, "rin_boot_grab": 1.5, "rin_climb_back": 1.12, "rin_cling_scared": 0.88,
     "rin_look_up": 0.97, "rin_slip_shock": 1.2, "rin_falling": 1.17, "rin_impact": 1.12,
-    "rin_burst_door": 1.17, "rin_run_chase": 1.17, "rin_look_back": 1.17,
+    "rin_burst_door": 1.17, "rin_door_slam": 1.17, "rin_run_chase": 1.17, "rin_look_back": 1.17,
 }
 ZOMBIE_ANIM = {
     "walk":  (4, 2, 8, 12, "loop"),
@@ -178,7 +188,7 @@ def f(sec):
 SHOTS = [
     # ---- Act 1: trapped (0-15 s)
     # S01a: the door flies open and Rin bursts out straight at the lens (rin_burst_door)
-    ("S01a_door_burst",   0.0,  1.2, 35, (-0.092, 0.040, 1.108), (-0.090, 0.046, 1.109), (-0.106, 0.092, 1.114), (-0.082, 0.070, 1.112)),
+    ("S01a_door_burst",   0.0,  1.2, 35, (-0.092, 0.040, 1.108), (-0.090, 0.046, 1.109), (-0.106, 0.092, 1.114), (-0.102, 0.088, 1.112)),   # stays on her at the door through the slam
     # S01b: she has slammed it behind her; fingers squirm out of the gap, she backs off in the foreground
     ("S01b_door_bang",    1.2,  2.5, 50, (-0.052, -0.025, 1.114), (-0.060, -0.010, 1.116), (-0.101, 0.107, 1.124), (-0.101, 0.107, 1.122)),   # ~21 deg off-axis so the dents read; fingers centred
     # S02: medium crane-down as the door bursts and the horde pours out after her (was a static wide)
@@ -215,10 +225,16 @@ SHOTS = [
     ("S13b_pinned_face", 41.25, 43.0, 50, (0.0178, -0.050, 1.1112), (0.0178, -0.046, 1.1102), (0.0178, -0.013, 1.1112), (0.0178, -0.013, 1.1102)),   # frame bottom at 86.5% of the cell, just above the art's cut-off (92%)
     ("S14_pullback",     43.0, 46.0, 24, (0.024, -0.054, 1.108), (0.14, -0.44, 1.37),    (0.02, 0.0, 1.114),   (0.08, 0.10, 1.34)),   # ends framing the pile AND the empty tower in the claw
     # ---- Act 4: reveal + loop (46-60 s)
-    ("S15_glass_reveal", 46.0, 50.0, 35, (0.14, -0.44, 1.37),    (-0.85, -3.40, 1.95),   (0.08, 0.10, 1.34),   (0.20, -0.20, 1.40)),   # follows the tower to the chute, ends on the arcade + Nova
-    # S15b/c: more arcade — the aisle with Nova at our machine, then the prize tray full of tiny boots
-    ("S15b_arcade_aisle",50.0, 51.3, 24, (1.40, -2.60, 1.55),    (1.10, -2.20, 1.45),    (0.20, -0.60, 1.10),  (0.25, -0.70, 1.15)),
-    ("S15c_prize_tray",  51.3, 52.5, 50, (0.78, -1.12, 1.32),    (0.72, -1.04, 1.29),    (0.30, -0.32, 1.04),  (0.30, -0.32, 1.03)),   # outside the glass: the empty tower lying in the prize chute
+    ("S15_glass_reveal", 46.0, 48.6, 35, (0.14, -0.44, 1.37),    (-0.85, -3.40, 1.95),   (0.08, 0.10, 1.34),   (0.20, -0.20, 1.40)),   # out through the glass as the claw carries the tower to the chute, ends on the arcade + Nova
+    # S15b: the aisle with Nova at our machine (more arcade)
+    ("S15b_arcade_aisle",48.6, 49.6, 24, (1.40, -2.60, 1.55),    (1.10, -2.20, 1.45),    (0.20, -0.60, 1.10),  (0.25, -0.70, 1.15)),
+    # S15n/S15m: Nova at the controls - her hand lines the claw up over the chute, then slams the drop button
+    ("S15n_nova_joystick",49.6, 50.3, 50, (-0.05, -0.98, 1.22),  (-0.08, -0.93, 1.19),   (-0.25, -0.58, 0.975), (-0.25, -0.58, 0.975)),
+    ("S15m_nova_button", 50.3, 50.8, 50, (0.10, -0.86, 1.10),    (0.085, -0.835, 1.085), (-0.08, -0.58, 0.93), (-0.08, -0.58, 0.925)),
+    # S15d: through the front glass, the claw opens and the empty tower drops down the prize hole
+    ("S15d_chute_drop",  50.8, 51.7, 35, (0.40, -0.86, 1.64),    (0.39, -0.82, 1.50),    (0.30, -0.30, 1.52),  (0.30, -0.30, 0.97)),   # through the front glass, clear of the corner post
+    # S15c: outside, low at the pickup flap - the tower tumbles out into the prize tray
+    ("S15c_prize_tray",  51.7, 52.5, 50, (0.53, -1.04, 0.42),    (0.50, -0.98, 0.40),    (PRIZE_TRAY[0], PRIZE_TRAY[1] - 0.01, PRIZE_TRAY[2] + 0.02), (PRIZE_TRAY[0], PRIZE_TRAY[1] - 0.01, PRIZE_TRAY[2] + 0.02)),
     ("S16_nova_almost",  52.5, 56.0, 85, (1.00, -1.74, 1.23),    (0.90, -1.62, 1.21),    (0.24, -0.86, 1.115), (0.24, -0.86, 1.12)),   # slow push-in on her face (eyes ~1.15 m)
     ("S17a_coin",        56.0, 58.0, 50, (0.53, -1.04, 1.02),    (0.50, -0.98, 1.00),    (0.28, -0.54, 0.87),  (0.28, -0.54, 0.87)),   # hand + coin mid-frame, sleeve edge below frame
     ("S17b_reset_loop",  58.0, 62.0, 35, (0.010, -0.060, 1.116), (-0.092, 0.040, 1.108), (0.0, -0.01, 1.112),  (-0.106, 0.092, 1.114)),   # whole figure clear of the UI zone, ends EXACTLY on the S01a frame (loop seam)
@@ -231,7 +247,7 @@ SHOTS = [
 # Shots whose camera + aim ride with a moving object (coordinates above are then local to it)
 SHOT_PARENT = {"S09a_false_hope": "TOWER_ROOT", "S09b_hope_low": "TOWER_ROOT"}
 # Shots that aim past the subject but must keep her sharp
-SHOT_FOCUS = {"S06_light_above": "rin_look_up", "S04a_run_climb": "rin_run_to_ladder", "S05_pile_topdown": "rin_cling_scared",
+SHOT_FOCUS = {"S01a_door_burst": "rin_door_slam", "S06_light_above": "rin_look_up", "S04a_run_climb": "rin_run_to_ladder", "S05_pile_topdown": "rin_cling_scared",
               "S09a_false_hope": "rin_cling_hope", "S09b_hope_low": "rin_cling_hope"}
 # Extra in-between camera keys: sid -> [(fraction of the shot, cam, aim)]
 SHOT_MID = {
@@ -247,6 +263,8 @@ SHOT_MID = {
                         (0.88, (-0.092, 0.040, 1.108), (-0.106, 0.092, 1.114))],   # whip done early: the door settles for the seam
     # get out of the cabinet fog fast: outside the glass by a quarter of the shot
     "S15_glass_reveal": [(0.25, (-0.15, -1.30, 1.55), (0.15, 0.05, 1.52))],
+    # hold on the opening claw, then tilt down with the falling tower
+    "S15d_chute_drop": [(0.2, (0.398, -0.852, 1.62), (0.30, -0.30, 1.52)), (0.55, (0.393, -0.835, 1.55), (0.30, -0.30, 1.00))],
 }
 
 
@@ -2398,10 +2416,12 @@ def animate_story(rig):
     tx, ty = TOWER_XY
     R = f(RESET_S)
     # ---- door: bangs in S01, bursts open at 2.5 s, shuts again on reset
-    key_rot(hinge, 1, (0, 0, 0))
-    key_rot(hinge, f(0.12), (0, 0, math.radians(-100)))     # S01a: she bursts out...
-    key_rot(hinge, f(0.85), (0, 0, math.radians(-95)))
-    key_rot(hinge, f(1.05), (0, 0, 0))                       # ...and slams it behind her
+    # S01a, frame-locked to the rin_door_slam cells (film frames; S01a is before any STORY_MAP stretch):
+    # a first shoulder hit rattles it (f4), the second bursts it open (f7, cell 1) and it bangs into the wall,
+    # she stumbles out, spins back, grabs the edge (cell 7, f19) and heaves it shut (cell 9, f23)
+    for fr, deg in ((1, 0), (3, 0), (4, -6), (6, 0), (7, -20), (9, -128), (12, -100), (16, -107),
+                    (19, -104), (21, -60), (23, 0), (25, -3), (27, 0)):
+        key_rot(hinge, fr, (0, 0, math.radians(deg)))
     for sec in DOOR_BANGS_S:
         key_rot(hinge, f(sec), (0, 0, math.radians(-8)))
         key_rot(hinge, f(sec) + 3, (0, 0, 0))
@@ -2452,14 +2472,55 @@ def animate_story(rig):
     both(f(38.0), tx, ty, ROOF_Z + 0.43, -1.5)
     both(f(45.0), tx, ty, ROOF_Z + 0.44, 0)
     both(f(46.5), tx, ty, 1.70)                            # reveal: claw homes to the prize chute...
-    both(f(49.0), CHUTE_XY[0], CHUTE_XY[1], 1.70)
-    prongs(f(49.0), grip_a)
-    prongs(f(49.6), open_a)                                # ...and drops the EMPTY tower in: wrong prize
-    key_loc(tower, f(49.6), (CHUTE_XY[0], CHUTE_XY[1], 1.70 - HOLD))
-    key_loc(tower, f(50.3), (CHUTE_XY[0], CHUTE_XY[1], BED_Z + 0.004))
-    key_rot(tower, f(50.3), (math.radians(18), 0, math.radians(30)))
-    key_loc(tower, R - 1, (CHUTE_XY[0], CHUTE_XY[1], BED_Z + 0.004))
-    key_rot(tower, R - 1, (math.radians(18), 0, math.radians(30)))
+    both(f(48.4), CHUTE_XY[0] + 0.03, CHUTE_XY[1] + 0.02, 1.70)
+    # S15n: Nova's joystick nudges (cells 2-3 left, 5-6 forward) line it up over the hole
+    both(f(49.75), CHUTE_XY[0] + 0.03, CHUTE_XY[1] + 0.02, 1.70)
+    both(f(49.85), CHUTE_XY[0] + 0.004, CHUTE_XY[1] + 0.02, 1.70, -2)
+    both(f(49.95), CHUTE_XY[0], CHUTE_XY[1] + 0.02, 1.70, 1)
+    both(f(50.05), CHUTE_XY[0], CHUTE_XY[1] + 0.002, 1.70, 2)
+    both(f(50.15), CHUTE_XY[0], CHUTE_XY[1], 1.70, -1)
+    both(f(50.85), CHUTE_XY[0], CHUTE_XY[1], 1.70, 0)
+    # S15m slam (50.5) -> S15d: the prongs spring open and the EMPTY tower drops down the prize hole: wrong prize
+    prongs(f(50.85), grip_a)
+    prongs(f(51.0), open_a)
+    key_loc(claw, f(51.0), (CHUTE_XY[0], CHUTE_XY[1], 1.70))
+    key_loc(claw, f(51.15), (CHUTE_XY[0], CHUTE_XY[1], 1.715))   # springs up a touch as the weight lets go
+    key_loc(claw, f(51.4), (CHUTE_XY[0], CHUTE_XY[1], 1.70))
+    z0 = 1.70 - HOLD
+    t_open = 50.95
+    drop = z0 - (BED_Z - 0.30)
+    t_fall = math.sqrt(2 * drop / 9.81)                     # real gravity: ~0.43 s from the claw to inside the cabinet
+    key_rot(tower, f(t_open), (0, 0, 0))
+    for k in range(7):                                      # key the parabola so it accelerates instead of easing
+        u = k / 6
+        t = t_open + u * t_fall
+        key_loc(tower, max(f(t), f(t_open) + k), (CHUTE_XY[0], CHUTE_XY[1], z0 - drop * u * u))
+    key_rot(tower, f(t_open + t_fall), (math.radians(14), 0, math.radians(20)))   # catches the hole's lip as it goes
+    # S15c: it tumbles out of the shaft into the pickup tray and settles on its side
+    tray = PRIZE_TRAY
+    # tower is ~0.115 tall x 0.07 wide; it ends lying on its side along X (feet left), centred on the tray
+    for sec, (dx, dy, dz), (ry, rz) in ((51.69, (-0.02, 0.10, 0.12), (40, 20)), (51.80, (-0.045, 0.03, 0.06), (75, 15)),
+                                        (51.90, (-0.055, 0.0, 0.035), (92, 10)), (52.0, (-0.055, 0.0, 0.039), (86, 10)),
+                                        (52.15, (-0.055, 0.0, 0.035), (90, 10))):
+        key_loc(tower, f(sec), (tray[0] + dx, tray[1] + dy, tray[2] + dz))
+        key_rot(tower, f(sec), (0, math.radians(ry), math.radians(rz)))
+    key_loc(tower, R - 1, (tray[0] - 0.055, tray[1], tray[2] + 0.035))
+    key_rot(tower, R - 1, (0, math.radians(90), math.radians(10)))
+    for fc in fcurves_of(tower):                            # the free fall is keyed densely: no Bezier easing on it
+        for kp in fc.keyframe_points:
+            if f(t_open) <= kp.co.x <= f(51.69):
+                kp.interpolation = "LINEAR"
+    # the hand in S15n/S15m drives the real controls too (seen in S15b and whenever the close-up art is missing)
+    jb, bg = bpy.data.objects.get("joystick_ball"), bpy.data.objects.get("button_grab")
+    if jb:
+        b0 = tuple(jb.location)
+        for sec, dx, dy in ((49.75, 0, 0), (49.83, -0.012, 0), (49.95, 0, 0), (50.03, 0, 0.012), (50.15, 0, 0), (50.3, 0, 0)):
+            key_loc(jb, f(sec), (b0[0] + dx, b0[1] + dy, b0[2] - 0.002 * (dx != 0 or dy != 0)))
+    if bg:
+        g0 = tuple(bg.location)
+        a5 = f(50.3)
+        for off, dz in ((0, 0), (3, 0), (4, -0.008), (8, -0.008), (10, 0)):
+            key_loc(bg, a5 + off, (g0[0], g0[1], g0[2] + dz))
     key_loc(tower, R, (tx, ty, ROOF_Z))
     key_rot(tower, R, (0, 0, 0))
     key_loc(claw, R - 1, (CHUTE_XY[0], CHUTE_XY[1], 1.70))
@@ -2513,15 +2574,18 @@ def build_characters(C, M, face, tower_root):
             key_loc(ba, f(sec), (xy[0], xy[1], ROOF_Z))
     set_interp(ba, "LINEAR", "location")
     # S01a burst, S02b chase run, S02c look-back: new sheets; until they land, the ladder run stands in
-    for name, sid in (("rin_burst_door", "S01a_door_burst"), ("rin_run_chase", "S02b_chase_low"),
+    for name, sid in (("rin_door_slam", "S01a_door_burst"), ("rin_run_chase", "S02b_chase_low"),
                       ("rin_look_back", "S02c_look_back")):
-        key = name if os.path.isfile(os.path.join(ASSET_DIR, name + "_sheet.png")) else SPRITE_FALLBACK[name]
+        key = name
+        while not os.path.isfile(os.path.join(ASSET_DIR, key + "_sheet.png")) and key in SPRITE_FALLBACK:
+            key = SPRITE_FALLBACK[key]
         m, asp = load_sheet(key, RIN, ANIM[key], mat_name="M_" + name)
-        o = sprite(name, name + ".png", RIN_H * (SHEET_SCALE.get(key, 1.0) if key != name else 1.0), (0, 0, ROOF_Z),
-                   ch, face, RIN, aspect=asp, base_mat=base, material=m)    # sprite() applies SHEET_SCALE[name]
+        # sprite() multiplies by SHEET_SCALE[name]; a stand-in sheet needs its own scale instead
+        o = sprite(name, name + ".png", RIN_H * SHEET_SCALE.get(key, 1.0) / SHEET_SCALE.get(name, 1.0), (0, 0, ROOF_Z),
+                   ch, face, RIN, aspect=asp, base_mat=base, material=m)
         a, b = shot_rng[sid]
-        if name == "rin_burst_door":     # still behind the shut door on frame 1, so the loop seam matches
-            a = f(0.12)
+        if name == "rin_door_slam":      # behind the shut door until it bursts open on f7 (loop seam stays clean)
+            a = f(0.25)
         key_visible(o, [(a, b)])
         animate_sheet(m, [(a, b)], 0, TIMING.get(key), False)
         lo, hi = story_to_film((a - 1) / FPS), story_to_film(b / FPS)
@@ -2644,12 +2708,29 @@ def build_characters(C, M, face, tower_root):
         rng = [shot_rng[s] for s in shots]
         key_visible(o, rng)
         animate_named(o, name, rng)
+    # S15n/S15m close-ups: the art draws the hand WITH the joystick / button (sprite_list_v4_door_nova.md),
+    # so the 3D control it replaces is hidden for that shot. No art yet -> the shot just shows the keyed 3D controls.
+    for name, sid, base_xyz, h, hide in (
+            ("nova_joystick_hand", "S15n_nova_joystick", (-0.25, -0.58, 0.905), 0.26, ("joystick_ball", "joystick_shaft")),
+            ("nova_button_slam", "S15m_nova_button", (-0.08, -0.58, 0.902), 0.30, ("button_grab", "button_bezel"))):
+        if not os.path.isfile(os.path.join(ASSET_DIR, name + "_sheet.png")):
+            continue
+        o = sprite(name, name + ".png", h, base_xyz, ch, face, NOVA, shape="hand")
+        rng = [shot_rng[sid]]
+        key_visible(o, rng)
+        animate_named(o, name, rng)
+        a, b = rng[0]
+        for hn in hide:
+            ob = bpy.data.objects.get(hn)
+            if ob:
+                key_visible(ob, [(1, a - 1), (b + 1, f(STORY_END))])
     return rin
 
 
 # Rin's ground track through Act 1 (story s): out of the door, backing off, the chase run, the trip.
 # The crowd's chasers follow it with a lag, so the horde visibly runs after her.
-RIN_TRACK = [(0.0, (-0.108, 0.098)), (0.35, (-0.098, 0.084)), (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
+RIN_TRACK = [(0.0, (-0.110, 0.118)), (0.25, (-0.109, 0.108)), (0.55, (-0.103, 0.088)), (0.75, (-0.105, 0.092)),
+             (0.92, (-0.106, 0.094)), (1.15, (-0.096, 0.083)), (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
              (4.0, (-0.045, 0.027)), (5.0, (-0.015, 0.008)), (6.0, (0.025, 0.030)),
              (6.7, (TOWER_XY[0] - 0.040, TOWER_XY[1] - 0.090)), (7.3, (TOWER_XY[0], TOWER_XY[1] - 0.052)),
              (9.8, (TOWER_XY[0], TOWER_XY[1] - 0.052)), (10.3, (TOWER_XY[0], TOWER_XY[1] - 0.043))]
@@ -2741,12 +2822,14 @@ TAKEDOWN_MOTION["contact"] = TAKEDOWN_MOTION["front"]
 PRESS_THUMPS = {
     "S03_lost_boot":  [(1, 1.0), (30, 0.6), (44, 0.8)],       # dragged off the ladder, the pull, the boot rips off
     "S04b_climb_escape": [(12, 0.7)],                          # yanked once more before she climbs clear
-    "S12b_surrounded": [(8, 0.9)],                             # the horde lunges
+    "S12b_surrounded": [(9, 1.2)],                             # the horde lands on her (pounce keys in build_crowd)
     "S01b_door_bang": [(f(sec) - f(1.2) + 1, 0.8) for sec in DOOR_BANGS_S],   # each bang jolts the lens
     "S12d_pressed": [(11, 1.0)],
     "S13a_pinned":  [(4, 0.8), (31, 1.0)],
     "S13c_hand_press": [(1, 0.7), (5, 1.0)],      # the slam, then the hard press of cell 3
     "S14_pullback": [(4, 0.6), (13, 0.4)],
+    "S01a_door_burst": [(7, 1.0), (23, 0.8)],      # shoulder bursts the door open, then she heaves it shut
+    "S15m_nova_button": [(5, 9.0)],                # real-world scale: the palm slam (k scales the 1:60 amplitude)
 }
 THUMP_AMP = 0.0007
 
@@ -2921,6 +3004,17 @@ def build_crowd(C, M, face):
                 # S12/S12b: they hang back a beat while she lands... then LUNGE in on her together
                 k = 1.6 if t < 35.8 else 0.38
                 cx, cy = PIN_XY[0] + (sx - PIN_XY[0]) * k, PIN_XY[1] + 0.012 + (sy - PIN_XY[1] - 0.012) * k
+            if (swarm or in_lens) and 35.5 <= t < 35.8:
+                # the POUNCE (S12b): a crouched beat, then they all leap at her in 4 frames, overshoot and land
+                def ring_at(k):
+                    return PIN_XY[0] + (sx - PIN_XY[0]) * k, PIN_XY[1] + 0.012 + (sy - PIN_XY[1] - 0.012) * k
+                d = rnd.uniform(-0.03, 0.03)                 # not all on exactly the same frame
+                for sec, k, hop in ((35.70, 1.6, 0.0), (35.79, 1.0, 0.0045), (35.86, 0.30, 0.0015), (35.92, 0.36, 0.0),
+                                    (36.05, 0.38, 0.0)):
+                    px, py = ring_at(k)
+                    key_loc(o, f(sec + d), (px, py, ROOF_Z + hop))
+                t = 36.3
+                continue
             key_loc(o, f(t), (cx + rnd.uniform(-0.004, 0.004), cy + rnd.uniform(-0.004, 0.004), ROOF_Z))
             t += (0.25 if 34.6 < t < 37.2 else rnd.uniform(0.6, 1.0)) if 32.5 < t < 43 else rnd.uniform(1.2, 2.2)
         key_visible(o, [(f(CHASE_END) if i < CHASERS else f(spawn), R - 1)])
@@ -3540,7 +3634,7 @@ def build_cameras(C):
         cd.dof.use_dof = True
         cd.dof.focus_object = bpy.data.objects.get(SHOT_FOCUS.get(sid, "")) or aim
         # at 1:60 scale f/1.4 blurs everything; f/2.8-4 still reads as tilt-shift miniature
-        cd.dof.aperture_fstop = 8.0 if sid in ("S01a_door_burst", "S04a_run_climb", "S01b_door_bang", "S02b_chase_low", "S02c_look_back", "S03_lost_boot", "S15c_prize_tray", "S09a_false_hope", "S09b_hope_low", "S05_pile_topdown", "S12_impact", "S12b_surrounded", "S12c_grabbed", "S12d_pressed", "S13a_pinned", "S13c_hand_press", "S13b_pinned_face", "S17b_reset_loop") else 2.8
+        cd.dof.aperture_fstop = 8.0 if sid in ("S01a_door_burst", "S04a_run_climb", "S01b_door_bang", "S02b_chase_low", "S02c_look_back", "S03_lost_boot", "S15c_prize_tray", "S15n_nova_joystick", "S15m_nova_button", "S15d_chute_drop", "S09a_false_hope", "S09b_hope_low", "S05_pile_topdown", "S12_impact", "S12b_surrounded", "S12c_grabbed", "S12d_pressed", "S13a_pinned", "S13c_hand_press", "S13b_pinned_face", "S17b_reset_loop") else 2.8
         if sid in ("S09a_false_hope", "S09b_hope_low", "S12b_surrounded"):   # a few cm from her: deep focus or she melts
             cd.dof.aperture_fstop = 22.0
         if sid == "S06_light_above":    # 3 cm from her: needs deep focus to keep face and the light above readable
