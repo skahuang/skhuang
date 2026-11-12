@@ -1214,8 +1214,20 @@ def build_cabinet(C, M):
             poly.use_smooth = True
     ball.data.materials.append(M["red_glossy"])
     link(ball, cab)
-    cyl("button_bezel", 0.036, 0.012, (-0.08, -0.58, 0.908), M["cab_trim"], cab, verts=32)
-    cyl("button_grab", 0.028, 0.016, (-0.08, -0.58, 0.914), M["neon_pink"], cab, verts=32)
+    # S15m hero button (modelled, the hand card presses it): glossy black bezel, saturated magenta domed cap
+    bez = cyl("button_bezel", 0.036, 0.012, (-0.08, -0.58, 0.908), M["button_bezel"], cab, verts=64)
+    btn = cyl("button_grab", 0.028, 0.016, (-0.08, -0.58, 0.914), M["button_magenta"], cab, verts=64)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32, radius=1.0, location=(-0.08, -0.58, 0.922))
+    dome = bpy.context.active_object
+    dome.name = "button_grab_dome"
+    dome.scale = (0.0278, 0.0278, 0.006)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    dome.data.materials.append(M["button_magenta"])
+    link(dome, cab)
+    dome.parent = btn
+    dome.matrix_parent_inverse = btn.matrix_world.inverted()
+    for poly in dome.data.polygons:
+        poly.use_smooth = True
     # coin mechanism (right of the control box)
     box("coin_slot_plate", (0.10, 0.012, 0.16), (0.22, -0.506, 0.84), M["coin_mech"], cab)
     box("coin_slot", (0.004, 0.012, 0.05), (0.22, -0.513, 0.87), M["black"], cab)
@@ -3828,6 +3840,8 @@ def build_materials():
         "marquee_pink":  mat("marquee_pink", (0.3, 0.05, 0.3), 0.4, 0, emit=(1.0, 0.25, 0.8), strength=1.6),
         "marquee_yellow":mat("marquee_yellow", (0.35, 0.25, 0.02), 0.4, 0, emit=(1.0, 0.8, 0.2), strength=1.6),
         "neon_pink":     mat("neon_pink", (1.0, 0.2, 0.7), 0.3, 0, emit=(1.0, 0.2, 0.7), strength=5),
+        "button_magenta":mat("button_magenta", (0.55, 0.0, 0.22), 0.12, 0, emit=(1.0, 0.0, 0.42), strength=0.35),   # saturated hot magenta: a strong glow washes out to pastel
+        "button_bezel":  mat("button_bezel", (0.02, 0.02, 0.025), 0.25, 0.0),
         "neon_cyan":     mat("neon_cyan", (0.1, 0.85, 1.0), 0.3, 0, emit=(0.05, 0.8, 1.0), strength=5),
         "led_red":       mat("led_red", (0.2, 0.0, 0.0), 0.4, 0, emit=(1.0, 0.05, 0.05), strength=8),
         "moon_lamp":     mat("moon_lamp", (0.9, 0.95, 1.0), 0.2, 0, emit=(0.85, 0.92, 1.0), strength=25),
