@@ -3961,6 +3961,22 @@ def render_previews(out_dir, every_shot_frac=0.5):
     scn.render.filepath = "//render/almost_"
 
 
+def unlink_cab_front_from_nova_cards():
+    # L_cab_front_low's cyan fill lights the pickup tray, but on the S15n/S15m hand cards it turned Nova's
+    # lavender sleeve grey-blue: light-link those two cards out of it (every other object keeps the light)
+    lo = bpy.data.objects.get("L_cab_front_low")
+    cards = [bpy.data.objects.get(n) for n in ("nova_joystick_hand", "nova_button_hand")]
+    cards = [o for o in cards if o]
+    if not lo or not cards:
+        return
+    rc = bpy.data.collections.new("LL_cab_front_low_receivers")
+    for o in cards:
+        rc.objects.link(o)
+    for co in rc.collection_objects:      # no string lookup on collection_objects
+        co.light_linking.link_state = "EXCLUDE"
+    lo.light_linking.receiver_collection = rc
+
+
 def main():
     global ASSET_DIR, TEX_DIR
     argv = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
@@ -3982,6 +3998,7 @@ def main():
     claw, pivots = build_claw(C, M)
     face = empty("FACE_TARGET", SHOTS[0][4], coll("CAMERAS", C["root"]), "SPHERE", 0.004)
     build_characters(C, M, face, tower)
+    unlink_cab_front_from_nova_cards()
     crowd = build_crowd(C, M, face)
     hide_bases_in_close_shots()
     build_arcade_room(C, M)
