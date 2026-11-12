@@ -1241,14 +1241,14 @@ def build_cabinet(C, M):
         box(f"prize_door_frame_{nm}", size, (CHUTE_XY[0] + off[0], -0.504, 0.24 + off[1]), M["cab_trim"], cab)
     box("prize_tray", (0.16, 0.10, 0.02), (CHUTE_XY[0], -0.46, 0.175), M["cab_trim"], cab)
     # tiny single boots in the prize tray: earlier failed rounds (dark-humour clue)
-    for i in range(5):   # each a little boot lying on its side: shaft + foot, not a block
-        bx, by, rz = CHUTE_XY[0] - 0.06 + i * 0.028, -0.47 + (i % 2) * 0.012, i * 0.7
-        boot_root = empty(f"lost_boot_{i}", (bx, by, 0.188), cab, "PLAIN_AXES", 0.005)
-        boot_root.rotation_euler = (0, 0, rz)
-        for nm, size, off in (("shaft", (0.006, 0.009, 0.006), (0, 0.0, 0.0)), ("foot", (0.010, 0.005, 0.005), (0.004, 0.006, -0.0005)),
-                              ("sole", (0.011, 0.0055, 0.0012), (0.0045, 0.006, -0.0032))):
-            o = box(f"lost_boot_{i}_{nm}", size, off, M["black" if nm == "sole" else "boot"], cab)
-            o.parent = boot_root
+    # Rin's lost boots from earlier failed rounds (dark-humour clue), clear of the tower lying in the tray
+    # standing ones turned side-on to the S15c camera show the boot profile; one lies toppled in front
+    for i, (bx, by, rz, pose) in enumerate(((0.228, -0.497, 0.15, "up"), (0.372, -0.497, 2.95, "up"),
+                                            (0.300, -0.503, 0.6, "side"), (0.385, -0.430, 1.4, "up"))):
+        root = make_boot(f"lost_boot_{i}", M, cab)
+        root.scale = (1.5, 1.5, 1.5)    # read at the S15c distance
+        root.location = (bx, by, 0.185 + (0.0 if pose == "up" else 0.0048))
+        root.rotation_euler = (math.radians(90) if pose == "side" else 0.0, 0.0, rz)
     return moon
 
 
@@ -1910,6 +1910,68 @@ def dent_door(door):
 
 CHUTE_HOLE = 0.15          # square opening in the bed at CHUTE_XY (the tower drops through it)
 CHUTE_BOTTOM_Z = 0.21      # the shaft ends just above the prize tray behind the pickup door
+
+
+def make_boot(name, M, coll):
+    """Rin's lace-up ankle boot as a little 3D model (sole on z=0, toe toward +X, about 0.013 long x 0.015
+    tall): tapered shaft with a folded cuff, rounded toe cap, lugged sole with a heel step, dark lace
+    strip with eyelets. Returns the root empty; place and rotate that."""
+    root = empty(name, (0, 0, 0), coll, "PLAIN_AXES", 0.006)
+    leather = []
+    bpy.ops.mesh.primitive_cone_add(vertices=24, radius1=0.0033, radius2=0.0029, depth=0.0105,
+                                    location=(-0.0018, 0, 0.0085))
+    leather.append(bpy.context.active_object)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=1.0, location=(0.0024, 0, 0.0031))
+    toe = bpy.context.active_object
+    toe.scale = (0.0068, 0.0033, 0.0029)
+    leather.append(toe)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=20, ring_count=10, radius=1.0, location=(-0.0022, 0, 0.0036))
+    heel = bpy.context.active_object
+    heel.scale = (0.0036, 0.0033, 0.0034)
+    leather.append(heel)
+    for o in leather:
+        bpy.ops.object.select_all(action="DESELECT")
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in leather:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = leather[0]
+    bpy.ops.object.join()
+    body = bpy.context.active_object
+    body.name = f"{name}_leather"
+    body.data.materials.append(M["boot_leather"])
+    for poly in body.data.polygons:
+        poly.use_smooth = True
+    sub = body.modifiers.new("soft", "SUBSURF")
+    sub.levels, sub.render_levels = 1, 2
+    link(body, coll)
+    body.parent = root
+    # folded cuff
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.0031, minor_radius=0.0008, major_segments=24, minor_segments=8,
+                                     location=(-0.0018, 0, 0.0136))
+    cuff = bpy.context.active_object
+    cuff.name = f"{name}_cuff"
+    cuff.data.materials.append(M["boot_leather"])
+    for poly in cuff.data.polygons:
+        poly.use_smooth = True
+    link(cuff, coll)
+    cuff.parent = root
+    # lugged sole + heel step (dark rubber)
+    parts = [box(f"{name}_sole", (0.0132, 0.0062, 0.0011), (0.0012, 0, 0.00055), M["black"], coll),
+             box(f"{name}_heel", (0.0040, 0.0060, 0.0012), (-0.0033, 0, 0.0015), M["black"], coll)]
+    for k in range(5):
+        parts.append(box(f"{name}_lug_{k}", (0.0007, 0.0058, 0.0004), (-0.004 + k * 0.0021, 0, 0.0001), M["black"], coll))
+    # lace strip and eyelets down the front of the shaft
+    parts.append(box(f"{name}_laces", (0.0005, 0.0014, 0.0085), (0.0013, 0, 0.0085), M["black"], coll,
+                     rot=(0, math.radians(-4), 0)))
+    for k in range(4):
+        parts.append(sphere(f"{name}_eyelet_{k}", 0.00032, (0.00145, (-1) ** k * 0.0009, 0.0055 + (k // 2) * 0.0035 + (k % 2) * 0.0017),
+                            M["metal_dull"], coll, segs=8))
+    for o in parts:
+        o.parent = root
+    return root
 
 
 def build_prize_chute(C, M):
@@ -3771,6 +3833,7 @@ def build_materials():
         "moon_lamp":     mat("moon_lamp", (0.9, 0.95, 1.0), 0.2, 0, emit=(0.85, 0.92, 1.0), strength=25),
         "red_glossy":    mat("red_glossy", (0.8, 0.02, 0.05), 0.1),
         "boot":          mat("boot", (0.12, 0.08, 0.06), 0.7),
+        "boot_leather":  mat("boot_leather", (0.16, 0.075, 0.035), 0.5),   # Rin's brown lace-up boots (tray models)
         "street":        mat("street", (0.04, 0.045, 0.06), 0.25),
         "concrete":      mat("concrete", (0.30, 0.31, 0.30), 0.85),
         "concrete_dark": mat("concrete_dark", (0.08, 0.09, 0.12), 0.8),
