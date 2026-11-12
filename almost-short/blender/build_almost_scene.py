@@ -1181,7 +1181,6 @@ def build_cabinet(C, M):
     box("vent_grille_frame", (0.19, 0.004, 0.19), (-0.30, -0.5005, 0.24), M["cab_trim"], cab)
     box("prize_door_frame", (0.21, 0.006, 0.17), (CHUTE_XY[0], -0.503, 0.24), M["cab_trim"], cab)
     box("prize_door_hole", (0.17, 0.010, 0.13), (CHUTE_XY[0], -0.505, 0.24), M["black"], cab)
-    box("prize_chute_bin", (0.16, 0.16, 0.14), (CHUTE_XY[0], CHUTE_XY[1], BED_Z + 0.07), M["glass"], cab)
     box("prize_tray", (0.16, 0.10, 0.02), (CHUTE_XY[0], -0.46, 0.175), M["cab_trim"], cab)
     # tiny single boots in the prize tray: earlier failed rounds (dark-humour clue)
     for i in range(5):
@@ -1844,6 +1843,73 @@ def dent_door(door):
             for kp in fc.keyframe_points:
                 if int(kp.co.x) in (R - 1, R):
                     kp.interpolation = "CONSTANT"
+
+
+CHUTE_HOLE = 0.15          # square opening in the bed at CHUTE_XY (the tower drops through it)
+CHUTE_BOTTOM_Z = 0.21      # the shaft ends just above the prize tray behind the pickup door
+
+
+def build_prize_chute(C, M):
+    """A real hole in the diorama bed at CHUTE_XY: open-topped glass surround, dark shaft down through the
+    cabinet body to the pickup door, so the claw can drop the tower INTO the machine (topi, 2026-11-12)."""
+    from mathutils import Vector
+    cab = bpy.data.collections["CABINET"]
+    cx, cy = CHUTE_XY
+    hw = CHUTE_HOLE / 2
+    # anything of the miniature city standing where the hole goes is removed first
+    gone = []
+    for o in list(bpy.data.collections["DIORAMA"].all_objects):
+        try:
+            o.name
+        except ReferenceError:      # already removed as a child of an earlier hit
+            continue
+        if o.type != "MESH" or o.name == "bed" or o.parent is not None:
+            continue
+        xs = [(o.matrix_world @ Vector(b)).x for b in o.bound_box]
+        ys = [(o.matrix_world @ Vector(b)).y for b in o.bound_box]
+        if max(xs) - min(xs) > 0.3 or max(ys) - min(ys) > 0.3:   # the fog box and other bed-wide volumes stay
+            continue
+        if min(xs) < cx + hw + 0.01 and max(xs) > cx - hw - 0.01 and min(ys) < cy + hw + 0.01 and max(ys) > cy - hw - 0.01:
+            gone.append(o.name)
+            for ch in list(o.children_recursive):
+                bpy.data.objects.remove(ch, do_unlink=True)
+            bpy.data.objects.remove(o, do_unlink=True)
+    print("prize chute: cleared", gone)
+    # cut the opening through the bed and the cabinet body below it
+    cutter = box("chute_cutter", (CHUTE_HOLE, CHUTE_HOLE, BED_Z), (cx, cy, BED_Z / 2 + CHUTE_BOTTOM_Z / 2 + 0.02), M["black"], cab)
+    cutter.scale.z = 1.0
+    for name in ("bed", "cab_body"):
+        ob = bpy.data.objects.get(name)
+        if ob is None:
+            continue
+        mod = ob.modifiers.new("chute_hole", "BOOLEAN")
+        mod.operation, mod.object = "DIFFERENCE", cutter
+        try:
+            mod.solver = "EXACT"
+        except Exception:
+            pass
+        bpy.context.view_layer.objects.active = ob
+        bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.data.objects.remove(cutter, do_unlink=True)
+    # shaft: four dark steel walls with a lip, down to the tray
+    depth = BED_Z - CHUTE_BOTTOM_Z
+    zc = CHUTE_BOTTOM_Z + depth / 2
+    t = 0.006
+    for nm, size, off in (("n", (CHUTE_HOLE + 2 * t, t, depth), (0, hw + t / 2)), ("s", (CHUTE_HOLE + 2 * t, t, depth), (0, -hw - t / 2)),
+                          ("e", (t, CHUTE_HOLE, depth), (hw + t / 2, 0)), ("w", (t, CHUTE_HOLE, depth), (-hw - t / 2, 0))):
+        box(f"chute_shaft_{nm}", size, (cx + off[0], cy + off[1], zc), M["black"], cab)
+    # sloped floor at the bottom steering prizes forward to the pickup door
+    box("chute_ramp", (CHUTE_HOLE, CHUTE_HOLE * 1.25, 0.006), (cx, cy - 0.03, CHUTE_BOTTOM_Z + 0.04), M["cab_trim"], cab,
+        rot=(math.radians(-32), 0, 0))
+    # open-topped acrylic surround on the bed with a lit rim (it reads as "the hole" from the reveal shots)
+    gh = 0.06
+    for nm, size, off in (("n", (CHUTE_HOLE + 0.012, 0.004, gh), (0, hw + 0.004)), ("s", (CHUTE_HOLE + 0.012, 0.004, gh), (0, -hw - 0.004)),
+                          ("e", (0.004, CHUTE_HOLE + 0.012, gh), (hw + 0.004, 0)), ("w", (0.004, CHUTE_HOLE + 0.012, gh), (-hw - 0.004, 0))):
+        box(f"prize_chute_glass_{nm}", size, (cx + off[0], cy + off[1], BED_Z + 0.005 + gh / 2), M["glass"], cab)
+        rim = (size[0], size[1], 0.004)
+        box(f"prize_chute_rim_{nm}", rim, (cx + off[0], cy + off[1], BED_Z + 0.005 + gh), M["neon_cyan"], cab)
+    # black void just below the lip so the shaft reads as deep even under the arcade lights
+    box("chute_void", (CHUTE_HOLE, CHUTE_HOLE, 0.002), (cx, cy, BED_Z - 0.12), M["black"], cab)
 
 
 def build_stairwell(dio, M, hero, roof_tiles):
@@ -3630,6 +3696,7 @@ def main():
     M = build_materials()
     build_cabinet(C, M)
     dio, hinge = build_diorama(C, M)
+    build_prize_chute(C, M)
     tower = build_tower(C, M)
     claw, pivots = build_claw(C, M)
     face = empty("FACE_TARGET", SHOTS[0][4], coll("CAMERAS", C["root"]), "SPHERE", 0.004)
