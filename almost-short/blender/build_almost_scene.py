@@ -110,7 +110,8 @@ ANIM = {
     "rin_burst_door":      (4, 2, 8, 12, "once"),      # S01a (old art: reads as backing away; superseded by rin_door_slam)
     "rin_door_slam":       (4, 3, 12, 12, "once"),     # S01a shoulder-slams the door open, stumbles out, spins, heaves it shut
     "nova_joystick_hand":  (4, 2, 8, 12, "once"),      # S15n ECU: Nova's hand nudges the ball-top joystick over the chute
-    "nova_button_slam":    (3, 2, 6, 12, "once"),      # S15m ECU: her palm slams the magenta drop button
+    "nova_button_slam":    (3, 2, 6, 12, "once"),      # S15m ECU: her palm slams the magenta drop button (drawn button)
+    "nova_button_hand":    (3, 2, 6, 12, "once"),      # same sheet with the drawn button erased (tools/strip_drawn_button.py)
     "rin_run_chase":       (4, 2, 8, 12, "loop"),      # S02b front-3/4 sprint cycle, terrified
     "rin_look_back":       (4, 2, 8, 12, "once"),      # S02c running, twists to look back over her shoulder
     "nova_back_joystick":  (4, 2, 8, 12, "loop"),      # joystick jiggle, shoulders tense
@@ -152,6 +153,7 @@ TIMING = {
     "nova_joystick_hand": [(1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2), (8, 3)],
     # S15m: cell 3 = impact on frame 5 of the shot (thump + 3D button travel on the same frame) = 12 frames
     "nova_button_slam": [(1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2)],
+    "nova_button_hand": [(1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2)],
     "rin_reset_lookup": [(1, 10), (2, 8), (3, 8), (4, 8), (5, 8), (6, 8), (7, 10), (8, 12)],                   # 72 = S17b
 }
 # Sheets whose clock runs on across several shots instead of restarting in each one
@@ -189,7 +191,7 @@ def f(sec):
 SHOTS = [
     # ---- Act 1: trapped (0-15 s)
     # S01a: the door flies open and Rin bursts out straight at the lens (rin_burst_door)
-    ("S01a_door_burst",   0.0,  1.2, 35, (-0.092, 0.040, 1.108), (-0.090, 0.046, 1.109), (-0.106, 0.092, 1.114), (-0.102, 0.088, 1.112)),   # stays on her at the door through the slam
+    ("S01a_door_burst",   0.0,  1.2, 35, (-0.092, 0.040, 1.108), (-0.090, 0.046, 1.109), (-0.106, 0.092, 1.114), (-0.114, 0.090, 1.112)),   # stays on her at the door through the slam
     # S01b: she has slammed it behind her; fingers squirm out of the gap, she backs off in the foreground
     ("S01b_door_bang",    1.2,  2.5, 50, (-0.052, -0.025, 1.114), (-0.060, -0.010, 1.116), (-0.101, 0.107, 1.124), (-0.101, 0.107, 1.122)),   # ~21 deg off-axis so the dents read; fingers centred
     # S02: medium crane-down as the door bursts and the horde pours out after her (was a static wide)
@@ -2538,9 +2540,9 @@ def animate_story(rig):
     # ---- door: bangs in S01, bursts open at 2.5 s, shuts again on reset
     # S01a, frame-locked to the rin_door_slam cells (film frames; S01a is before any STORY_MAP stretch):
     # a first shoulder hit rattles it (f4), the second bursts it open (f7, cell 1) and it bangs into the wall,
-    # she stumbles out, spins back, grabs the edge (cell 7, f19) and heaves it shut (cell 9, f23)
+    # she stumbles out, spins back to the hinge side and shoves the leaf shut with her fists (cells 7-8, f19-22), slam on f23
     for fr, deg in ((1, 0), (3, 0), (4, -6), (6, 0), (7, -20), (9, -128), (12, -100), (16, -107),
-                    (19, -104), (21, -60), (23, 0), (25, -3), (27, 0)):
+                    (18, -95), (20, -55), (22, -12), (23, 0), (25, -3), (27, 0)):
         key_rot(hinge, fr, (0, 0, math.radians(deg)))
     for sec in DOOR_BANGS_S:
         key_rot(hinge, f(sec), (0, 0, math.radians(-8)))
@@ -2832,10 +2834,17 @@ def build_characters(C, M, face, tower_root):
     # so the 3D control it replaces is hidden for that shot. No art yet -> the shot just shows the keyed 3D controls.
     for name, sid, base_xyz, h, hide in (
             ("nova_joystick_hand", "S15n_nova_joystick", (-0.25, -0.58, 0.905), 0.26, ("joystick_ball", "joystick_shaft")),
-            ("nova_button_slam", "S15m_nova_button", (-0.08, -0.58, 0.872), 0.30, ("button_grab", "button_bezel"))):   # card sunk 3 cm: the drawn bezel's front edge sits in front of the card plane
+            # topi: the button should be the MODELLED one -> hand-only sheet, the 3D button stays and presses.
+            # The card sits 4.5 cm toward the lens (along the view line, so it frames the same) so her
+            # fingertips are in front of the button's near half, and shrinks to keep the same screen size.
+            ("nova_button_hand", "S15m_nova_button", (-0.059, -0.613, 0.894), 0.264, ())):
         if not os.path.isfile(os.path.join(ASSET_DIR, name + "_sheet.png")):
             continue
         o = sprite(name, name + ".png", h, base_xyz, ch, face, NOVA, shape="hand")
+        bs = o.data.materials[0].node_tree.nodes.get("Principled BSDF")
+        if bs:   # Nova is a real person, not an acrylic print: no milky sheen under the arcade lights up close
+            bs.inputs["Roughness"].default_value = 0.85
+            bs.inputs["Specular IOR Level"].default_value = 0.15
         rng = [shot_rng[sid]]
         key_visible(o, rng)
         animate_named(o, name, rng)
@@ -2849,8 +2858,8 @@ def build_characters(C, M, face, tower_root):
 
 # Rin's ground track through Act 1 (story s): out of the door, backing off, the chase run, the trip.
 # The crowd's chasers follow it with a lag, so the horde visibly runs after her.
-RIN_TRACK = [(0.0, (-0.110, 0.118)), (0.25, (-0.109, 0.108)), (0.55, (-0.103, 0.088)), (0.75, (-0.105, 0.092)),
-             (0.92, (-0.106, 0.094)), (1.15, (-0.096, 0.083)), (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
+RIN_TRACK = [(0.0, (-0.110, 0.118)), (0.25, (-0.109, 0.108)), (0.55, (-0.110, 0.088)), (0.62, (-0.112, 0.088)), (0.70, (-0.117, 0.087)),
+             (0.80, (-0.121, 0.088)), (0.92, (-0.114, 0.092)), (1.15, (-0.105, 0.085)),   # hinge side: she shoves the leaf shut toward +X (1.2, (-0.072, 0.066)), (2.5, (-0.062, 0.046)),
              (4.0, (-0.045, 0.027)), (5.0, (-0.015, 0.008)), (6.0, (0.025, 0.030)),
              (6.7, (TOWER_XY[0] - 0.040, TOWER_XY[1] - 0.090)), (7.3, (TOWER_XY[0], TOWER_XY[1] - 0.052)),
              (9.8, (TOWER_XY[0], TOWER_XY[1] - 0.052)), (10.3, (TOWER_XY[0], TOWER_XY[1] - 0.043))]
