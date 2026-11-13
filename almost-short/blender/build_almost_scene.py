@@ -85,6 +85,8 @@ ANIM = {
     "rin_backing_away":    (4, 2, 8, 12, "loop"),      # stumbling backwards
     "rin_boot_grab":       (4, 3, 12, 12, "once"),     # kick, pull, boot slips off, scramble free
     "rin_climb_back":      (4, 2, 8, 12, "loop"),      # ladder climb cycle
+    "rin_climb_back_boots": (4, 2, 8, 12, "loop"),     # same cycle, both boots on (S04a, before S03 tears one off)
+    "rin_ladder_boot_yank": (4, 3, 12, 12, "once"),    # S03 on the ladder: grabbed, yanked down a rung, boot torn off, scrambles up
     "door_fingers":        (3, 2, 6, 12, "loop"),      # S01 grey fingers squirming through the door gap
     "rin_cling_scared":    (4, 1, 4, 12, "loop"),      # trembling, glancing down
     "rin_look_up":         (4, 2, 8, 12, "once"),      # S06 sees the light: squints, shields eyes, awe
@@ -123,6 +125,7 @@ ANIM = {
 # finishing early and freezing. "once" holds the last cell, "loop" repeats the chart.
 TIMING = {
     "door_fingers":     [(1, 2), (2, 2), (3, 2), (4, 3), (5, 3), (6, 4), (5, 2), (4, 2), (3, 3), (2, 2), (1, 4)],
+    "rin_ladder_boot_yank": [(1, 5), (2, 5), (3, 5), (4, 4), (5, 4), (6, 5), (7, 5), (8, 6), (9, 6), (10, 5), (11, 5), (12, 5)],   # 60 = S03
     "rin_boot_grab":    [(1, 4), (2, 4), (3, 5), (4, 3), (5, 3), (6, 4), (7, 4), (8, 5), (9, 6), (10, 6), (11, 7), (12, 9)],   # 60 = S03
     "rin_cling_scared": [(1, 2), (2, 2), (1, 2), (2, 2), (3, 6), (4, 8), (1, 2), (2, 2), (1, 2), (2, 2), (1, 2), (2, 2),
                          (3, 8), (4, 10), (2, 2), (1, 2), (2, 2), (1, 2), (2, 2), (1, 2), (2, 4)],             # 72 = S05, irregular tremble
@@ -163,6 +166,9 @@ SPRITE_FALLBACK = {"rin_door_slam": "rin_burst_door", "rin_burst_door": "rin_run
 # Height multipliers, judged from her head size against rin_reset_lookup, so she keeps one size across cuts.
 SHEET_SCALE = {
     "rin_backing_away": 1.17, "rin_boot_grab": 1.5, "rin_climb_back": 1.12, "rin_cling_scared": 0.88,
+    "rin_climb_back_boots": 1.12,
+    # drawn ladder: rails 142 px apart in a 512 px cell; 2.0 puts them ~0.013 apart (3D ladder 0.012, hidden in S03)
+    "rin_ladder_boot_yank": 2.0,
     "rin_look_up": 0.97, "rin_slip_shock": 1.2, "rin_falling": 1.17, "rin_impact": 1.12,
     "rin_burst_door": 1.17, "rin_door_slam": 0.96,   # square 512 cells, figure ~410 px tall (run sheets: ~335 of 512)
     "rin_run_chase": 1.17, "rin_look_back": 1.17,
@@ -202,8 +208,8 @@ SHOTS = [
     ("S02c_look_back",    5.0,  6.0, 50, (0.025, 0.030, 1.113),  (0.065, 0.052, 1.113),  (-0.015, 0.008, 1.115), (0.025, 0.030, 1.115)),   # leads her (chasers stay behind her, not in the lens)
     # S04a: she reaches the tower and jumps on the ladder, the chasers right behind her
     ("S04a_run_climb",    6.0,  7.3, 35, (0.040, 0.000, 1.160),  (0.075, 0.050, 1.145),  (0.075, 0.065, 1.120), (0.100, 0.095, 1.130)),
-    # S03: they drag her back down off the ladder and tear the boot off (rin_boot_grab, at the tower foot)
-    ("S03_lost_boot",     7.3,  9.8, 50, (0.124, 0.030, 1.106),  (0.118, 0.039, 1.105),  (0.098, 0.088, 1.113), (0.098, 0.088, 1.113)),
+    # S03: a hand from below grabs her boot on the ladder, yanks her down a rung and tears the boot off (rin_ladder_boot_yank)
+    ("S03_lost_boot",     7.3,  9.8, 35, (0.114, 0.030, 1.110),  (0.112, 0.035, 1.109),  (0.100, 0.103, 1.122), (0.100, 0.103, 1.121)),   # whole yank card: she is still on the ladder
     # S04b: she kicks free and scrambles back up, hands clawing at her heels; low angle up the ladder
     ("S04b_climb_escape", 9.8, 12.0, 35, (0.108, 0.040, 1.112),  (0.106, 0.047, 1.140),  (0.100, 0.100, 1.128), (0.100, 0.100, 1.165)),   # low angle up the ladder, clawing hands either side
     # S05: high 3/4 down the ladder at her clinging, the pile clawing up below (was top-down on the tank lid)
@@ -250,7 +256,7 @@ SHOTS = [
 # Shots whose camera + aim ride with a moving object (coordinates above are then local to it)
 SHOT_PARENT = {"S09a_false_hope": "TOWER_ROOT", "S09b_hope_low": "TOWER_ROOT"}
 # Shots that aim past the subject but must keep her sharp
-SHOT_FOCUS = {"S01a_door_burst": "rin_door_slam", "S06_light_above": "rin_look_up", "S04a_run_climb": "rin_run_to_ladder", "S05_pile_topdown": "rin_cling_scared",
+SHOT_FOCUS = {"S01a_door_burst": "rin_door_slam", "S03_lost_boot": "rin_ladder_boot_yank", "S06_light_above": "rin_look_up", "S04a_run_climb": "rin_run_to_ladder", "S05_pile_topdown": "rin_cling_scared",
               "S09a_false_hope": "rin_cling_hope", "S09b_hope_low": "rin_cling_hope"}
 # Extra in-between camera keys: sid -> [(fraction of the shot, cam, aim)]
 SHOT_MID = {
@@ -2680,7 +2686,9 @@ def build_characters(C, M, face, tower_root):
     # (object, file, shots-visible, location, parent)
     defs = [
         ("rin_backing_away",  "rin_backing_away.png",  ["S01b_door_bang", "S02_establish"], (0.0, -0.03, ROOF_Z), None),
-        ("rin_boot_grab",     "rin_boot_grab.png",     ["S03_lost_boot"],                 (TOWER_XY[0], TOWER_XY[1] - 0.052, ROOF_Z), None),
+        # S03: still on the ladder when the hand tears the boot off; the sheet draws its own ladder, so its
+        # bottom edge sits on the roof at the ladder foot and the 3D ladder hides for the shot (below)
+        ("rin_ladder_boot_yank", "rin_ladder_boot_yank.png", ["S03_lost_boot"],           (0.0, -0.0372, 0.0), tower_root),
         ("rin_climb_back",    "rin_climb_back.png",    ["S04a_run_climb", "S04b_climb_escape"], (0.0, -0.0385, 0.035), tower_root),
         ("rin_cling_scared",  "rin_cling_scared.png",  ["S05_pile_topdown"],              (0.0, -0.0385, 0.075), tower_root),
         ("rin_look_up",       "rin_look_up.png",       ["S06_light_above"],               (0.0, -0.0385, 0.075), tower_root),
@@ -2727,22 +2735,35 @@ def build_characters(C, M, face, tower_root):
     a4b, b4 = shot_rng["S04b_climb_escape"]
     run_end = a4 + sum(h for _, h in TIMING["rin_run_to_ladder"])
     key_loc(cb, run_end, (0.0, -0.0385, 0.008))
-    key_loc(cb, b4a, (0.0, -0.0385, 0.016))     # two rungs up when they grab her ankle (cut to S03)
-    key_loc(cb, a4b, (0.0, -0.0385, 0.004))     # back on the bottom rung after the boot is torn off
-    key_loc(cb, a4b + 12, (0.0, -0.0385, 0.008)) # yanked once more...
-    key_loc(cb, b4, (0.0, -0.0385, 0.072))      # ...then a frantic climb out of reach
+    key_loc(cb, a4b, (0.0, -0.0385, 0.016))     # S03 ends with her scrambling up out of reach, bare left foot
+    key_loc(cb, b4, (0.0, -0.0385, 0.072))      # ...a frantic climb out of reach
     set_interp(cb, "LINEAR", "location")
     for prop in ("hide_render", "hide_viewport"):   # replace the full-shot visibility keyed above
         cb.keyframe_delete(prop, frame=a4)
-    key_visible(cb, [(a4b, b4)])     # S04a ends on the run sheet's leap onto the ladder (climb_back has her
-                                     # left foot bare, which only becomes true once S03 tears the boot off)
+    key_visible(cb, [(a4b, b4)])     # climb_back has her left foot bare, true only once S03 tears the boot off
+    # S04a after the leap: the same climb cycle with both boots, two rungs up when the hand grabs her (cut to S03)
+    cbb = sprite("rin_climb_back_boots", "rin_climb_back_boots.png", RIN_H, (0.0, -0.0385, 0.008), ch, face, RIN,
+                 parent=tower_root)
+    key_loc(cbb, run_end, (0.0, -0.0385, 0.008))
+    key_loc(cbb, b4a, (0.0, -0.0385, 0.016))
+    set_interp(cbb, "LINEAR", "location")
+    key_visible(cbb, [(run_end, b4a)])
+    animate_named(cbb, "rin_climb_back_boots", [(run_end, b4a)])
+    rin["rin_climb_back_boots"] = cbb
+    # the yank sheet draws the ladder itself: hide the 3D rails and rungs for S03 so there is only one ladder
+    a3, b3 = shot_rng["S03_lost_boot"]
+    for lo in [o for o in tower_root.children if o.name.startswith(("ladder_rail", "ladder_rung", "ladder_standoff"))]:
+        for prop in ("hide_render", "hide_viewport"):
+            setattr(lo, prop, False); lo.keyframe_insert(prop, frame=1)
+            setattr(lo, prop, True); lo.keyframe_insert(prop, frame=a3)
+            setattr(lo, prop, False); lo.keyframe_insert(prop, frame=b3 + 1)
+            set_interp(lo, "CONSTANT", prop)
     run = sprite("rin_run_to_ladder", "rin_run_to_ladder.png", RIN_H, (0, 0, ROOF_Z), ch, face, RIN, base_mat=base)
     key_loc(run, a4, (TOWER_XY[0] - 0.040, TOWER_XY[1] - 0.090, ROOF_Z))
     key_loc(run, run_end - 1, (TOWER_XY[0], TOWER_XY[1] - 0.043, ROOF_Z))
     set_interp(run, "LINEAR", "location")
-    key_loc(run, b4a, (TOWER_XY[0], TOWER_XY[1] - 0.043, ROOF_Z + 0.006))   # hangs on, feet off the roof
-    key_visible(run, [(a4, b4a)])
-    animate_named(run, "rin_run_to_ladder", [(a4, b4a)])
+    key_visible(run, [(a4, run_end - 1)])     # hands over to the booted climb cycle on the ladder
+    animate_named(run, "rin_run_to_ladder", [(a4, run_end - 1)])
     rin["rin_run_to_ladder"] = run
     # falling: leaves the ladder (world pos of the hanging tower) and lands on the roof at PIN_XY
     fall = sprite("rin_falling", "rin_falling.png", RIN_H, (0, 0, 0), ch, face, RIN)
@@ -2823,7 +2844,7 @@ def build_characters(C, M, face, tower_root):
     key_visible(fingers, [shot_rng["S01b_door_bang"]])
     animate_named(fingers, "door_fingers", [shot_rng["S01b_door_bang"]])
     # (the old 3 mm "lost boot" box on the roof read as a red-brown brick at that blur - audit #8 - so it is
-    #  gone; the boot stays in the zombie's hand on the rin_boot_grab sheet, and the prize tray keeps the callback)
+    #  gone; the boot stays in the zombie's hand on the rin_ladder_boot_yank sheet, and the prize tray keeps the callback)
     # Nova (real-world scale)
     NOVA = (0.55, 0.40, 0.78)
     nova_defs = [
@@ -2964,8 +2985,7 @@ TAKEDOWN_MOTION["contact"] = TAKEDOWN_MOTION["front"]
 # Camera thumps on the press peaks: shot -> [(frame offset into the shot, strength 0-1)].
 # S13a runs the pin clock from cell 1 (presses peak at c 4 and 31); S14 enters at cell 10 (c 27).
 PRESS_THUMPS = {
-    "S03_lost_boot":  [(1, 1.0), (30, 0.6), (44, 0.8)],       # dragged off the ladder, the pull, the boot rips off
-    "S04b_climb_escape": [(12, 0.7)],                          # yanked once more before she climbs clear
+    "S03_lost_boot":  [(11, 0.8), (16, 1.0), (34, 0.9)],      # the hand grabs, the yank down a rung, the boot rips off
     "S12b_surrounded": [(9, 1.2)],                             # the horde lands on her (pounce keys in build_crowd)
     "S01b_door_bang": [(f(sec) - f(2.0) + 1, 0.8) for sec in DOOR_BANGS_S],   # each bang jolts the lens
     "S12d_pressed": [(11, 1.0)],
