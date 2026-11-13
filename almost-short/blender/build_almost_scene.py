@@ -168,7 +168,7 @@ SHEET_SCALE = {
     "rin_backing_away": 1.17, "rin_boot_grab": 1.5, "rin_climb_back": 1.12, "rin_cling_scared": 0.88,
     "rin_climb_back_boots": 1.12,
     # drawn ladder: rails 142 px apart in a 512 px cell; 2.0 puts them ~0.013 apart (3D ladder 0.012, hidden in S03)
-    "rin_ladder_boot_yank": 2.0,
+    "rin_ladder_boot_yank": 2.3,     # tall enough that the drawn ladder fills the raised frame
     "rin_look_up": 0.97, "rin_slip_shock": 1.2, "rin_falling": 1.17, "rin_impact": 1.12,
     "rin_burst_door": 1.17, "rin_door_slam": 0.96,   # square 512 cells, figure ~410 px tall (run sheets: ~335 of 512)
     "rin_run_chase": 1.17, "rin_look_back": 1.17,
@@ -209,7 +209,7 @@ SHOTS = [
     # S04a: she reaches the tower and jumps on the ladder, the chasers right behind her
     ("S04a_run_climb",    6.0,  7.3, 35, (0.040, 0.000, 1.160),  (0.075, 0.050, 1.145),  (0.075, 0.065, 1.120), (0.100, 0.095, 1.130)),
     # S03: a hand from below grabs her boot on the ladder, yanks her down a rung and tears the boot off (rin_ladder_boot_yank)
-    ("S03_lost_boot",     7.3,  9.8, 35, (0.114, 0.030, 1.110),  (0.112, 0.035, 1.109),  (0.100, 0.103, 1.122), (0.100, 0.103, 1.121)),   # whole yank card: she is still on the ladder
+    ("S03_lost_boot",     7.3,  9.8, 35, (0.114, 0.030, 1.112),  (0.112, 0.035, 1.112),  (0.100, 0.103, 1.129), (0.100, 0.103, 1.129)),   # frame bottom ~4 mm above the roof: the zombie arm runs off the bottom edge, never meets the roof
     # S04b: she kicks free and scrambles back up, hands clawing at her heels; low angle up the ladder
     ("S04b_climb_escape", 9.8, 12.0, 35, (0.108, 0.040, 1.112),  (0.106, 0.047, 1.140),  (0.100, 0.100, 1.128), (0.100, 0.100, 1.165)),   # low angle up the ladder, clawing hands either side
     # S05: high 3/4 down the ladder at her clinging, the pile clawing up below (was top-down on the tank lid)
@@ -256,7 +256,7 @@ SHOTS = [
 # Shots whose camera + aim ride with a moving object (coordinates above are then local to it)
 SHOT_PARENT = {"S09a_false_hope": "TOWER_ROOT", "S09b_hope_low": "TOWER_ROOT"}
 # Shots that aim past the subject but must keep her sharp
-SHOT_FOCUS = {"S01a_door_burst": "rin_door_slam", "S03_lost_boot": "rin_ladder_boot_yank", "S04b_climb_escape": "rin_climb_back", "S06_light_above": "rin_look_up", "S04a_run_climb": "rin_run_to_ladder", "S05_pile_topdown": "rin_cling_scared",
+SHOT_FOCUS = {"S01a_door_burst": "rin_door_slam", "S04b_climb_escape": "rin_climb_back", "S06_light_above": "rin_look_up", "S04a_run_climb": "rin_run_to_ladder", "S05_pile_topdown": "rin_cling_scared",
               "S09a_false_hope": "rin_cling_hope", "S09b_hope_low": "rin_cling_hope"}
 # Extra in-between camera keys: sid -> [(fraction of the shot, cam, aim)]
 SHOT_MID = {
@@ -3815,10 +3815,31 @@ def build_rin_fill(C, tower_root):
     o.parent = tower_root
     o.location = (-0.03, -0.07, 0.12)    # upper-left, off the lens axis so the acrylic sheen does not flare
     lt.objects.link(o)
-    for fr, e in ((f(12.0) - 1, 0.0), (f(12.0), 0.12), (f(32.0), 0.12), (f(32.0) + 1, 0.0)):
+    # S09b looks up at her from a few cm with the ceiling lamp right above: the fill there only milked her out
+    for fr, e in ((f(12.0) - 1, 0.0), (f(12.0), 0.12), (f(28.0), 0.04), (f(30.0), 0.12), (f(32.0), 0.12), (f(32.0) + 1, 0.0)):
         L.energy = e
         L.keyframe_insert("energy", frame=fr)
     set_interp(L, "CONSTANT")
+
+
+# Per-shot exposure trim (stops). S09b: the tower is lifted right under the ceiling lamp and the low lens
+# looks up at the lit tank, so the whole frame went pale grey next to S09a/S10 (host check after render1).
+SHOT_EXPOSURE = {"S09b_hope_low": -0.8}
+
+
+def key_shot_exposure():
+    vs = bpy.context.scene.view_settings
+    for sid, a, b, *_ in SHOTS:
+        ev = SHOT_EXPOSURE.get(sid)
+        if ev is None:
+            continue
+        for fr, v in ((f(a) - 1, 0.0), (f(a), ev), (f(b) - 1, ev), (f(b), 0.0)):
+            vs.exposure = v
+            vs.keyframe_insert("exposure", frame=fr)
+    vs.exposure = 0.0
+    ad = bpy.context.scene.animation_data
+    if ad and ad.action:
+        set_interp(bpy.context.scene, "CONSTANT", "view_settings.exposure")
 
 
 def build_cameras(C):
@@ -4107,6 +4128,7 @@ def main():
     build_decals(C)
     build_lights(C)
     build_rin_fill(C, tower)
+    key_shot_exposure()
     build_cameras(C)
     animate_story({"tower": tower, "claw": claw, "pivots": pivots, "hinge": hinge, "face": face})
     bpy.context.scene.frame_set(1)
