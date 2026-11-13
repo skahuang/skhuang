@@ -1,0 +1,397 @@
+{
+  "version": "1.0",
+  "style_playbook": "custom:almost-miniature-standee-framebyframe",
+  "scenes": [
+    {
+      "id": "S01_door_bang",
+      "type": "animation",
+      "description": "Hook: door bulges under three hits, frame-by-frame zombie fingers squirm through the gap, rain. Timer 00:32 + text 最後一個倖存者.",
+      "start_seconds": 0.0,
+      "end_seconds": 2.5,
+      "shot_language": {
+        "shot_size": "extreme_close_up",
+        "camera_movement": "dolly_in",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "hook",
+      "overlay_notes": "Blender camera CAM_S01_door_bang"
+    },
+    {
+      "id": "S02_establish",
+      "type": "animation",
+      "description": "Door bursts, zombies pour out; Rin backs away across the rain-soaked rooftop.",
+      "start_seconds": 2.5,
+      "end_seconds": 6.0,
+      "shot_language": {
+        "shot_size": "establishing",
+        "camera_movement": "crane_down",
+        "lens_mm": 35,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "setup",
+      "overlay_notes": "Blender camera CAM_S02_establish"
+    },
+    {
+      "id": "S03_lost_boot",
+      "type": "animation",
+      "description": "Frame-by-frame: Rin falls, kicks, yanks free of a zombie hand and loses her left boot; red scratch marks, no blood.",
+      "start_seconds": 6.0,
+      "end_seconds": 8.5,
+      "shot_language": {
+        "shot_size": "close_up",
+        "camera_movement": "dolly_in",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "setup",
+      "overlay_notes": "Blender camera CAM_S03_lost_boot"
+    },
+    {
+      "id": "S04_run_climb",
+      "type": "animation",
+      "description": "Rin sprints to the water tower and climbs; zombies slam the legs.",
+      "start_seconds": 8.5,
+      "end_seconds": 12.0,
+      "shot_language": {
+        "shot_size": "medium",
+        "camera_movement": "tracking_right",
+        "lens_mm": 35,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "rising_action",
+      "overlay_notes": "Blender camera CAM_S04_run_climb"
+    },
+    {
+      "id": "S05_pile_topdown",
+      "type": "animation",
+      "description": "Top-down: the horde surrounds and piles up the tower; Rin trapped at the top.",
+      "start_seconds": 12.0,
+      "end_seconds": 15.0,
+      "shot_language": {
+        "shot_size": "wide",
+        "camera_movement": "orbital",
+        "lens_mm": 35,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "rising_action",
+      "overlay_notes": "Blender camera CAM_S05_pile_topdown"
+    },
+    {
+      "id": "S06_light_above",
+      "type": "animation",
+      "description": "Over-shoulder from below: Rin flinches at a white light, shields her eyes, stares in awe; the 'moon' flickers (clue).",
+      "start_seconds": 15.0,
+      "end_seconds": 18.0,
+      "shot_language": {
+        "shot_size": "wide",
+        "camera_movement": "tilt_up",
+        "lens_mm": 14,
+        "lighting_key": "volumetric",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "turning_point",
+      "overlay_notes": "Blender camera CAM_S06_light_above"
+    },
+    {
+      "id": "S07_claw_descends",
+      "type": "animation",
+      "description": "Giant claw descends and opens over the tower; Rin's fear turns to hope.",
+      "start_seconds": 18.0,
+      "end_seconds": 22.0,
+      "shot_language": {
+        "shot_size": "medium_wide",
+        "camera_movement": "static",
+        "lens_mm": 35,
+        "lighting_key": "volumetric",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "rising_action",
+      "overlay_notes": "Blender camera CAM_S07_claw_descends"
+    },
+    {
+      "id": "S08_grip_lift",
+      "type": "animation",
+      "description": "Claw grips and lifts the tower; zombies drop off the legs.",
+      "start_seconds": 22.0,
+      "end_seconds": 26.0,
+      "shot_language": {
+        "shot_size": "medium_wide",
+        "camera_movement": "crane_up",
+        "lens_mm": 35,
+        "lighting_key": "volumetric",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "rising_action",
+      "overlay_notes": "Blender camera CAM_S08_grip_lift"
+    },
+    {
+      "id": "S09_false_hope",
+      "type": "animation",
+      "description": "Tower rises before the 'moon' lamp; Rin smiles. Music peak.",
+      "start_seconds": 26.0,
+      "end_seconds": 30.0,
+      "shot_language": {
+        "shot_size": "medium",
+        "camera_movement": "tilt_up",
+        "lens_mm": 50,
+        "lighting_key": "volumetric",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S09_false_hope"
+    },
+    {
+      "id": "S10_slip",
+      "type": "animation",
+      "description": "Claw-machine wobble: the tower stays gripped but Rin's hands slip. Music cuts. Timer 00:02.",
+      "start_seconds": 30.0,
+      "end_seconds": 32.0,
+      "shot_language": {
+        "shot_size": "medium_wide",
+        "camera_movement": "static",
+        "lens_mm": 35,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S10_slip"
+    },
+    {
+      "id": "S11_fall",
+      "type": "animation",
+      "description": "Slow-motion: Rin falls from the tower, reaching up; the empty tower swings above. Timer 00:00.",
+      "start_seconds": 32.0,
+      "end_seconds": 34.5,
+      "shot_language": {
+        "shot_size": "medium_wide",
+        "camera_movement": "crane_down",
+        "lens_mm": 35,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S11_fall"
+    },
+    {
+      "id": "S12_impact",
+      "type": "animation",
+      "description": "She slams onto the wet roof in a splash; zombies lunge.",
+      "start_seconds": 34.5,
+      "end_seconds": 35.5,
+      "shot_language": {
+        "shot_size": "close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S12_impact"
+    },
+    {
+      "id": "S12b_surrounded",
+      "type": "animation",
+      "description": "Frame-by-frame: zombie legs and hands close in from every side; Rin scoots back on her hands, bumps into the cop zombie's legs and looks up over her shoulder.",
+      "start_seconds": 35.5,
+      "end_seconds": 36.5,
+      "shot_language": {
+        "shot_size": "close_up",
+        "camera_movement": "dolly_in",
+        "lens_mm": 35,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S12b_surrounded"
+    },
+    {
+      "id": "S12c_grabbed",
+      "type": "animation",
+      "description": "Frame-by-frame: the mechanic zombie grabs her bare left ankle and drags her down; the cop zombie grabs her hood and rolls her face down into the puddle. No blood.",
+      "start_seconds": 36.5,
+      "end_seconds": 38.0,
+      "shot_language": {
+        "shot_size": "close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S12c_grabbed"
+    },
+    {
+      "id": "S12d_pressed",
+      "type": "animation",
+      "description": "Frame-by-frame, same framing as S13a: she tries to push up, all four zombies pile on and press her cheek to the tiles; last frame matches S13a frame 1.",
+      "start_seconds": 38.0,
+      "end_seconds": 39.0,
+      "shot_language": {
+        "shot_size": "close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S12d_pressed"
+    },
+    {
+      "id": "S13a_pinned",
+      "type": "animation",
+      "description": "Pinned (ref image 3): cop pulls her hoodie, mechanic grips her hair, tourist pins her arm, tentacles bind arm and ankle. Frame-by-frame struggle loop: push up gritting teeth, cry out as hair is yanked, twist and kick, eyes dart up to the empty tower. Injuries, no blood.",
+      "start_seconds": 39.0,
+      "end_seconds": 40.5,
+      "shot_language": {
+        "shot_size": "extreme_close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S13a_pinned"
+    },
+    {
+      "id": "S13c_hand_press",
+      "type": "animation",
+      "description": "Macro insert: Z02's huge hand slams onto Rin's forearm, clamps it to the wet tiles, her fingers claw and drag, then go limp (pin_hand_press, 6 frames).",
+      "start_seconds": 40.5,
+      "end_seconds": 41.0,
+      "shot_language": {
+        "shot_size": "extreme_close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S13c_hand_press"
+    },
+    {
+      "id": "S13b_pinned_face",
+      "type": "animation",
+      "description": "Face ECU, expressions from the user's three pinned images: gritted teeth eyes shut -> eyes snap up to the tower -> desperate cry with tears -> defiant glare (holds on last frame).",
+      "start_seconds": 41.0,
+      "end_seconds": 43.0,
+      "shot_language": {
+        "shot_size": "extreme_close_up",
+        "camera_movement": "handheld",
+        "lens_mm": 50,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "climax",
+      "overlay_notes": "Blender camera CAM_S13b_pinned_face"
+    },
+    {
+      "id": "S14_pullback",
+      "type": "animation",
+      "description": "Pull back and up (ref images 2 then 1): the horde swallows her, the empty tower still dangles in the claw above.",
+      "start_seconds": 43.0,
+      "end_seconds": 46.0,
+      "shot_language": {
+        "shot_size": "wide",
+        "camera_movement": "crane_up",
+        "lens_mm": 24,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "resolution",
+      "overlay_notes": "Blender camera CAM_S14_pullback"
+    },
+    {
+      "id": "S15_glass_reveal",
+      "type": "animation",
+      "description": "One-take pull-out through the glass: rain stops, LED 00:00, the claw drops the empty tower in the prize chute (wrong prize), standee bases, lost boots, Nova at the joystick.",
+      "start_seconds": 46.0,
+      "end_seconds": 51.0,
+      "shot_language": {
+        "shot_size": "extreme_wide",
+        "camera_movement": "dolly_out",
+        "lens_mm": 35,
+        "lighting_key": "neon",
+        "depth_of_field": "shallow",
+        "color_temperature": "mixed"
+      },
+      "shot_intent": "reveal",
+      "overlay_notes": "Blender camera CAM_S15_glass_reveal"
+    },
+    {
+      "id": "S16_nova_almost",
+      "type": "animation",
+      "description": "Nova's ALMOST expression, glance at the tower in the chute; line 差一點…",
+      "start_seconds": 51.0,
+      "end_seconds": 55.0,
+      "shot_language": {
+        "shot_size": "close_up",
+        "camera_movement": "static",
+        "lens_mm": 85,
+        "lighting_key": "neon",
+        "depth_of_field": "shallow",
+        "color_temperature": "mixed"
+      },
+      "shot_intent": "resolution",
+      "overlay_notes": "Blender camera CAM_S16_nova_almost"
+    },
+    {
+      "id": "S17a_coin",
+      "type": "animation",
+      "description": "Nova pushes a token into the coin slot.",
+      "start_seconds": 55.0,
+      "end_seconds": 57.0,
+      "shot_language": {
+        "shot_size": "insert",
+        "camera_movement": "static",
+        "lens_mm": 50,
+        "lighting_key": "neon",
+        "depth_of_field": "shallow",
+        "color_temperature": "mixed"
+      },
+      "shot_intent": "resolution",
+      "overlay_notes": "Blender camera CAM_S17a_coin"
+    },
+    {
+      "id": "S17b_reset_loop",
+      "type": "animation",
+      "description": "Diorama resets; Rin, still scraped and muddy from the last round, looks up into camera; whip back to the door = frame 1 for a seamless loop. Text 再一局？",
+      "start_seconds": 57.0,
+      "end_seconds": 60.0,
+      "shot_language": {
+        "shot_size": "wide",
+        "camera_movement": "whip_pan",
+        "lens_mm": 35,
+        "lighting_key": "low_key",
+        "depth_of_field": "shallow",
+        "color_temperature": "cool"
+      },
+      "shot_intent": "loop",
+      "overlay_notes": "Blender camera CAM_S17b_reset_loop"
+    }
+  ]
+}
