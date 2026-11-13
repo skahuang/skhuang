@@ -256,7 +256,7 @@ SHOTS = [
 # Shots whose camera + aim ride with a moving object (coordinates above are then local to it)
 SHOT_PARENT = {"S09a_false_hope": "TOWER_ROOT", "S09b_hope_low": "TOWER_ROOT"}
 # Shots that aim past the subject but must keep her sharp
-SHOT_FOCUS = {"S01a_door_burst": "rin_door_slam", "S03_lost_boot": "rin_ladder_boot_yank", "S06_light_above": "rin_look_up", "S04a_run_climb": "rin_run_to_ladder", "S05_pile_topdown": "rin_cling_scared",
+SHOT_FOCUS = {"S01a_door_burst": "rin_door_slam", "S03_lost_boot": "rin_ladder_boot_yank", "S04b_climb_escape": "rin_climb_back", "S06_light_above": "rin_look_up", "S04a_run_climb": "rin_run_to_ladder", "S05_pile_topdown": "rin_cling_scared",
               "S09a_false_hope": "rin_cling_hope", "S09b_hope_low": "rin_cling_hope"}
 # Extra in-between camera keys: sid -> [(fraction of the shot, cam, aim)]
 SHOT_MID = {
@@ -841,6 +841,57 @@ def hide_bases_in_close_shots():
                 o.keyframe_insert(prop, frame=fb)
             set_interp(o, "CONSTANT")
         o.hide_viewport = False
+
+
+# Shots where a crowd card passing right in front of the lens reads as a glitch (host check: S03 f184-186,
+# a chaser walking to its ladder-foot spot sweeps across the 35 mm lens and blanks the frame for 3 frames)
+LENS_CLEAR_SHOTS = {"S03_lost_boot": 0.056}     # sid -> hide crowd cards nearer the lens than this (m, along the view)
+
+
+def clear_lens_in_shots():
+    """Hide, for the whole shot, any crowd card that comes within LENS_CLEAR_SHOTS[sid] of the lens inside the frame."""
+    for sid, a, b, lens, c0, c1, t0, t1 in SHOTS:
+        near = LENS_CLEAR_SHOTS.get(sid)
+        if near is None:
+            continue
+        fa, fb = f(a), f(b)
+        half = 12.0 / lens * 9.0 / 16.0        # horizontal half-width per metre of depth (VERTICAL fit, 24 mm, 9:16)
+        for o in [o for o in bpy.data.objects if o.name.startswith("zombie_") and not o.name.endswith("_base")]:
+            fcs = {(fc.data_path, fc.array_index): fc for fc in fcurves_of(o)} if o.animation_data else {}
+            hit = False
+            for fr in range(fa, fb):
+                hf = fcs.get(("hide_render", 0))
+                if (hf.evaluate(fr) > 0.5) if hf else o.hide_render:
+                    continue
+                k = (fr - fa) / max(1, fb - fa)
+                cx, cy = c0[0] + (c1[0] - c0[0]) * k, c0[1] + (c1[1] - c0[1]) * k
+                ax, ay = t0[0] + (t1[0] - t0[0]) * k - cx, t0[1] + (t1[1] - t0[1]) * k - cy
+                L = math.hypot(ax, ay)
+                ax, ay = ax / L, ay / L
+                px = (fcs[("location", 0)].evaluate(fr) if ("location", 0) in fcs else o.location.x) - cx
+                py = (fcs[("location", 1)].evaluate(fr) if ("location", 1) in fcs else o.location.y) - cy
+                t = px * ax + py * ay
+                if 0.0 < t < near and abs(px * ay - py * ax) < half * t + 0.012:
+                    hit = True
+                    break
+            if not hit:
+                continue
+            print("lens clear:", sid, o.name, fr, round(t, 3))
+            for ob in [o] + [c for c in o.children if c.name.endswith("_base")]:
+                ofc = {fc.data_path: fc for fc in fcurves_of(ob)} if ob.animation_data else {}
+                for prop in ("hide_render", "hide_viewport"):
+                    fc = ofc.get(prop)
+                    after = bool(fc.evaluate(fb) > 0.5) if fc else bool(getattr(ob, prop))
+                    if fc:
+                        for i in reversed(range(len(fc.keyframe_points))):
+                            if fa <= fc.keyframe_points[i].co.x <= fb:
+                                fc.keyframe_points.remove(fc.keyframe_points[i])
+                    setattr(ob, prop, True)
+                    ob.keyframe_insert(prop, frame=fa)
+                    setattr(ob, prop, after)
+                    ob.keyframe_insert(prop, frame=fb)
+                    set_interp(ob, "CONSTANT", prop)     # only the visibility curves: the cards keep moving
+                ob.hide_viewport = False
 
 
 # --------------------------------------------------------------------------
@@ -3805,6 +3856,8 @@ def build_cameras(C):
         cd.dof.aperture_fstop = 8.0 if sid in ("S01a_door_burst", "S04a_run_climb", "S01b_door_bang", "S02b_chase_low", "S02c_look_back", "S03_lost_boot", "S15c_prize_tray", "S15n_nova_joystick", "S15m_nova_button", "S15d_chute_drop", "S09a_false_hope", "S09b_hope_low", "S05_pile_topdown", "S12_impact", "S12b_surrounded", "S12c_grabbed", "S12d_pressed", "S13a_pinned", "S13c_hand_press", "S13b_pinned_face", "S17b_reset_loop") else 2.8
         if sid in ("S09a_false_hope", "S09b_hope_low", "S12b_surrounded"):   # a few cm from her: deep focus or she melts
             cd.dof.aperture_fstop = 22.0
+        if sid == "S04b_climb_escape":  # low lens looking up the ladder: f/2.8 left her soft above the bottom rungs
+            cd.dof.aperture_fstop = 16.0
         if sid == "S06_light_above":    # 3 cm from her: needs deep focus to keep face and the light above readable
             cd.dof.aperture_fstop = 22.0
         if sid == "S02_establish":      # the burst-through beat: deep focus so the door AND the horde pouring out read
@@ -4032,6 +4085,7 @@ def main():
     unlink_cab_front_from_nova_cards()
     crowd = build_crowd(C, M, face)
     hide_bases_in_close_shots()
+    clear_lens_in_shots()
     build_arcade_room(C, M)
     print("arcade detail objects:", build_arcade_details(bpy.data.collections["ARCADE_ROOM"], M))
     # S17a coin close-up: the chrome coin plate only mirrors the dark room, so give it a soft key light
